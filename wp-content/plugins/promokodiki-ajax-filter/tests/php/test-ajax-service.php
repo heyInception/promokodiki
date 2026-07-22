@@ -16,10 +16,13 @@ Promokodiki_Filter_Test_Harness::run(
 		);
 		Promokodiki_Filter_Test_Harness::assert_true( is_array( $payload ) );
 		Promokodiki_Filter_Test_Harness::assert_same(
-			array( 'html', 'page', 'has_more', 'total', 'message' ),
+			array( 'html', 'page', 'has_more', 'total', 'message', 'state', 'category_options', 'brand_options' ),
 			array_keys( $payload )
 		);
 		Promokodiki_Filter_Test_Harness::assert_same( 1, $payload['page'] );
+		Promokodiki_Filter_Test_Harness::assert_true( isset( $payload['state'] ) );
+		Promokodiki_Filter_Test_Harness::assert_true( isset( $payload['category_options'] ) );
+		Promokodiki_Filter_Test_Harness::assert_true( isset( $payload['brand_options'] ) );
 	}
 );
 

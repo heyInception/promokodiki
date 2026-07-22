@@ -33,6 +33,15 @@
     if (popular) popular.checked = state.popular;
   }
 
+  function replaceSelectOptions(select, placeholder, options, selected) {
+    if (!select) return;
+    const fragment = document.createDocumentFragment();
+    if (placeholder) fragment.append(new Option(placeholder, '0'));
+    options.forEach((item) => fragment.append(new Option(item.label, String(item.id))));
+    select.replaceChildren(fragment);
+    select.value = String(selected || 0);
+  }
+
   function updateUrl(state) {
     const url = new URL(window.location.href);
     ['paf_category', 'paf_brand', 'paf_sort', 'paf_popular', 'paf_page'].forEach((key) => url.searchParams.delete(key));
@@ -45,7 +54,13 @@
     const results = root.querySelector('[data-filter-results]');
     const more = root.querySelector('[data-filter-more]');
     const status = root.querySelector('[data-filter-status]');
-    if (!form || !results || !more || !status) return;
+    const loader = root.querySelector('[data-filter-loader]');
+    if (!form || !results || !more || !status || !loader) return;
+
+    const category = form.elements.namedItem('paf_category');
+    const brand = form.elements.namedItem('paf_brand');
+    const categoryPlaceholder = category && category.options[0]?.value === '0' ? category.options[0].text : '';
+    const brandPlaceholder = brand && brand.options[0]?.value === '0' ? brand.options[0].text : '';
 
     let page = 1;
     let controller = null;
@@ -54,6 +69,8 @@
     function setLoading(loading) {
       root.classList.toggle('is-loading', loading);
       results.setAttribute('aria-busy', loading ? 'true' : 'false');
+      loader.hidden = !loading;
+      loader.setAttribute('aria-hidden', loading ? 'false' : 'true');
       Array.from(form.elements).forEach((element) => { element.disabled = loading; });
       more.disabled = loading;
       if (loading) status.textContent = config.loadingLabel;
@@ -103,12 +120,18 @@
           throw new Error(json.data && json.data.message ? json.data.message : config.genericError);
         }
 
-        if (append) results.insertAdjacentHTML('beforeend', json.data.html);
-        else results.innerHTML = json.data.html;
+        if (append) {
+          results.insertAdjacentHTML('beforeend', json.data.html);
+        } else {
+          results.innerHTML = json.data.html;
+          replaceSelectOptions(category, categoryPlaceholder, json.data.category_options, json.data.state.category);
+          replaceSelectOptions(brand, brandPlaceholder, json.data.brand_options, json.data.state.brand);
+          applyState(form, json.data.state);
+          if (pushUrl) updateUrl(json.data.state);
+        }
         page = requestedPage;
         more.hidden = !json.data.has_more;
         status.textContent = json.data.message;
-        if (pushUrl) updateUrl(state);
       } catch (error) {
         if (error.name !== 'AbortError') showError(error);
       } finally {

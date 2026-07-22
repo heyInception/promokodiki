@@ -56,6 +56,8 @@ try {
 			Promokodiki_Filter_Test_Harness::assert_contains( 'name="paf_popular"', $html );
 			Promokodiki_Filter_Test_Harness::assert_not_contains( 'Проверенные', $html );
 			Promokodiki_Filter_Test_Harness::assert_contains( 'aria-live="polite"', $html );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'data-filter-loader', $html );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'aria-hidden="true"', $html );
 		}
 	);
 

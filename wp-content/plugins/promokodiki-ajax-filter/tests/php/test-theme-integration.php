@@ -62,4 +62,18 @@ Promokodiki_Filter_Test_Harness::run(
 	}
 );
 
+Promokodiki_Filter_Test_Harness::run(
+	'filter assets synchronize dropdowns and display the loader',
+	static function (): void {
+		$script = file_get_contents( PROMOKODIKI_FILTER_DIR . 'assets/js/filter.js' );
+		$styles = file_get_contents( PROMOKODIKI_FILTER_DIR . 'assets/css/filter.css' );
+
+		Promokodiki_Filter_Test_Harness::assert_true( false !== $script );
+		Promokodiki_Filter_Test_Harness::assert_true( false !== $styles );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'replaceSelectOptions', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'data-filter-loader', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( '@keyframes promokodiki-filter-spin', $styles );
+	}
+);
+
 Promokodiki_Filter_Test_Harness::finish();

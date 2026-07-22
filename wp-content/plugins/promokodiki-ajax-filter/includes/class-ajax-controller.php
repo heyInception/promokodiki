@@ -37,7 +37,13 @@ final class Promokodiki_Filter_Ajax_Controller {
 
 		$settings = Promokodiki_Filter_Settings::get();
 		$state    = Promokodiki_Filter_State::from_request( $request, $settings, $type );
-		$result   = Promokodiki_Filter_Query_Service::run( $state, $context, $settings );
+		$options  = Promokodiki_Filter_Option_Service::build( $context, $state );
+		if ( is_wp_error( $options ) ) {
+			return $options;
+		}
+		$state = $options['state'];
+
+		$result = Promokodiki_Filter_Query_Service::run( $state, $context, $settings );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
@@ -55,11 +61,19 @@ final class Promokodiki_Filter_Ajax_Controller {
 		}
 
 		return array(
-			'html'     => $html,
-			'page'     => (int) $result['page'],
-			'has_more' => (bool) $result['has_more'],
-			'total'    => (int) $result['total'],
-			'message'  => $message,
+			'html'             => $html,
+			'page'             => (int) $result['page'],
+			'has_more'         => (bool) $result['has_more'],
+			'total'            => (int) $result['total'],
+			'message'          => $message,
+			'state'            => array(
+				'category' => (string) $state['category_id'],
+				'brand'    => (string) $state['brand_id'],
+				'sort'     => $state['sort'],
+				'popular'  => (bool) $state['popular'],
+			),
+			'category_options' => $options['category_options'],
+			'brand_options'    => $options['brand_options'],
 		);
 	}
 

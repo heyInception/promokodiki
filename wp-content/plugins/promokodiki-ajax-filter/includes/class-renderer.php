@@ -19,7 +19,15 @@ final class Promokodiki_Filter_Renderer {
 		$settings = Promokodiki_Filter_Settings::get();
 		$request  = is_array( $_GET ) ? wp_unslash( $_GET ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$state    = Promokodiki_Filter_State::from_request( $request, $settings, $type );
-		$result   = Promokodiki_Filter_Query_Service::run( $state, $context, $settings );
+		$options  = Promokodiki_Filter_Option_Service::build( $context, $state );
+		if ( is_wp_error( $options ) ) {
+			return self::error_markup( $options->get_error_message() );
+		}
+		$state                       = $options['state'];
+		$context['category_options'] = $options['category_options'];
+		$context['brand_options']    = $options['brand_options'];
+
+		$result = Promokodiki_Filter_Query_Service::run( $state, $context, $settings );
 		if ( is_wp_error( $result ) ) {
 			return self::error_markup( $result->get_error_message() );
 		}
@@ -42,6 +50,9 @@ final class Promokodiki_Filter_Renderer {
 			data-context-token="<?php echo esc_attr( $context_token ); ?>"
 		>
 			<?php require PROMOKODIKI_FILTER_DIR . 'templates/filter-form.php'; ?>
+			<div class="promokodiki-filter__loader" data-filter-loader aria-hidden="true" hidden>
+				<span class="screen-reader-text"><?php esc_html_e( 'Загрузка…', 'promokodiki-ajax-filter' ); ?></span>
+			</div>
 			<div class="promocodes__items" data-filter-results aria-live="polite" aria-busy="false">
 				<?php echo $cards_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Card template escapes fields. ?>
 			</div>
