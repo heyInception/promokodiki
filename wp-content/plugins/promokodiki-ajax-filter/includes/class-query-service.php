@@ -125,7 +125,10 @@ final class Promokodiki_Filter_Query_Service {
 			$clauses[] = self::term_clause( 'shops_category', (int) $context['object_id'], false );
 		}
 		if ( ! empty( $state['brand_id'] ) ) {
-			$clauses[] = self::term_clause( 'promocode_brand', (int) $state['brand_id'], false );
+			$brand_taxonomy = isset( $context['brand_taxonomy'] ) && taxonomy_exists( $context['brand_taxonomy'] )
+				? $context['brand_taxonomy']
+				: 'shops_category';
+			$clauses[] = self::term_clause( $brand_taxonomy, (int) $state['brand_id'], false );
 		}
 
 		if ( count( $clauses ) > 1 ) {

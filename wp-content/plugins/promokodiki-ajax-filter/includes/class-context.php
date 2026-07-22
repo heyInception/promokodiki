@@ -55,7 +55,7 @@ final class Promokodiki_Filter_Context {
 		);
 		$brands = get_terms(
 			array(
-				'taxonomy'   => 'promocode_brand',
+				'taxonomy'   => 'shops_category',
 				'hide_empty' => true,
 				'orderby'    => 'name',
 				'order'      => 'ASC',
@@ -70,6 +70,7 @@ final class Promokodiki_Filter_Context {
 			'object_id'            => 0,
 			'category_options'     => self::term_options( $categories ),
 			'brand_options'        => self::term_options( $brands ),
+			'brand_taxonomy'       => 'shops_category',
 			'allowed_category_ids' => array_map( 'intval', wp_list_pluck( $categories, 'term_id' ) ),
 			'allowed_brand_ids'    => array_map( 'intval', wp_list_pluck( $brands, 'term_id' ) ),
 		);
@@ -95,6 +96,7 @@ final class Promokodiki_Filter_Context {
 			'object_id'            => (int) $current->term_id,
 			'category_options'     => $options,
 			'brand_options'        => array(),
+			'brand_taxonomy'       => 'shops_category',
 			'allowed_category_ids' => array_map( 'intval', wp_list_pluck( $options, 'id' ) ),
 			'allowed_brand_ids'    => array(),
 		);
@@ -127,15 +129,27 @@ final class Promokodiki_Filter_Context {
 		);
 
 		$brands = $query->posts
-			? wp_get_object_terms( $query->posts, 'promocode_brand', array( 'orderby' => 'name', 'order' => 'ASC' ) )
+			? wp_get_object_terms( $query->posts, 'shops_category', array( 'orderby' => 'name', 'order' => 'ASC' ) )
 			: array();
 		$brands = is_wp_error( $brands ) ? array() : $brands;
+		$children = get_term_children( (int) $current->term_id, 'shops_category' );
+		$branch_ids = array_merge(
+			array( (int) $current->term_id ),
+			is_wp_error( $children ) ? array() : array_map( 'intval', $children )
+		);
+		$brands = array_values(
+			array_filter(
+				$brands,
+				static fn( WP_Term $term ): bool => in_array( (int) $term->term_id, $branch_ids, true )
+			)
+		);
 
 		return array(
 			'type'                 => 'shop',
 			'object_id'            => (int) $current->term_id,
 			'category_options'     => array(),
 			'brand_options'        => self::term_options( $brands ),
+			'brand_taxonomy'       => 'shops_category',
 			'allowed_category_ids' => array(),
 			'allowed_brand_ids'    => array_map( 'intval', wp_list_pluck( $brands, 'term_id' ) ),
 		);

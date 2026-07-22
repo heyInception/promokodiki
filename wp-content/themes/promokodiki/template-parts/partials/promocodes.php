@@ -12,12 +12,19 @@ if (!function_exists('promocodes_sections')) {
           <div class="container">
             <div class="promocodes__row">
               <div class="promocodes__column">
+                <?php if (function_exists('promokodiki_filter_render')) : ?>
+                  <?php
+                  promokodiki_filter_render(array(
+                    'context' => 'home',
+                    'object_id' => 0,
+                  ));
+                  ?>
+                <?php else : ?>
                 <div class="promocodes__filters">
                   <div class="promocodes__filters-wrap">
-                    <?php echo do_shortcode('[fe_widget id="2853" horizontal="no" show_count="no"]'); ?>
+                    <p><?php esc_html_e('Активируйте Promokodiki AJAX Filter.', 'promokodiki'); ?></p>
                   </div>
                   <div class="promocodes__sort">
-                    <?php echo do_shortcode('[fe_sort id="2"]'); ?>
                   </div>
                 </div>
                 <div class="promocodes__items">
@@ -210,6 +217,7 @@ if (!function_exists('promocodes_sections')) {
                     <p class="no-promocodes">На данный момент нет активных промокодов.</p>
                   <?php endif; ?>
                 </div>
+                <?php endif; ?>
               </div>
               <aside class="promocodes__aside">
                 <div class="promocodes__rating">

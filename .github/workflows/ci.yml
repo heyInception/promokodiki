@@ -18,10 +18,15 @@ jobs:
           coverage: none
       - name: PHP syntax
         shell: bash
-        run: find wp-content/themes/promokodiki wp-content/plugins/admitad-coupons -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find wp-content/themes/promokodiki wp-content/plugins/admitad-coupons wp-content/plugins/promokodiki-ajax-filter -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Security policy
         shell: bash
         run: |
-          ! grep -RInE --include='*.php' "sslverify['\"[:space:]]*=>[[:space:]]*false" wp-content/themes/promokodiki wp-content/plugins/admitad-coupons
-          ! grep -RInE --include='*.php' "(client_secret|access_token)[[:space:]]*=[[:space:]]*['\"][A-Za-z0-9_-]{20,}" wp-content/themes/promokodiki wp-content/plugins/admitad-coupons
-
+          ! grep -RInE --include='*.php' "sslverify['\"[:space:]]*=>[[:space:]]*false" wp-content/themes/promokodiki wp-content/plugins/admitad-coupons wp-content/plugins/promokodiki-ajax-filter
+          ! grep -RInE --include='*.php' "(client_secret|access_token)[[:space:]]*=[[:space:]]*['\"][A-Za-z0-9_-]{20,}" wp-content/themes/promokodiki wp-content/plugins/admitad-coupons wp-content/plugins/promokodiki-ajax-filter
+      - name: Install WordPress Coding Standards
+        run: |
+          composer global config allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer global require --dev wp-coding-standards/wpcs:^3.0
+      - name: WordPress Coding Standards
+        run: phpcs --standard=wp-content/plugins/promokodiki-ajax-filter/phpcs.xml.dist wp-content/plugins/promokodiki-ajax-filter

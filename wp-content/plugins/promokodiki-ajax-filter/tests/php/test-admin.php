@@ -33,11 +33,32 @@ Promokodiki_Filter_Test_Harness::run(
 	static function (): void {
 		$admins = get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ids' ) );
 		$original_user = get_current_user_id();
-		wp_set_current_user( (int) $admins[0] );
-		ob_start();
-		Promokodiki_Filter_Settings::render_conflict_notice();
-		$html = (string) ob_get_clean();
-		wp_set_current_user( $original_user );
+		$original_plugins = get_option( 'active_plugins', array() );
+		$html = '';
+
+		try {
+			update_option(
+				'active_plugins',
+				array_values(
+					array_unique(
+						array_merge(
+							$original_plugins,
+							array(
+								'filter-everything/filter-everything.php',
+								'filter-everything-pro/filter-everything.php',
+							)
+						)
+					)
+				)
+			);
+			wp_set_current_user( (int) $admins[0] );
+			ob_start();
+			Promokodiki_Filter_Settings::render_conflict_notice();
+			$html = (string) ob_get_clean();
+		} finally {
+			update_option( 'active_plugins', $original_plugins );
+			wp_set_current_user( $original_user );
+		}
 
 		Promokodiki_Filter_Test_Harness::assert_contains( 'Filter Everything', $html );
 		Promokodiki_Filter_Test_Harness::assert_contains( 'Filter Everything Pro', $html );

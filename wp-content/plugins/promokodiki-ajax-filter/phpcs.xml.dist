@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<ruleset name="Promokodiki AJAX Filter">
+	<description>WordPress Coding Standards for the Promokodiki AJAX Filter plugin.</description>
+	<file>.</file>
+	<exclude-pattern>tests/*</exclude-pattern>
+	<arg name="extensions" value="php"/>
+	<arg value="sp"/>
+	<config name="minimum_supported_wp_version" value="7.0"/>
+	<rule ref="WordPress"/>
+	<rule ref="WordPress-Docs"/>
+	<rule ref="WordPress-Extra"/>
+</ruleset>

@@ -1,50 +1,17 @@
 
-jQuery(document).ready(function ($) {
-    // Обработчик для статически загруженных элементов
-    initPromocodeHandlers();
-    // Функция для инициализации обработчиков
-    function initPromocodeHandlers() {
-        // Используем делегирование событий для работы с динамическими элементами
-        $(document).on('click', '.promocodes__view, .top__button, .promocodes__link', function (e) {
-            e.preventDefault();
+jQuery(function ($) {
+    $(document).on('click', '.promocodes__view, .top__button, .promocodes__link', function (event) {
+        event.preventDefault();
 
-            var postId = $(this).data('post-id');
-            var $this = $(this);
+        var $button = $(this);
+        var postId = $button.data('post-id');
 
-            // Если это ссылка, разрешаем стандартное поведение
-            if ($this.hasClass('promocodes__link')) {
-                window.open($this.attr('href'), '_blank');
-            }
-
-            $.ajax({
-                url: my_ajax.url,
-                type: 'POST',
-                data: {
-                    action: 'increment_promocode_count',
-                    post_id: postId,
-                    nonce: my_ajax.nonce // Добавляем nonce для безопасности
-                },
-                success: function (response) {
-                    if (response.success) {
-                        $('[data-post-id="' + postId + '"] .promocodes__used, [data-post-id="' + postId + '"] .top__quantity').text(response.data.new_count + ' Применено');
-
-                        // Если это кнопка "Посмотреть код", открываем модалку
-                        if ($this.hasClass('promocodes__view')) {
-                            // Проверяем наличие функции
-                            if (typeof window.openPromoModal === 'function') {
-                                window.openPromoModal(postId);
-                            } else {
-                                console.error('Функция openPromoModal не определена');
-                            }
-                        }
-                    }
-                },
-                error: function (xhr, status, error) {
-                    console.error('AJAX Error:', error);
-                }
-            });
-        });
-    }
+        if ($button.hasClass('promocodes__link')) {
+            window.open($button.attr('href'), '_blank');
+        } else if ($button.hasClass('promocodes__view') && typeof window.openPromoModal === 'function') {
+            window.openPromoModal(postId);
+        }
+    });
 });
 
 

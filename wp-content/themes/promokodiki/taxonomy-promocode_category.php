@@ -74,14 +74,21 @@ $category_image = get_term_meta($current_category->term_id, 'category_image', tr
     <div class="container">
         <div class="promocodes__row">
             <div class="promocodes__column">
+                <?php if (function_exists('promokodiki_filter_render')) : ?>
+                    <?php
+                    promokodiki_filter_render(array(
+                        'context' => 'category',
+                        'object_id' => get_queried_object_id(),
+                    ));
+                    ?>
+                <?php else : ?>
                 <div class="promocodes__filters">
                     <div class="promocodes__filters-wrap">
-                        <?php //echo do_shortcode('[fe_widget id="99" horizontal="no" show_count="no"]'); ?>
+                        <p><?php esc_html_e('Активируйте Promokodiki AJAX Filter.', 'promokodiki'); ?></p>
                        
                     </div>
 
                     <div class="promocodes__sort">
-                        <?php echo do_shortcode('[fe_sort id="2"]'); ?>
                     </div>
                 </div>
 
@@ -127,6 +134,7 @@ $category_image = get_term_meta($current_category->term_id, 'category_image', tr
                         <p class="no-promocodes">В этой категории пока нет промокодов.</p>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
                 <?php if (category_description()) : ?>
                     <div class="promocodes__desc">
                         <?php echo category_description(); ?>

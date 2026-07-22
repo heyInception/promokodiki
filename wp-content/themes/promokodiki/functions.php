@@ -213,24 +213,6 @@ function svg_upload_allow($mimes)
 }
 // Обработчик AJAX для увеличения счетчика использований
 // Обработчик AJAX для увеличения счетчика использований
-function increment_promocode_used_count()
-{
-	if (!isset($_POST['post_id'])) {
-		wp_send_json_error('Не указан ID промокода');
-	}
-
-	$post_id = intval($_POST['post_id']);
-	$current_count = get_post_meta($post_id, '_promocode_used_count', true) ?: 0;
-	$new_count = $current_count + 1;
-
-	update_post_meta($post_id, '_promocode_used_count', $new_count);
-
-	wp_send_json_success(array(
-		'new_count' => $new_count
-	));
-}
-add_action('wp_ajax_increment_promocode_count', 'increment_promocode_used_count');
-add_action('wp_ajax_nopriv_increment_promocode_count', 'increment_promocode_used_count');
 
 // Handle promocode feedback (like/dislike)
 function handle_promocode_feedback()
@@ -312,78 +294,6 @@ add_filter('upload_mimes', 'cc_mime_types');
 
 
 // Добавляем обработчик AJAX
-add_action('wp_ajax_load_more_promocodes', 'load_more_promocodes');
-add_action('wp_ajax_nopriv_load_more_promocodes', 'load_more_promocodes');
-
-function load_more_promocodes()
-{
-	check_ajax_referer('promokodiki_frontend', 'nonce');
-	$page = isset($_POST['page']) ? intval($_POST['page']) : 1;
-	$category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '';
-	$post_type = isset($_POST['post_type']) ? sanitize_text_field($_POST['post_type']) : '';
-	$tab      = isset($_POST['tab']) ? sanitize_text_field($_POST['tab']) : ''; // ⚡ добавили
-
-	$args = array(
-		'posts_per_page' => 6,
-		'paged' => $page,
-		'post_status' => 'publish',
-	);
-
-	// Устанавливаем тип поста и таксономию
-	if ($post_type === 'shops') {
-		$args['post_type'] = 'promocode';
-		$taxonomy = 'shops_category';
-	} elseif ($post_type === 'promocode') {
-		$args['post_type'] = 'promocode';
-		$taxonomy = 'promocode_category';
-	} else {
-		$args['post_type'] = 'promocode';
-		$taxonomy = 'promocode_category';
-	}
-
-	// Добавляем параметры категории
-	if (!empty($category) && !empty($taxonomy)) {
-		$args['tax_query'] = array(
-			array(
-				'taxonomy' => $taxonomy,
-				'field' => 'slug',
-				'terms' => $category,
-			)
-		);
-	}
-
-	// ⚡ Сортировки для разных табов
-	if ($tab === 'top') {
-		// например сортируем по количеству использований
-		$args['meta_key'] = '_promocode_used_count';
-		$args['orderby']  = 'meta_value_num';
-		$args['order']    = 'DESC';
-	} elseif ($tab === 'new') {
-		$args['orderby'] = 'date';
-		$args['order']   = 'DESC';
-	} elseif ($tab === 'discussed') {
-		// сортируем по лайкам
-		$args['meta_key'] = '_promocode_likes';
-		$args['orderby']  = 'meta_value_num';
-		$args['order']    = 'DESC';
-	}
-
-	$query = new WP_Query($args);
-
-	if ($query->have_posts()) {
-		while ($query->have_posts()) {
-			$query->the_post();
-			get_template_part('template-parts/promocode-card');
-		}
-		wp_reset_postdata();
-	} else {
-		echo '<p class="no-promocodes">Больше промокодов нет.</p>';
-	}
-
-	wp_die();
-}
-
-
 // Добавляем переменную ajaxurl для фронтенда
 add_action('wp_head', 'add_ajaxurl');
 function add_ajaxurl()

@@ -28,3 +28,34 @@
 .promocodes__popular:has(input:checked) {
   font-weight: 600;
 }
+
+.promocodes__popular {
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .promokodiki-filter .promocodes__filters {
+    flex-flow: row nowrap;
+    gap: 20px;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .promokodiki-filter .promocodes__filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .promokodiki-filter .promocodes__filters-wrap {
+    flex: 0 0 auto;
+    flex-flow: row nowrap;
+    gap: 20px;
+  }
+
+  .promokodiki-filter .promocodes__sort,
+  .promokodiki-filter .promocodes__popular,
+  .promokodiki-filter .promocodes__filters select {
+    flex: 0 0 auto;
+  }
+}

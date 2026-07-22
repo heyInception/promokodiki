@@ -55,13 +55,20 @@ if ($current_category instanceof WP_Term && $current_category->taxonomy === 'sho
     <div class="container">
         <div class="promocodes__row">
             <div class="promocodes__column">
+                <?php if (function_exists('promokodiki_filter_render')) : ?>
+                    <?php
+                    promokodiki_filter_render(array(
+                        'context' => 'shop',
+                        'object_id' => get_queried_object_id(),
+                    ));
+                    ?>
+                <?php else : ?>
                 <div class="promocodes__filters">
                     <div class="promocodes__filters-wrap">
-                        <?php echo do_shortcode('[fe_widget horizontal="no" show_count="no"]'); ?>
+                        <p><?php esc_html_e('Активируйте Promokodiki AJAX Filter.', 'promokodiki'); ?></p>
                     </div>
 
                     <div class="promocodes__sort">
-                        <?php echo do_shortcode('[fe_sort id="2"]'); ?>
                     </div>
                 </div>
 
@@ -106,6 +113,7 @@ if ($current_category instanceof WP_Term && $current_category->taxonomy === 'sho
                     <?php else : ?>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
                 <div class="promocodes__desc">
                     <?php echo category_description(); ?>
                 </div>

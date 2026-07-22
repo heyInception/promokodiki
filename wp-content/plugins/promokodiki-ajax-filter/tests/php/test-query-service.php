@@ -60,6 +60,7 @@ try {
 	$home_context = array(
 		'type'                 => 'home',
 		'object_id'            => 0,
+		'brand_taxonomy'       => 'promocode_brand',
 		'allowed_category_ids' => array( $category_one_id, $category_two_id ),
 		'allowed_brand_ids'    => array( $brand_one_id, $brand_two_id ),
 	);
