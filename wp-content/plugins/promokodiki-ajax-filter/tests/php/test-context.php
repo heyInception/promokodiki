@@ -20,18 +20,21 @@ try {
 	$unrelated_id= (int) $unrelated['term_id'];
 	$term_ids[]  = array( $unrelated_id, 'promocode_category' );
 
-	$shop       = wp_insert_term( 'PAF Shop ' . wp_generate_uuid4(), 'shops_category' );
+	$shop       = wp_insert_term( 'PAF Shop A ' . wp_generate_uuid4(), 'shops_category' );
 	$shop_id    = (int) $shop['term_id'];
 	$term_ids[] = array( $shop_id, 'shops_category' );
 	$other_shop = wp_insert_term( 'PAF Other Shop ' . wp_generate_uuid4(), 'shops_category' );
 	$other_shop_id = (int) $other_shop['term_id'];
 	$term_ids[] = array( $other_shop_id, 'shops_category' );
-	$brand_a    = wp_insert_term( 'PAF Brand Active ' . wp_generate_uuid4(), 'promocode_brand' );
+	$brand_a    = wp_insert_term( 'PAF Shop B ' . wp_generate_uuid4(), 'shops_category' );
 	$brand_a_id = (int) $brand_a['term_id'];
-	$term_ids[] = array( $brand_a_id, 'promocode_brand' );
-	$brand_b    = wp_insert_term( 'PAF Brand Expired ' . wp_generate_uuid4(), 'promocode_brand' );
+	$term_ids[] = array( $brand_a_id, 'shops_category' );
+	$brand_b    = wp_insert_term( 'PAF Shop C ' . wp_generate_uuid4(), 'shops_category' );
 	$brand_b_id = (int) $brand_b['term_id'];
-	$term_ids[] = array( $brand_b_id, 'promocode_brand' );
+	$term_ids[] = array( $brand_b_id, 'shops_category' );
+	$unrelated_brand = wp_insert_term( 'PAF Promocode Brand ' . wp_generate_uuid4(), 'promocode_brand' );
+	$unrelated_brand_id = (int) $unrelated_brand['term_id'];
+	$term_ids[] = array( $unrelated_brand_id, 'promocode_brand' );
 
 	$active_id = wp_insert_post(
 		array(
@@ -41,8 +44,7 @@ try {
 		)
 	);
 	$post_ids[] = $active_id;
-	wp_set_post_terms( $active_id, array( $shop_id, $other_shop_id ), 'shops_category' );
-	wp_set_post_terms( $active_id, array( $brand_a_id ), 'promocode_brand' );
+	wp_set_post_terms( $active_id, array( $shop_id, $brand_a_id, $brand_b_id ), 'shops_category' );
 	update_post_meta( $active_id, '_promocode_expiry_date', wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ) );
 
 	$expired_id = wp_insert_post(
@@ -53,17 +55,16 @@ try {
 		)
 	);
 	$post_ids[] = $expired_id;
-	wp_set_post_terms( $expired_id, array( $shop_id ), 'shops_category' );
-	wp_set_post_terms( $expired_id, array( $brand_b_id ), 'promocode_brand' );
+	wp_set_post_terms( $expired_id, array( $other_shop_id ), 'shops_category' );
 	update_post_meta( $expired_id, '_promocode_expiry_date', wp_date( 'Y-m-d', time() - DAY_IN_SECONDS ) );
 	Promokodiki_Filter_Context::flush_cache();
 
 	Promokodiki_Filter_Test_Harness::run(
 		'home brand options follow the populated shop taxonomy',
-		static function () use ( $shop_id, $brand_a_id ): void {
+		static function () use ( $shop_id, $unrelated_brand_id ): void {
 			$context = Promokodiki_Filter_Context::resolve( 'home' );
 			Promokodiki_Filter_Test_Harness::assert_true( in_array( $shop_id, $context['allowed_brand_ids'], true ) );
-			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $brand_a_id, $context['allowed_brand_ids'], true ) );
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $unrelated_brand_id, $context['allowed_brand_ids'], true ) );
 			Promokodiki_Filter_Test_Harness::assert_same( 'shops_category', $context['brand_taxonomy'] );
 		}
 	);
@@ -83,10 +84,13 @@ try {
 	);
 
 	Promokodiki_Filter_Test_Harness::run(
-		'shop context exposes only current shop terms with active promocodes',
-		static function () use ( $shop_id ): void {
+		'shop context exposes every associated shop term with active promocodes',
+		static function () use ( $shop_id, $brand_a_id, $brand_b_id ): void {
 			$context = Promokodiki_Filter_Context::resolve( 'shop', $shop_id );
-			Promokodiki_Filter_Test_Harness::assert_same( array( $shop_id ), $context['allowed_brand_ids'] );
+			Promokodiki_Filter_Test_Harness::assert_same(
+				array( $shop_id, $brand_a_id, $brand_b_id ),
+				$context['allowed_brand_ids']
+			);
 			Promokodiki_Filter_Test_Harness::assert_same( 'shops_category', $context['brand_taxonomy'] );
 		}
 	);

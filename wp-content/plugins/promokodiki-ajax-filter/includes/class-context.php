@@ -132,16 +132,9 @@ final class Promokodiki_Filter_Context {
 			? wp_get_object_terms( $query->posts, 'shops_category', array( 'orderby' => 'name', 'order' => 'ASC' ) )
 			: array();
 		$brands = is_wp_error( $brands ) ? array() : $brands;
-		$children = get_term_children( (int) $current->term_id, 'shops_category' );
-		$branch_ids = array_merge(
-			array( (int) $current->term_id ),
-			is_wp_error( $children ) ? array() : array_map( 'intval', $children )
-		);
-		$brands = array_values(
-			array_filter(
-				$brands,
-				static fn( WP_Term $term ): bool => in_array( (int) $term->term_id, $branch_ids, true )
-			)
+		usort(
+			$brands,
+			static fn( WP_Term $left, WP_Term $right ): int => strnatcasecmp( $left->name, $right->name )
 		);
 
 		return array(

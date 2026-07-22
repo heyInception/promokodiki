@@ -20,10 +20,14 @@ $sort_labels = array(
 	'expiring' => __( 'Скоро истекают', 'promokodiki-ajax-filter' ),
 	'oldest'   => __( 'Сначала старые', 'promokodiki-ajax-filter' ),
 );
+$show_category = 'home' === $context['type']
+	|| ( 'category' === $context['type'] && count( $context['category_options'] ) > 1 );
+$show_brand = 'home' === $context['type']
+	|| ( 'shop' === $context['type'] && count( $context['brand_options'] ) > 1 );
 ?>
 <form class="promocodes__filters" method="get" action="<?php echo esc_url( $form_action ); ?>" data-filter-form>
 	<div class="promocodes__filters-wrap">
-		<?php if ( in_array( $context['type'], array( 'home', 'category' ), true ) ) : ?>
+		<?php if ( $show_category ) : ?>
 			<label class="screen-reader-text" for="paf-category-<?php echo esc_attr( (string) $context['object_id'] ); ?>">
 				<?php echo esc_html( $settings['category_label'] ); ?>
 			</label>
@@ -39,7 +43,7 @@ $sort_labels = array(
 			</select>
 		<?php endif; ?>
 
-		<?php if ( in_array( $context['type'], array( 'home', 'shop' ), true ) ) : ?>
+		<?php if ( $show_brand ) : ?>
 			<label class="screen-reader-text" for="paf-brand-<?php echo esc_attr( (string) $context['object_id'] ); ?>">
 				<?php echo esc_html( $settings['brand_label'] ); ?>
 			</label>
