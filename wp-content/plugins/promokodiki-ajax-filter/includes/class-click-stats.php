@@ -100,4 +100,36 @@ final class Promokodiki_Filter_Click_Stats {
 
 		return array_map( 'intval', $wpdb->get_col( $wpdb->prepare( $sql, $params ) ) );
 	}
+
+	public static function ranked_count( int $days, bool $include_expired ): int {
+		global $wpdb;
+
+		$days  = max( 1, min( 31, $days ) );
+		$table = $wpdb->prefix . 'promokodiki_click_stats';
+		$start = wp_date( 'Y-m-d', current_time( 'timestamp' ) - ( ( $days - 1 ) * DAY_IN_SECONDS ) );
+		$today = current_time( 'Y-m-d' );
+
+		$expiry_sql = '';
+		$params     = array( $start );
+		if ( ! $include_expired ) {
+			$expiry_sql = "AND NOT EXISTS (
+				SELECT 1 FROM {$wpdb->postmeta} expiry
+				WHERE expiry.post_id = p.ID
+				AND expiry.meta_key = '_promocode_expiry_date'
+				AND expiry.meta_value <> ''
+				AND expiry.meta_value < %s
+			)";
+			$params[] = $today;
+		}
+
+		$sql = "SELECT COUNT(DISTINCT stats.promocode_id)
+			FROM {$table} stats
+			INNER JOIN {$wpdb->posts} p ON p.ID = stats.promocode_id
+			WHERE stats.click_date >= %s
+			AND p.post_type = 'promocode'
+			AND p.post_status = 'publish'
+			{$expiry_sql}";
+
+		return (int) $wpdb->get_var( $wpdb->prepare( $sql, $params ) );
+	}
 }
