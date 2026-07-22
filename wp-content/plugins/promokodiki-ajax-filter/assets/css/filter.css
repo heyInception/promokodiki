@@ -1,0 +1,30 @@
+.promokodiki-filter {
+  position: relative;
+}
+
+.promokodiki-filter.is-loading {
+  cursor: progress;
+}
+
+.promokodiki-filter.is-loading .promocodes__items {
+  opacity: 0.65;
+  transition: opacity 160ms ease;
+}
+
+.promokodiki-filter__more,
+.promokodiki-filter__retry {
+  cursor: pointer;
+}
+
+.promokodiki-filter__more[hidden] {
+  display: none;
+}
+
+.promokodiki-filter__status {
+  min-height: 1.5em;
+  margin-top: 12px;
+}
+
+.promocodes__popular:has(input:checked) {
+  font-weight: 600;
+}
