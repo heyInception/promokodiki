@@ -72,6 +72,12 @@ Promokodiki_Filter_Test_Harness::run(
 		Promokodiki_Filter_Test_Harness::assert_true( false !== $styles );
 		Promokodiki_Filter_Test_Harness::assert_contains( 'replaceSelectOptions', $script );
 		Promokodiki_Filter_Test_Harness::assert_contains( 'data-filter-loader', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'stateOverride', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'historyMode', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( "request(1, false, 'replace', state)", $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'window.history.replaceState', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'prepareResultsPayload', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'prepareSelectOptions', $script );
 		Promokodiki_Filter_Test_Harness::assert_contains( '@keyframes promokodiki-filter-spin', $styles );
 	}
 );

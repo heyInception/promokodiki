@@ -67,8 +67,8 @@ final class Promokodiki_Filter_Ajax_Controller {
 			'total'            => (int) $result['total'],
 			'message'          => $message,
 			'state'            => array(
-				'category' => (string) $state['category_id'],
-				'brand'    => (string) $state['brand_id'],
+				'category' => $state['category_id'] ? (string) $state['category_id'] : '',
+				'brand'    => $state['brand_id'] ? (string) $state['brand_id'] : '',
 				'sort'     => $state['sort'],
 				'popular'  => (bool) $state['popular'],
 			),

@@ -27,26 +27,59 @@
     const brand = form.elements.namedItem('paf_brand');
     const sort = form.elements.namedItem('paf_sort');
     const popular = form.elements.namedItem('paf_popular');
-    if (category) category.value = state.category || '0';
-    if (brand) brand.value = state.brand || '0';
+    const categoryValue = state.category || '0';
+    const brandValue = state.brand || '0';
+    if (category && Array.from(category.options).some((option) => option.value === categoryValue)) {
+      category.value = categoryValue;
+    }
+    if (brand && Array.from(brand.options).some((option) => option.value === brandValue)) {
+      brand.value = brandValue;
+    }
     if (sort) sort.value = state.sort || '';
     if (popular) popular.checked = state.popular;
   }
 
-  function replaceSelectOptions(select, placeholder, options, selected) {
-    if (!select) return;
+  function prepareSelectOptions(select, placeholder, options, selected) {
+    if (!select) return null;
     const fragment = document.createDocumentFragment();
-    if (placeholder) fragment.append(new Option(placeholder, '0'));
-    options.forEach((item) => fragment.append(new Option(item.label, String(item.id))));
-    select.replaceChildren(fragment);
-    select.value = String(selected || 0);
+    const values = new Set();
+    if (placeholder) {
+      fragment.append(new Option(placeholder, '0'));
+      values.add('0');
+    }
+    options.forEach((item) => {
+      fragment.append(new Option(item.label, item.id));
+      values.add(item.id);
+    });
+
+    let valueToSelect = selected || (placeholder ? '0' : select.value);
+    if (selected && !values.has(selected)) throw new TypeError('Invalid filter response');
+    if (!values.has(valueToSelect)) valueToSelect = options[0]?.id || '';
+    return { select, fragment, value: valueToSelect };
   }
 
-  function updateUrl(state) {
+  function replaceSelectOptions(prepared) {
+    if (!prepared) return;
+    prepared.select.replaceChildren(prepared.fragment);
+    prepared.select.value = prepared.value;
+  }
+
+  function prepareResultsHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    return template.content;
+  }
+
+  function updateUrl(state, historyMode) {
+    if (historyMode !== 'push' && historyMode !== 'replace') return;
     const url = new URL(window.location.href);
     ['paf_category', 'paf_brand', 'paf_sort', 'paf_popular', 'paf_page'].forEach((key) => url.searchParams.delete(key));
     stateApi.stateToSearchParams(state).forEach((item, key) => url.searchParams.set(key, item));
-    window.history.pushState({ promokodikiFilter: true }, '', url);
+    if (historyMode === 'replace') {
+      window.history.replaceState({ promokodikiFilter: true }, '', url);
+    } else {
+      window.history.pushState({ promokodikiFilter: true }, '', url);
+    }
   }
 
   roots.forEach((root) => {
@@ -88,11 +121,11 @@
       status.replaceChildren(message, document.createTextNode(' '), button);
     }
 
-    async function request(requestedPage, append, pushUrl) {
+    async function request(requestedPage, append, historyMode, stateOverride) {
       if (controller) controller.abort();
       const currentController = new AbortController();
       controller = currentController;
-      const state = readState(form);
+      const state = stateApi.normalizeState(stateOverride || readState(form));
       const body = new URLSearchParams();
       body.set('action', 'promokodiki_filter_results');
       body.set('nonce', config.nonce);
@@ -105,7 +138,7 @@
       if (state.popular) body.set('paf_popular', '1');
       body.set('paf_page', String(requestedPage));
 
-      retry = () => request(requestedPage, append, pushUrl);
+      retry = () => request(requestedPage, append, historyMode, state);
       setLoading(true);
       try {
         const response = await fetch(config.ajaxUrl, {
@@ -120,18 +153,27 @@
           throw new Error(json.data && json.data.message ? json.data.message : config.genericError);
         }
 
+        const data = stateApi.prepareResultsPayload(json.data);
+        const resultsFragment = prepareResultsHtml(data.html);
+        const categoryUpdate = append
+          ? null
+          : prepareSelectOptions(category, categoryPlaceholder, data.categoryOptions, data.state.category);
+        const brandUpdate = append
+          ? null
+          : prepareSelectOptions(brand, brandPlaceholder, data.brandOptions, data.state.brand);
+
         if (append) {
-          results.insertAdjacentHTML('beforeend', json.data.html);
+          results.append(resultsFragment);
         } else {
-          results.innerHTML = json.data.html;
-          replaceSelectOptions(category, categoryPlaceholder, json.data.category_options, json.data.state.category);
-          replaceSelectOptions(brand, brandPlaceholder, json.data.brand_options, json.data.state.brand);
-          applyState(form, json.data.state);
-          if (pushUrl) updateUrl(json.data.state);
+          results.replaceChildren(resultsFragment);
+          replaceSelectOptions(categoryUpdate);
+          replaceSelectOptions(brandUpdate);
+          applyState(form, data.state);
+          updateUrl(data.state, historyMode);
         }
-        page = requestedPage;
-        more.hidden = !json.data.has_more;
-        status.textContent = json.data.message;
+        page = data.page;
+        more.hidden = !data.hasMore;
+        status.textContent = data.message;
       } catch (error) {
         if (error.name !== 'AbortError') showError(error);
       } finally {
@@ -141,7 +183,7 @@
 
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      request(1, false, true);
+      request(1, false, 'push');
     });
 
     form.addEventListener('change', (event) => {
@@ -151,15 +193,14 @@
       } else if (popular && event.target !== popular) {
         popular.checked = false;
       }
-      request(1, false, true);
+      request(1, false, 'push');
     });
 
-    more.addEventListener('click', () => request(page + 1, true, false));
+    more.addEventListener('click', () => request(page + 1, true, 'none'));
 
     window.addEventListener('popstate', () => {
       const state = stateApi.fromSearchParams(new URL(window.location.href).searchParams);
-      applyState(form, state);
-      request(1, false, false);
+      request(1, false, 'replace', state);
     });
   });
 

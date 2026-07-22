@@ -23,6 +23,8 @@ Promokodiki_Filter_Test_Harness::run(
 		Promokodiki_Filter_Test_Harness::assert_true( isset( $payload['state'] ) );
 		Promokodiki_Filter_Test_Harness::assert_true( isset( $payload['category_options'] ) );
 		Promokodiki_Filter_Test_Harness::assert_true( isset( $payload['brand_options'] ) );
+		Promokodiki_Filter_Test_Harness::assert_same( '', $payload['state']['category'] );
+		Promokodiki_Filter_Test_Harness::assert_same( '', $payload['state']['brand'] );
 	}
 );
 
