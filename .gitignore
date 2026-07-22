@@ -2,6 +2,8 @@
 !/.gitignore
 !/README.md
 !/LICENSE
+!/docs/
+!/docs/**
 !/.github/
 !/.github/**
 !/wp-content/
@@ -17,6 +19,8 @@
 /wp-content/plugins/*
 !/wp-content/plugins/admitad-coupons/
 !/wp-content/plugins/admitad-coupons/**
+!/wp-content/plugins/promokodiki-ajax-filter/
+!/wp-content/plugins/promokodiki-ajax-filter/**
 
 **/node_modules/
 **/vendor/
@@ -36,4 +40,3 @@
 .env
 .env.*
 !.env.example
-
