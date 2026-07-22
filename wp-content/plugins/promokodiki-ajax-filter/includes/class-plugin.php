@@ -24,5 +24,8 @@ final class Promokodiki_Filter_Plugin {
 		add_action( 'delete_term', array( 'Promokodiki_Filter_Context', 'flush_cache' ) );
 		add_action( 'set_object_terms', array( 'Promokodiki_Filter_Context', 'flush_cache' ) );
 		add_action( 'save_post_promocode', array( 'Promokodiki_Filter_Context', 'flush_cache' ) );
+
+		add_action( 'wp_ajax_promokodiki_filter_track_click', array( 'Promokodiki_Filter_Ajax_Controller', 'track_click' ) );
+		add_action( 'wp_ajax_nopriv_promokodiki_filter_track_click', array( 'Promokodiki_Filter_Ajax_Controller', 'track_click' ) );
 	}
 }
