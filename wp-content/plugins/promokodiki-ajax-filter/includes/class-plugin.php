@@ -27,5 +27,13 @@ final class Promokodiki_Filter_Plugin {
 
 		add_action( 'wp_ajax_promokodiki_filter_track_click', array( 'Promokodiki_Filter_Ajax_Controller', 'track_click' ) );
 		add_action( 'wp_ajax_nopriv_promokodiki_filter_track_click', array( 'Promokodiki_Filter_Ajax_Controller', 'track_click' ) );
+
+		add_shortcode(
+			'promokodiki_ajax_filter',
+			static function ( array $attributes ): string {
+				$attributes = shortcode_atts( array( 'context' => 'home', 'object_id' => 0 ), $attributes );
+				return Promokodiki_Filter_Renderer::render( sanitize_key( $attributes['context'] ), absint( $attributes['object_id'] ) );
+			}
+		);
 	}
 }

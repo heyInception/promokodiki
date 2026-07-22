@@ -27,6 +27,7 @@ require_once PROMOKODIKI_FILTER_DIR . 'includes/class-state.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-context.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-click-stats.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-query-service.php';
+require_once PROMOKODIKI_FILTER_DIR . 'includes/class-renderer.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-ajax-controller.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-plugin.php';
 
