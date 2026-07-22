@@ -22,6 +22,8 @@ define( 'PROMOKODIKI_FILTER_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PROMOKODIKI_FILTER_URL', plugin_dir_url( __FILE__ ) );
 
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-activator.php';
+require_once PROMOKODIKI_FILTER_DIR . 'includes/class-settings.php';
+require_once PROMOKODIKI_FILTER_DIR . 'includes/class-state.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-plugin.php';
 
 register_activation_hook( PROMOKODIKI_FILTER_FILE, array( 'Promokodiki_Filter_Activator', 'activate' ) );
