@@ -1135,6 +1135,12 @@ article.single h4 {
 .top__button:hover {
   color: #fff;
 }
+.promocodes__filters select {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 170px; 
+}
 @media (min-width: 1230px) {
   .top__head {
     min-height: 33px;
