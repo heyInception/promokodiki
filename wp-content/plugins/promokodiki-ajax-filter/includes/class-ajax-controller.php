@@ -88,4 +88,24 @@ final class Promokodiki_Filter_Ajax_Controller {
 
 		wp_send_json_success( array( 'new_count' => $result ) );
 	}
+	public static function use_promo(): void {
+		check_ajax_referer( 'promokodiki_filter_frontend', 'nonce' );
+		$post_id = isset( $_POST['post_id'] ) ? absint( wp_unslash( $_POST['post_id'] ) ) : 0;
+		$visitor = isset( $_COOKIE['promokodiki_visitor'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['promokodiki_visitor'] ) ) : wp_generate_uuid4();
+		if ( ! isset( $_COOKIE['promokodiki_visitor'] ) ) { setcookie( 'promokodiki_visitor', $visitor, time() + YEAR_IN_SECONDS, COOKIEPATH ?: '/', COOKIE_DOMAIN, is_ssl(), true ); }
+		$result = Promokodiki_Filter_Promo_Interactions::record_usage( $post_id, $visitor );
+		if ( is_wp_error( $result ) ) { wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 ); }
+		$url = get_post_meta( $post_id, '_promocode_link', true );
+		wp_send_json_success( array( 'new_count' => $result['count'], 'counted' => $result['counted'], 'store_url' => esc_url_raw( $url ) ) );
+	}
+	public static function vote_promo(): void {
+		check_ajax_referer( 'promokodiki_filter_frontend', 'nonce' );
+		$post_id = isset( $_POST['post_id'] ) ? absint( wp_unslash( $_POST['post_id'] ) ) : 0;
+		$reaction = isset( $_POST['reaction'] ) ? sanitize_key( wp_unslash( $_POST['reaction'] ) ) : '';
+		$visitor = isset( $_COOKIE['promokodiki_visitor'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['promokodiki_visitor'] ) ) : wp_generate_uuid4();
+		if ( ! isset( $_COOKIE['promokodiki_visitor'] ) ) { setcookie( 'promokodiki_visitor', $visitor, time() + YEAR_IN_SECONDS, COOKIEPATH ?: '/', COOKIE_DOMAIN, is_ssl(), true ); }
+		$result = Promokodiki_Filter_Promo_Interactions::vote( $post_id, $visitor, $reaction );
+		if ( is_wp_error( $result ) ) { wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 ); }
+		wp_send_json_success( $result );
+	}
 }

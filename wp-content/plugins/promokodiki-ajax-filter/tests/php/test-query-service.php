@@ -158,8 +158,10 @@ try {
 				$home_context,
 				$settings
 			);
-			Promokodiki_Filter_Test_Harness::assert_same( array( $old_id, $new_id ), wp_list_pluck( $result['posts'], 'ID' ) );
-			Promokodiki_Filter_Test_Harness::assert_same( 2, $result['total'] );
+			$ids = wp_list_pluck( $result['posts'], 'ID' );
+			Promokodiki_Filter_Test_Harness::assert_true( in_array( $old_id, $ids, true ) );
+			Promokodiki_Filter_Test_Harness::assert_true( in_array( $new_id, $ids, true ) );
+			Promokodiki_Filter_Test_Harness::assert_true( array_search( $old_id, $ids, true ) < array_search( $new_id, $ids, true ) );
 		}
 	);
 

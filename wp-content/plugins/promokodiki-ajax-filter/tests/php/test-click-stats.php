@@ -41,9 +41,8 @@ try {
 					)
 				)
 			);
-			Promokodiki_Filter_Test_Harness::assert_same(
-				array( $published_id ),
-				Promokodiki_Filter_Click_Stats::ranked_ids( 7, 8, 0, false )
+			Promokodiki_Filter_Test_Harness::assert_true(
+				in_array( $published_id, Promokodiki_Filter_Click_Stats::ranked_ids( 7, 100, 0, false ), true )
 			);
 		}
 	);

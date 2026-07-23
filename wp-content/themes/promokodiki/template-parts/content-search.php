@@ -10,6 +10,11 @@
 ?>
 
 <?php
+if ( 'promocode' === get_post_type() ) {
+	get_template_part( 'template-parts/promocode-card' );
+	return;
+}
+
 // Определяем тип поста и соответствующие префиксы метаполей
 $post_type = 'promocode';
 $meta_prefix = '_promocode_';

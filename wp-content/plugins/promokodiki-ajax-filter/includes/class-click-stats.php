@@ -132,4 +132,12 @@ final class Promokodiki_Filter_Click_Stats {
 
 		return (int) $wpdb->get_var( $wpdb->prepare( $sql, $params ) );
 	}
+
+	public static function count_for_post( int $post_id, int $days ): int {
+		global $wpdb;
+		$days  = max( 1, min( 31, $days ) );
+		$start = wp_date( 'Y-m-d', current_time( 'timestamp' ) - ( ( $days - 1 ) * DAY_IN_SECONDS ) );
+		$table = $wpdb->prefix . 'promokodiki_click_stats';
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(clicks), 0) FROM {$table} WHERE promocode_id = %d AND click_date >= %s", $post_id, $start ) );
+	}
 }

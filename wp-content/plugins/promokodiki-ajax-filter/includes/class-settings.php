@@ -19,6 +19,10 @@ final class Promokodiki_Filter_Settings {
 			'initial_count'     => 8,
 			'load_more_count'   => 8,
 			'popular_days'      => 7,
+			'new_days'          => 14,
+			'usage_cooldown_hours' => 24,
+			'popular_min_clicks'=> 1,
+			'expired_actions_enabled' => false,
 			'default_sort'      => 'newest',
 			'enabled_sorts'     => self::SORTS,
 			'show_expired'      => false,
@@ -46,6 +50,10 @@ final class Promokodiki_Filter_Settings {
 		$output['initial_count']   = self::bounded_int( $input['initial_count'] ?? $defaults['initial_count'], 1, 100 );
 		$output['load_more_count'] = self::bounded_int( $input['load_more_count'] ?? $defaults['load_more_count'], 1, 100 );
 		$output['popular_days']    = self::bounded_int( $input['popular_days'] ?? $defaults['popular_days'], 1, 31 );
+		$output['new_days']        = self::bounded_int( $input['new_days'] ?? $defaults['new_days'], 1, 365 );
+		$output['usage_cooldown_hours'] = self::bounded_int( $input['usage_cooldown_hours'] ?? $defaults['usage_cooldown_hours'], 0, 8760 );
+		$output['popular_min_clicks'] = self::bounded_int( $input['popular_min_clicks'] ?? $defaults['popular_min_clicks'], 1, 1000000 );
+		$output['expired_actions_enabled'] = ! empty( $input['expired_actions_enabled'] );
 		$output['show_expired']    = ! empty( $input['show_expired'] );
 
 		$requested_sorts = isset( $input['enabled_sorts'] ) && is_array( $input['enabled_sorts'] )
@@ -94,6 +102,13 @@ final class Promokodiki_Filter_Settings {
 			'promokodiki-ajax-filter'
 		);
 
+		add_settings_section(
+			'promokodiki_filter_interactions',
+			__( 'Интерактивные промокоды', 'promokodiki-ajax-filter' ),
+			'__return_empty_string',
+			'promokodiki-ajax-filter'
+		);
+
 		$fields = array(
 			'initial_count'   => array( 'label' => __( 'Карточек при первой загрузке', 'promokodiki-ajax-filter' ), 'type' => 'number', 'min' => 1, 'max' => 100 ),
 			'load_more_count' => array( 'label' => __( 'Карточек по кнопке «Показать ещё»', 'promokodiki-ajax-filter' ), 'type' => 'number', 'min' => 1, 'max' => 100 ),
@@ -101,18 +116,23 @@ final class Promokodiki_Filter_Settings {
 			'default_sort'    => array( 'label' => __( 'Сортировка по умолчанию', 'promokodiki-ajax-filter' ), 'type' => 'sort' ),
 			'enabled_sorts'   => array( 'label' => __( 'Доступные сортировки', 'promokodiki-ajax-filter' ), 'type' => 'sorts' ),
 			'show_expired'    => array( 'label' => __( 'Истёкшие промокоды', 'promokodiki-ajax-filter' ), 'type' => 'checkbox' ),
+			'new_days' => array( 'label' => __( 'Дней для badge «Новое»', 'promokodiki-ajax-filter' ), 'type' => 'number', 'min' => 1, 'max' => 365 ),
+			'usage_cooldown_hours' => array( 'label' => __( 'Защита от повторного применения, часов (0 — без защиты)', 'promokodiki-ajax-filter' ), 'type' => 'number', 'min' => 0, 'max' => 8760 ),
+			'popular_min_clicks' => array( 'label' => __( 'Минимум применений для «Популярное»', 'promokodiki-ajax-filter' ), 'type' => 'number', 'min' => 1, 'max' => 1000000 ),
+			'expired_actions_enabled' => array( 'label' => __( 'Разрешить действия для истекших', 'promokodiki-ajax-filter' ), 'type' => 'checkbox' ),
 		);
 		foreach ( self::label_keys() as $key ) {
 			$fields[ $key ] = array( 'label' => self::label_title( $key ), 'type' => 'text' );
 		}
 
 		foreach ( $fields as $key => $field ) {
+			$section = in_array( $key, array( 'new_days', 'usage_cooldown_hours', 'popular_min_clicks', 'expired_actions_enabled' ), true ) ? 'promokodiki_filter_interactions' : 'promokodiki_filter_main';
 			add_settings_field(
 				'promokodiki_filter_' . $key,
 				$field['label'],
 				array( __CLASS__, 'render_field' ),
 				'promokodiki-ajax-filter',
-				'promokodiki_filter_main',
+				$section,
 				array_merge( $field, array( 'key' => $key ) )
 			);
 		}
@@ -155,7 +175,10 @@ final class Promokodiki_Filter_Settings {
 		$name     = self::OPTION_NAME . '[' . $key . ']';
 
 		if ( 'checkbox' === $type ) {
-			echo '<label><input type="checkbox" name="' . esc_attr( $name ) . '" value="1" ' . checked( ! empty( $settings[ $key ] ), true, false ) . '> ' . esc_html__( 'Показывать истёкшие в конце', 'promokodiki-ajax-filter' ) . '</label>';
+			$checkbox_label = 'expired_actions_enabled' === $key
+				? __( 'Оставить кнопки «Посмотреть код» и «Перейти в магазин» активными', 'promokodiki-ajax-filter' )
+				: __( 'Показывать истёкшие в конце', 'promokodiki-ajax-filter' );
+			echo '<label><input type="checkbox" name="' . esc_attr( $name ) . '" value="1" ' . checked( ! empty( $settings[ $key ] ), true, false ) . '> ' . esc_html( $checkbox_label ) . '</label>';
 			return;
 		}
 

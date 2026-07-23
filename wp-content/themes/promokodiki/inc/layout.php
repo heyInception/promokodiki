@@ -6,6 +6,19 @@ add_filter('ymc/post/layout/custom_24946', 'custom_promocode_card_layout', 10, 5
 
 function custom_promocode_card_layout($output, $post_id, $filter_id, $popup_class, $term_settings)
 {
+	if ( 'promocode' === get_post_type( $post_id ) ) {
+		global $post;
+		$original_post = $post;
+		$post = get_post( $post_id );
+		setup_postdata( $post );
+		ob_start();
+		get_template_part( 'template-parts/promocode-card' );
+		$html = (string) ob_get_clean();
+		$post = $original_post;
+		wp_reset_postdata();
+		return $html;
+	}
+
     // Переопределяем глобальный объект поста
     global $post;
     $post = get_post($post_id);

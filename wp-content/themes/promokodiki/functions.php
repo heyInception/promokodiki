@@ -154,6 +154,7 @@ function promokodiki_scripts()
 	wp_enqueue_script('jquery');
 	wp_enqueue_script('promokodiki-main', get_template_directory_uri() . '/js/main.js', array(), _S_VERSION, true);
 	wp_enqueue_script('promokodiki-custom', get_template_directory_uri() . '/js/customizer.js', array(), _S_VERSION, true);
+	wp_enqueue_script('promokodiki-promo-modal', get_template_directory_uri() . '/js/promocode-modal.js', array(), _S_VERSION, true);
 
 	if (is_singular() && comments_open() && get_option('thread_comments')) {
 		wp_enqueue_script('comment-reply');
@@ -214,42 +215,6 @@ function svg_upload_allow($mimes)
 // Обработчик AJAX для увеличения счетчика использований
 // Обработчик AJAX для увеличения счетчика использований
 
-// Handle promocode feedback (like/dislike)
-function handle_promocode_feedback()
-{
-	// Verify nonce first
-	if (!wp_verify_nonce($_POST['security'], 'promocode_feedback_nonce')) {
-		wp_send_json_error('Invalid nonce');
-	}
-
-	if (!isset($_POST['post_id'], $_POST['feedback_action'])) {
-		wp_send_json_error('Missing required parameters');
-	}
-
-	$post_id = intval($_POST['post_id']);
-	$action = sanitize_text_field($_POST['feedback_action']);
-
-	// Get current counts
-	$likes = get_post_meta($post_id, '_promocode_likes', true) ?: 0;
-	$dislikes = get_post_meta($post_id, '_promocode_dislikes', true) ?: 0;
-
-	// Update counts based on action
-	if ($action === 'like') {
-		$likes++;
-		update_post_meta($post_id, '_promocode_likes', $likes);
-	} elseif ($action === 'dislike') {
-		$dislikes++;
-		update_post_meta($post_id, '_promocode_dislikes', $dislikes);
-	}
-
-	wp_send_json_success(array(
-		'count' => $action === 'like' ? $likes : $dislikes,
-		'message' => 'Thank you for your feedback!'
-	));
-}
-add_action('wp_ajax_handle_promocode_feedback', 'handle_promocode_feedback');
-add_action('wp_ajax_nopriv_handle_promocode_feedback', 'handle_promocode_feedback');
-
 function my_enqueue_scripts()
 {
 	wp_enqueue_script('promocodes-ajax', get_template_directory_uri() . '/js/promocodes-ajax.js', array('jquery'), null, true);
@@ -277,7 +242,7 @@ function promocodes_likes_scripts()
 	// In your enqueue function
 	wp_localize_script('promocodes-likes', 'promocodes_ajax', array(
 		'ajaxurl' => admin_url('admin-ajax.php'),
-		'nonce' => wp_create_nonce('promocode_feedback_nonce')
+		'nonce' => wp_create_nonce('promokodiki_filter_frontend')
 	));
 }
 add_action('wp_enqueue_scripts', 'promocodes_likes_scripts');

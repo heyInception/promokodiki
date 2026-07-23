@@ -1,14 +1,12 @@
 
 jQuery(function ($) {
-    $(document).on('click', '.promocodes__view, .top__button, .promocodes__link', function (event) {
+    $(document).on('click', '.promocodes__view, .promocodes__link', function (event) {
         event.preventDefault();
 
         var $button = $(this);
-        var postId = $button.data('post-id');
+        var postId = $button.data('post-id') || $button.closest('.promocodes__item').data('post-id');
 
-        if ($button.hasClass('promocodes__link')) {
-            window.open($button.attr('href'), '_blank');
-        } else if ($button.hasClass('promocodes__view') && typeof window.openPromoModal === 'function') {
+        if (postId && typeof window.openPromoModal === 'function') {
             window.openPromoModal(postId);
         }
     });
