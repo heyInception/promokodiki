@@ -18,6 +18,7 @@ final class Promokodiki_Filter_Plugin {
 		}
 
 		self::$booted = true;
+		Promokodiki_Filter_Activator::maybe_upgrade();
 
 		add_action( 'created_term', array( 'Promokodiki_Filter_Context', 'flush_cache' ) );
 		add_action( 'edited_term', array( 'Promokodiki_Filter_Context', 'flush_cache' ) );
@@ -27,6 +28,10 @@ final class Promokodiki_Filter_Plugin {
 
 		add_action( 'wp_ajax_promokodiki_filter_track_click', array( 'Promokodiki_Filter_Ajax_Controller', 'track_click' ) );
 		add_action( 'wp_ajax_nopriv_promokodiki_filter_track_click', array( 'Promokodiki_Filter_Ajax_Controller', 'track_click' ) );
+		add_action( 'wp_ajax_promokodiki_promo_use', array( 'Promokodiki_Filter_Ajax_Controller', 'use_promo' ) );
+		add_action( 'wp_ajax_nopriv_promokodiki_promo_use', array( 'Promokodiki_Filter_Ajax_Controller', 'use_promo' ) );
+		add_action( 'wp_ajax_promokodiki_promo_vote', array( 'Promokodiki_Filter_Ajax_Controller', 'vote_promo' ) );
+		add_action( 'wp_ajax_nopriv_promokodiki_promo_vote', array( 'Promokodiki_Filter_Ajax_Controller', 'vote_promo' ) );
 		add_action( 'wp_ajax_promokodiki_filter_results', array( 'Promokodiki_Filter_Ajax_Controller', 'results' ) );
 		add_action( 'wp_ajax_nopriv_promokodiki_filter_results', array( 'Promokodiki_Filter_Ajax_Controller', 'results' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );

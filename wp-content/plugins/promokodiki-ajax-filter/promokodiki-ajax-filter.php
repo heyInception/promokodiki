@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PROMOKODIKI_FILTER_VERSION', '0.1.0' );
+define( 'PROMOKODIKI_FILTER_VERSION', '0.2.0' );
 define( 'PROMOKODIKI_FILTER_FILE', __FILE__ );
 define( 'PROMOKODIKI_FILTER_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PROMOKODIKI_FILTER_URL', plugin_dir_url( __FILE__ ) );
@@ -26,6 +26,8 @@ require_once PROMOKODIKI_FILTER_DIR . 'includes/class-settings.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-state.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-context.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-click-stats.php';
+require_once PROMOKODIKI_FILTER_DIR . 'includes/class-promo-status.php';
+require_once PROMOKODIKI_FILTER_DIR . 'includes/class-promo-interactions.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-query-service.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-option-service.php';
 require_once PROMOKODIKI_FILTER_DIR . 'includes/class-renderer.php';

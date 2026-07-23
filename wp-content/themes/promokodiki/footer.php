@@ -706,6 +706,7 @@ function addPromoModalScripts()
 
         // Показываем модальное окно
         const modal = document.getElementById('promocodeModal');
+        modal.dataset.postId = postId;
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
 
@@ -727,38 +728,16 @@ function addPromoModalScripts()
       // Инициализация обработчиков событий
       document.addEventListener('DOMContentLoaded', function() {
         // Обработчик для кнопки "Перейти в магазин"
-        document.querySelectorAll('.promocodes__link').forEach(btn => {
-          btn.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            const postId = this.closest('.promocodes__item').getAttribute('data-post-id');
-            const link = this.getAttribute('href') || this.closest('a').getAttribute('href');
-
-            const newWindow = window.open('', '_blank');
-
-            // Используем глобальную функцию
-            window.openPromoModal(postId);
-
-            setTimeout(() => {
-              newWindow.location.href = link;
-            }, 100);
-          });
-        });
-
-        // Обработчик для кнопки "Посмотреть код"
-        document.querySelectorAll('.promocodes__view').forEach(btn => {
-          btn.addEventListener('click', function() {
-            const postId = this.getAttribute('data-post-id');
-            window.openPromoModal(postId);
-          });
-        });
-
         // Обработчик для ссылки в модальном окне
         document.getElementById('modalPromoLink').addEventListener('click', function(e) {
           e.preventDefault();
           const link = this.getAttribute('href');
           if (link && link !== '#') {
-            window.open(link, '_blank');
+            const postId = document.getElementById('promocodeModal')?.dataset.postId;
+            const data = new URLSearchParams({ action: 'promokodiki_promo_use', post_id: postId || '', nonce: promokodikiAjaxNonce });
+            fetch(ajaxurl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: data })
+              .then(response => response.json())
+              .then(response => window.open(response?.data?.store_url || link, '_blank', 'noopener'));
           }
         });
 
@@ -783,7 +762,7 @@ function addPromoModalScripts()
   endif;
 }
 
-addPromoModalScripts();
+// Modal behaviour is enqueued from js/promocode-modal.js.
 ?>
 </body>
 

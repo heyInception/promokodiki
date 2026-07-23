@@ -14,10 +14,18 @@ Promokodiki_Filter_Test_Harness::run(
 
 		$table = $wpdb->prefix . 'promokodiki_click_stats';
 		Promokodiki_Filter_Test_Harness::assert_true( class_exists( 'Promokodiki_Filter_Plugin' ) );
-		Promokodiki_Filter_Test_Harness::assert_same( '1', get_option( 'promokodiki_filter_db_version' ) );
+		Promokodiki_Filter_Test_Harness::assert_same( '2', get_option( 'promokodiki_filter_db_version' ) );
 		Promokodiki_Filter_Test_Harness::assert_same(
 			$table,
 			$wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) )
+		);
+		Promokodiki_Filter_Test_Harness::assert_same(
+			$wpdb->prefix . 'promokodiki_promo_usage',
+			$wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'promokodiki_promo_usage' ) )
+		);
+		Promokodiki_Filter_Test_Harness::assert_same(
+			$wpdb->prefix . 'promokodiki_promo_votes',
+			$wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'promokodiki_promo_votes' ) )
 		);
 	}
 );
