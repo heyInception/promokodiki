@@ -58,7 +58,10 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-company-mapper.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/importer.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/migration.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/cli.php';
-require_once ADMITAD_PLUGIN_DIR . 'admin/token-manager.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-menu.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-actions.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/class-promocode-lock-metabox.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-settings-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/mapping-dashboard.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/companies-mapping-page.php';
 
@@ -74,3 +77,6 @@ function admitad_coupons_deactivate() {
 register_activation_hook( __FILE__, array( 'Promokodiki_Admitad_Activator', 'activate' ) );
 register_deactivation_hook( __FILE__, 'admitad_coupons_deactivate' );
 Promokodiki_Admitad_Plugin::boot();
+Promokodiki_Admitad_Admin_Menu::register();
+Promokodiki_Admitad_Admin_Actions::register();
+Promokodiki_Admitad_Promocode_Lock_Metabox::register();

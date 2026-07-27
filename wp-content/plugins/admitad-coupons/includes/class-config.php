@@ -16,7 +16,7 @@ final class Promokodiki_Admitad_Config {
 	/**
 	 * Settings option name.
 	 */
-	private const OPTION_NAME = 'promokodiki_admitad_settings';
+	public const OPTION_NAME = 'promokodiki_admitad_settings';
 
 	/**
 	 * Return safe defaults.
