@@ -17,6 +17,8 @@ define( 'ADMITAD_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ADMITAD_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once ADMITAD_PLUGIN_DIR . 'includes/post-types.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-config.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-capabilities.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-plugin.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/db.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/api.php';
