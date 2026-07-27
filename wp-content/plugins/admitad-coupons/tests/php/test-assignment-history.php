@@ -108,6 +108,11 @@ try {
 			Promokodiki_Admitad_Test_Harness::assert_same( $before, $after );
 			Promokodiki_Admitad_Test_Harness::assert_same( array( $post_id ), $preview['post_ids'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'previewed', $service->get_snapshot( $preview['id'] )['status'] );
+			$service->schedule_apply( $preview['id'] );
+			Promokodiki_Admitad_Test_Harness::assert_true(
+				false !== wp_next_scheduled( 'promokodiki_admitad_apply_classification', array( $preview['id'], 0 ) )
+			);
+			wp_clear_scheduled_hook( 'promokodiki_admitad_apply_classification', array( $preview['id'], 0 ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 1, $service->apply_preview( $preview['id'] ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 0, $service->apply_preview( $preview['id'] ) );
 			Promokodiki_Admitad_Test_Harness::assert_same(
@@ -120,10 +125,10 @@ try {
 				array_map( 'intval', wp_get_object_terms( $post_id, 'promocode_category', array( 'fields' => 'ids' ) ) )
 			);
 			$service->schedule_apply( $preview['id'] );
-			Promokodiki_Admitad_Test_Harness::assert_true(
-				false !== wp_next_scheduled( 'promokodiki_admitad_apply_classification', array( $preview['id'], 0 ) )
+			Promokodiki_Admitad_Test_Harness::assert_same(
+				false,
+				wp_next_scheduled( 'promokodiki_admitad_apply_classification', array( $preview['id'], 0 ) )
 			);
-			wp_clear_scheduled_hook( 'promokodiki_admitad_apply_classification', array( $preview['id'], 0 ) );
 		}
 	);
 } finally {

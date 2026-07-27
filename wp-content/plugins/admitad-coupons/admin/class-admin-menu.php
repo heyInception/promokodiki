@@ -82,6 +82,7 @@ final class Promokodiki_Admitad_Admin_Menu {
 			'admitad-companies'    => Promokodiki_Admitad_Company_Page::class,
 			'admitad-rules'        => Promokodiki_Admitad_Rule_Page::class,
 			'admitad-review'       => Promokodiki_Admitad_Review_Page::class,
+			'admitad-history'      => Promokodiki_Admitad_History_Page::class,
 			'admitad-diagnostics'  => Promokodiki_Admitad_Diagnostics_Page::class,
 		);
 		if ( isset( $pages[ $page ] ) ) {

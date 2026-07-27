@@ -22,6 +22,65 @@ final class Promokodiki_Admitad_Admin_Actions {
 		add_action( 'admin_post_promokodiki_admitad_unlock_post', array( self::class, 'handle_unlock_post' ) );
 		add_action( 'admin_post_promokodiki_admitad_operation', array( self::class, 'handle_operation' ) );
 		add_action( 'admin_post_promokodiki_admitad_mapping_action', array( self::class, 'handle_mapping_action' ) );
+		add_action( 'admin_post_promokodiki_admitad_history_action', array( self::class, 'handle_history_action' ) );
+	}
+
+	/**
+	 * Create an immutable classification preview.
+	 *
+	 * @param array<int, int> $post_ids Coupon post IDs.
+	 * @param string          $nonce    History action nonce.
+	 * @return string|WP_Error
+	 */
+	public function create_classification_preview( array $post_ids, string $nonce ) {
+		$allowed = $this->validate_history_request( $nonce );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+		$snapshot = ( new Promokodiki_Admitad_Reclassification_Service() )->preview( $post_ids );
+		return (string) $snapshot['id'];
+	}
+
+	/**
+	 * Schedule a stored preview for resumable application.
+	 *
+	 * @param string $snapshot_id Stored snapshot UUID.
+	 * @param string $nonce       History action nonce.
+	 * @return true|WP_Error
+	 */
+	public function schedule_snapshot_apply( string $snapshot_id, string $nonce ) {
+		$allowed = $this->validate_history_request( $nonce );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+		$service  = new Promokodiki_Admitad_Reclassification_Service();
+		$snapshot = $service->get_snapshot( sanitize_text_field( $snapshot_id ) );
+		if ( ! $snapshot || 'previewed' !== $snapshot['status'] || get_current_user_id() !== $snapshot['owner_id'] ) {
+			return new WP_Error( 'invalid_snapshot', 'Invalid, expired, or foreign classification snapshot.' );
+		}
+		$service->schedule_apply( $snapshot_id );
+		return true;
+	}
+
+	/**
+	 * Roll back one applied stored snapshot.
+	 *
+	 * @param string $snapshot_id Stored snapshot UUID.
+	 * @param string $nonce       History action nonce.
+	 * @return true|WP_Error
+	 */
+	public function rollback_snapshot( string $snapshot_id, string $nonce ) {
+		$allowed = $this->validate_history_request( $nonce );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+		$service  = new Promokodiki_Admitad_Reclassification_Service();
+		$snapshot = $service->get_snapshot( sanitize_text_field( $snapshot_id ) );
+		if ( ! $snapshot || 'applied' !== $snapshot['status'] || get_current_user_id() !== $snapshot['owner_id'] ) {
+			return new WP_Error( 'invalid_snapshot', 'Only an owned, applied snapshot can be rolled back.' );
+		}
+		$service->rollback( $snapshot_id );
+		return true;
 	}
 
 	/**
@@ -329,6 +388,60 @@ final class Promokodiki_Admitad_Admin_Actions {
 	}
 
 	/**
+	 * Handle preview, apply, rollback, and validation forms.
+	 */
+	public static function handle_history_action(): void {
+		$operation = sanitize_key( wp_unslash( $_POST['operation'] ?? '' ) );
+		$nonce     = sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ?? '' ) );
+		$actions   = new self();
+		$args      = array();
+		$result    = new WP_Error( 'invalid_operation', 'Unknown history operation.' );
+		if ( 'preview' === $operation ) {
+			$post_ids = array_map( 'absint', preg_split( '/[\s,]+/', sanitize_textarea_field( wp_unslash( $_POST['post_ids'] ?? '' ) ) ) );
+			$result   = $actions->create_classification_preview( $post_ids, $nonce );
+			if ( is_string( $result ) ) {
+				$args['snapshot'] = $result;
+				$result           = true;
+			}
+		} elseif ( 'apply' === $operation ) {
+			$snapshot_id = sanitize_text_field( wp_unslash( $_POST['snapshot_id'] ?? '' ) );
+			$result      = $actions->schedule_snapshot_apply( $snapshot_id, $nonce );
+			$args['snapshot'] = $snapshot_id;
+		} elseif ( 'rollback' === $operation ) {
+			$snapshot_id = sanitize_text_field( wp_unslash( $_POST['snapshot_id'] ?? '' ) );
+			$result      = $actions->rollback_snapshot( $snapshot_id, $nonce );
+			$args['snapshot'] = $snapshot_id;
+		} elseif ( 'create_sample' === $operation ) {
+			$allowed = $actions->validate_history_request( $nonce );
+			if ( ! is_wp_error( $allowed ) ) {
+				$args['sample'] = ( new Promokodiki_Admitad_Validation_Service() )->create_sample( absint( $_POST['size'] ?? 150 ) );
+				$result         = true;
+			} else {
+				$result = $allowed;
+			}
+		} elseif ( 'record_review' === $operation ) {
+			$allowed = $actions->validate_review_request( $nonce );
+			if ( ! is_wp_error( $allowed ) ) {
+				$sample_id = sanitize_text_field( wp_unslash( $_POST['sample_id'] ?? '' ) );
+				try {
+					( new Promokodiki_Admitad_Validation_Service() )->record_review(
+						$sample_id,
+						absint( $_POST['post_id'] ?? 0 ),
+						array_map( 'absint', (array) wp_unslash( $_POST['expected_terms'] ?? array() ) )
+					);
+					$args['sample'] = $sample_id;
+					$result         = true;
+				} catch ( Throwable $error ) {
+					$result = new WP_Error( 'invalid_review', $error->getMessage() );
+				}
+			} else {
+				$result = $allowed;
+			}
+		}
+		self::redirect_or_die( $result, 'admitad-history', $args );
+	}
+
+	/**
 	 * Save one company classification profile.
 	 *
 	 * @param int             $campaign_id     Campaign ID.
@@ -394,20 +507,55 @@ final class Promokodiki_Admitad_Admin_Actions {
 	 * @param true|WP_Error $result Result.
 	 * @param string        $page   Target page.
 	 */
-	private static function redirect_or_die( $result, string $page ): void {
+	private static function redirect_or_die( $result, string $page, array $extra_args = array() ): void {
 		if ( is_wp_error( $result ) ) {
 			wp_die( esc_html( $result->get_error_message() ), '', array( 'response' => 403 ) );
 		}
 		wp_safe_redirect(
 			add_query_arg(
-				array(
+				array_merge(
+					array(
 					'post_type'     => 'promocode',
 					'page'          => $page,
 					'admitad_saved' => '1',
+					),
+					$extra_args
 				),
 				admin_url( 'edit.php' )
 			)
 		);
 		exit;
+	}
+
+	/**
+	 * Validate a privileged history mutation.
+	 *
+	 * @param string $nonce History action nonce.
+	 * @return true|WP_Error
+	 */
+	private function validate_history_request( string $nonce ) {
+		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
+			return new WP_Error( 'forbidden', 'You cannot manage classification snapshots.' );
+		}
+		if ( ! wp_verify_nonce( $nonce, 'promokodiki_admitad_history_action' ) ) {
+			return new WP_Error( 'invalid_nonce', 'Invalid history action nonce.' );
+		}
+		return true;
+	}
+
+	/**
+	 * Validate a reviewer history mutation.
+	 *
+	 * @param string $nonce History action nonce.
+	 * @return true|WP_Error
+	 */
+	private function validate_review_request( string $nonce ) {
+		if ( ! current_user_can( 'review_admitad_mapping' ) ) {
+			return new WP_Error( 'forbidden', 'You cannot review classification samples.' );
+		}
+		if ( ! wp_verify_nonce( $nonce, 'promokodiki_admitad_history_action' ) ) {
+			return new WP_Error( 'invalid_nonce', 'Invalid history action nonce.' );
+		}
+		return true;
 	}
 }

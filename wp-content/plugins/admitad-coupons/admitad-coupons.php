@@ -42,6 +42,7 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-taxonomy-rule-seeder.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-tag-manager.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-assignment-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reclassification-service.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-validation-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-job-lock.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-sync-run-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-import-context.php';
@@ -70,6 +71,7 @@ require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-category-map-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-company-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-rule-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-review-page.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-history-page.php';
 
 /** Remove scheduled jobs without deleting imported content. */
 function admitad_coupons_deactivate() {

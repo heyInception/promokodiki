@@ -83,7 +83,9 @@ final class Promokodiki_Admitad_Reclassification_Service {
 			$this->status_key( $snapshot_id ),
 			array(
 				'status'     => 'previewed',
+				'owner_id'   => get_current_user_id(),
 				'created_at' => time(),
+				'expires_at' => time() + DAY_IN_SECONDS,
 			),
 			false
 		);
@@ -147,15 +149,20 @@ final class Promokodiki_Admitad_Reclassification_Service {
 	 * @return array<string, mixed>|null
 	 */
 	public function get_snapshot( string $snapshot_id ): ?array {
+		if ( 1 !== preg_match( '/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i', $snapshot_id ) ) {
+			return null;
+		}
 		$rows  = $this->history->snapshot_rows( $snapshot_id );
 		$state = get_option( $this->status_key( $snapshot_id ), array() );
-		if ( ! is_array( $state ) || ! isset( $state['status'] ) ) {
+		if ( ! is_array( $state ) || ! isset( $state['status'] ) || (int) ( $state['expires_at'] ?? 0 ) < time() ) {
 			return null;
 		}
 		return array(
 			'id'         => $snapshot_id,
 			'status'     => sanitize_key( (string) $state['status'] ),
+			'owner_id'   => (int) ( $state['owner_id'] ?? 0 ),
 			'created_at' => (int) ( $state['created_at'] ?? 0 ),
+			'expires_at' => (int) ( $state['expires_at'] ?? 0 ),
 			'post_ids'   => array_map( 'intval', array_column( $rows, 'post_id' ) ),
 			'rows'       => $rows,
 		);
@@ -167,7 +174,8 @@ final class Promokodiki_Admitad_Reclassification_Service {
 	 * @param string $snapshot_id Snapshot ID.
 	 */
 	public function schedule_apply( string $snapshot_id ): void {
-		if ( $this->get_snapshot( $snapshot_id ) && ! wp_next_scheduled( 'promokodiki_admitad_apply_classification', array( $snapshot_id, 0 ) ) ) {
+		$snapshot = $this->get_snapshot( $snapshot_id );
+		if ( $snapshot && 'previewed' === $snapshot['status'] && ! wp_next_scheduled( 'promokodiki_admitad_apply_classification', array( $snapshot_id, 0 ) ) ) {
 			wp_schedule_single_event( time() + 1, 'promokodiki_admitad_apply_classification', array( $snapshot_id, 0 ) );
 		}
 	}
@@ -263,6 +271,9 @@ final class Promokodiki_Admitad_Reclassification_Service {
 	private function set_status( string $snapshot_id, string $status ): void {
 		$state           = (array) get_option( $this->status_key( $snapshot_id ), array() );
 		$state['status'] = sanitize_key( $status );
+		if ( in_array( $state['status'], array( 'applied', 'rolled_back' ), true ) ) {
+			$state['expires_at'] = time() + ( DAY_IN_SECONDS * (int) Promokodiki_Admitad_Config::get( 'log_retention_days' ) );
+		}
 		update_option( $this->status_key( $snapshot_id ), $state, false );
 	}
 

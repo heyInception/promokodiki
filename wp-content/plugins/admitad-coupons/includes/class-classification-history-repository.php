@@ -14,6 +14,32 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Promokodiki_Admitad_Classification_History_Repository {
 	/**
+	 * Return a bounded administration history page.
+	 *
+	 * @param int $page     One-based page.
+	 * @param int $per_page Rows per page.
+	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
+	 */
+	public function list_rows( int $page = 1, int $per_page = 20 ): array {
+		global $wpdb;
+
+		$table    = Promokodiki_Admitad_Schema::table( 'classification_history' );
+		$page     = max( 1, $page );
+		$per_page = max( 1, min( 100, $per_page ) );
+		$offset   = ( $page - 1 ) * $per_page;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Administration reads immutable plugin-owned history.
+		$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Administration reads immutable plugin-owned history.
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} ORDER BY id DESC LIMIT %d OFFSET %d", $per_page, $offset ), ARRAY_A );
+		return array(
+			'items'    => array_map( array( $this, 'decode' ), (array) $rows ),
+			'total'    => $total,
+			'page'     => $page,
+			'per_page' => $per_page,
+		);
+	}
+
+	/**
 	 * Record one classification proposal or assignment.
 	 *
 	 * @param int                                       $post_id          Post ID.
