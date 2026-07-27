@@ -29,6 +29,8 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/api.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-api-client.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-coupon-normalizer.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-campaign-normalizer.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-text-normalizer.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-rule-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-job-lock.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-sync-run-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-import-context.php';
