@@ -92,20 +92,25 @@ final class Promokodiki_Admitad_Reference_Repository {
 			if ( ! $campaign_id ) {
 				continue;
 			}
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The validated table identifier cannot use a value placeholder.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Campaign state lives in the custom table.
-			$wpdb->replace(
-				$table,
-				array(
-					'campaign_id'       => $campaign_id,
-					'display_name'      => sanitize_text_field( (string) ( $item['name'] ?? '' ) ),
-					'default_term_id'   => 0,
-					'signal_weight'     => (int) Promokodiki_Admitad_Config::get( 'weight_company' ),
-					'status'            => 'active' === ( $item['source_status'] ?? '' ) ? 'active' : 'inactive',
-					'category_snapshot' => wp_json_encode( $item['categories'] ?? array(), JSON_UNESCAPED_UNICODE ),
-					'created_at'        => $now,
-					'updated_at'        => $now,
+			$wpdb->query(
+				$wpdb->prepare(
+					"INSERT INTO {$table}
+					(campaign_id, display_name, default_term_id, signal_weight, status, category_snapshot, created_at, updated_at)
+					VALUES (%d, %s, 0, %d, %s, %s, %s, %s)
+					ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), status = VALUES(status),
+					category_snapshot = VALUES(category_snapshot), updated_at = VALUES(updated_at)",
+					$campaign_id,
+					sanitize_text_field( (string) ( $item['name'] ?? '' ) ),
+					(int) Promokodiki_Admitad_Config::get( 'weight_company' ),
+					'active' === ( $item['source_status'] ?? '' ) ? 'active' : 'inactive',
+					wp_json_encode( $item['categories'] ?? array(), JSON_UNESCAPED_UNICODE ),
+					$now,
+					$now
 				)
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			++$count;
 		}
 		return $count;
