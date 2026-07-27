@@ -46,12 +46,28 @@ class Promokodiki_Admitad_CLI {
 
 	/** Run the unified streaming import. */
 	public function import() {
-		$result = update_admitad_coupons_data();
-		if ( is_wp_error( $result ) ) {
-			WP_CLI::error( $result->get_error_message() );
+		$coordinator = new Promokodiki_Admitad_Sync_Coordinator(
+			null,
+			null,
+			null,
+			null,
+			static fn(): bool => true
+		);
+		$run_id      = $coordinator->start_coupon_sync();
+		if ( is_wp_error( $run_id ) ) {
+			WP_CLI::error( $run_id->get_error_message() );
 		}
-		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
-		empty( $result['errors'] ) ? WP_CLI::success( 'Import complete.' ) : WP_CLI::error( 'Import completed with errors.' );
+		$offset = 0;
+		do {
+			$result = $coordinator->run_coupon_batch( $run_id, $offset );
+			if ( is_wp_error( $result ) ) {
+				WP_CLI::error( $result->get_error_message() );
+			}
+			$offset = $result['next_offset'];
+		} while ( ! $result['complete'] );
+
+		WP_CLI::log( wp_json_encode( $result['counters'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
+		WP_CLI::success( 'Import complete.' );
 	}
 }
 

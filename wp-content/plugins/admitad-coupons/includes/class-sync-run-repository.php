@@ -14,6 +14,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Promokodiki_Admitad_Sync_Run_Repository {
 	/**
+	 * Read a run.
+	 *
+	 * @param int $run_id Run ID.
+	 * @return array<string, mixed>|null
+	 */
+	public function get( int $run_id ): ?array {
+		global $wpdb;
+
+		$table = Promokodiki_Admitad_Schema::table( 'sync_run' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The validated table identifier cannot use a value placeholder.
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $run_id ), ARRAY_A );
+		return is_array( $row ) ? $row : null;
+	}
+
+	/**
 	 * Start a run.
 	 *
 	 * @param string $type Job type.

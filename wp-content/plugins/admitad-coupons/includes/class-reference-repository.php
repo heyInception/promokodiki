@@ -1,0 +1,113 @@
+<?php
+/**
+ * Admitad reference snapshot persistence.
+ *
+ * @package Promokodiki_Admitad
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Synchronizes stable external IDs without mutating site taxonomies.
+ */
+final class Promokodiki_Admitad_Reference_Repository {
+	/**
+	 * Synchronize coupon category references.
+	 *
+	 * @param array<int, array<string, mixed>> $items API categories.
+	 */
+	public function sync_coupon_categories( array $items ): int {
+		global $wpdb;
+
+		$table = Promokodiki_Admitad_Schema::table( 'category_map' );
+		$now   = gmdate( 'Y-m-d H:i:s' );
+		$count = 0;
+		foreach ( $items as $item ) {
+			$external_id = absint( $item['id'] ?? 0 );
+			if ( ! $external_id ) {
+				continue;
+			}
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The validated table identifier cannot use a value placeholder.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Mapping state lives in the custom table.
+			$mapped = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$table} WHERE source_namespace = %s AND external_category_id = %d AND site_term_id > 0",
+					'coupon',
+					$external_id
+				)
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$fields = array(
+				'external_name'      => sanitize_text_field( (string) ( $item['name'] ?? '' ) ),
+				'external_parent_id' => absint( $item['parent_id'] ?? 0 ),
+				'updated_at'         => $now,
+			);
+			if ( $mapped ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Mapping state lives in the custom table.
+				$wpdb->update(
+					$table,
+					$fields,
+					array(
+						'source_namespace'     => 'coupon',
+						'external_category_id' => $external_id,
+					)
+				);
+			} else {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Mapping state lives in the custom table.
+				$wpdb->replace(
+					$table,
+					array_merge(
+						$fields,
+						array(
+							'source_namespace'     => 'coupon',
+							'external_category_id' => $external_id,
+							'site_term_id'         => 0,
+							'weight'               => 100,
+							'status'               => 'unmapped',
+							'created_at'           => $now,
+						)
+					)
+				);
+			}
+			++$count;
+		}
+		return $count;
+	}
+
+	/**
+	 * Synchronize campaign snapshots.
+	 *
+	 * @param array<int, array<string, mixed>> $items Normalized campaigns.
+	 */
+	public function sync_campaigns( array $items ): int {
+		global $wpdb;
+
+		$table = Promokodiki_Admitad_Schema::table( 'company_profile' );
+		$now   = gmdate( 'Y-m-d H:i:s' );
+		$count = 0;
+		foreach ( $items as $item ) {
+			$campaign_id = absint( $item['external_id'] ?? 0 );
+			if ( ! $campaign_id ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Campaign state lives in the custom table.
+			$wpdb->replace(
+				$table,
+				array(
+					'campaign_id'       => $campaign_id,
+					'display_name'      => sanitize_text_field( (string) ( $item['name'] ?? '' ) ),
+					'default_term_id'   => 0,
+					'signal_weight'     => (int) Promokodiki_Admitad_Config::get( 'weight_company' ),
+					'status'            => 'active' === ( $item['source_status'] ?? '' ) ? 'active' : 'inactive',
+					'category_snapshot' => wp_json_encode( $item['categories'] ?? array(), JSON_UNESCAPED_UNICODE ),
+					'created_at'        => $now,
+					'updated_at'        => $now,
+				)
+			);
+			++$count;
+		}
+		return $count;
+	}
+}

@@ -168,46 +168,13 @@ function admitad_upsert_coupon( array $coupon, array &$existing_map ) {
 }
 
 function update_admitad_coupons_data() {
-	if ( ! admitad_acquire_import_lock() ) {
-		return new WP_Error( 'import_locked', 'Another Admitad import is already running.' );
+	$run_id = ( new Promokodiki_Admitad_Sync_Coordinator() )->start_coupon_sync();
+	if ( is_wp_error( $run_id ) ) {
+		return $run_id;
 	}
-
-	$stats = array( 'processed' => 0, 'created' => 0, 'updated' => 0, 'errors' => array(), 'pages' => 0 );
-	try {
-		wp_raise_memory_limit( 'admin' );
-		wp_defer_term_counting( true );
-		wp_defer_comment_counting( true );
-		$existing = admitad_existing_coupon_map();
-		$limit    = 200;
-		$offset   = 0;
-		do {
-			$page = get_admitad_coupons_from_api( $limit, $offset );
-			if ( is_wp_error( $page ) ) {
-				$stats['errors'][] = $page->get_error_message();
-				break;
-			}
-			$items = is_array( $page['results'] ?? null ) ? $page['results'] : array();
-			foreach ( $items as $coupon ) {
-				$was_existing = isset( $existing[ (string) ( $coupon['id'] ?? '' ) ] );
-				$result       = admitad_upsert_coupon( $coupon, $existing );
-				if ( is_wp_error( $result ) ) {
-					$stats['errors'][] = $result->get_error_message();
-					continue;
-				}
-				++$stats['processed'];
-				++$stats[ $was_existing ? 'updated' : 'created' ];
-			}
-			++$stats['pages'];
-			$offset += $limit;
-		} while ( count( $items ) === $limit );
-		$stats['completed_at'] = current_time( 'mysql' );
-		update_option( 'admitad_last_sync_report', $stats, false );
-		update_option( 'admitad_last_sync', $stats['completed_at'], false );
-	} finally {
-		wp_defer_term_counting( false );
-		wp_defer_comment_counting( false );
-		admitad_release_import_lock();
-	}
-	return $stats;
+	return array(
+		'run_id' => $run_id,
+		'status' => 'scheduled',
+	);
 }
 

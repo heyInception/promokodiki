@@ -34,6 +34,8 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-sync-run-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-import-context.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-editorial-locks.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-coupon-repository.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-reference-repository.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-sync-coordinator.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-category-mapper.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-company-mapper.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/importer.php';
