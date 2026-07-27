@@ -69,6 +69,65 @@ class Promokodiki_Admitad_CLI {
 		WP_CLI::log( wp_json_encode( $result['counters'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
 		WP_CLI::success( 'Import complete.' );
 	}
+
+	/**
+	 * Preview or apply deterministic coupon classification.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--dry-run]
+	 * : Store and print an affected-only preview without changing taxonomy.
+	 *
+	 * [--apply=<snapshot-id>]
+	 * : Apply a previously stored preview.
+	 *
+	 * @param array<int, string>    $args       Positional arguments.
+	 * @param array<string, string> $assoc_args Named arguments.
+	 */
+	public function classify( array $args, array $assoc_args ): void {
+		unset( $args );
+		$service = new Promokodiki_Admitad_Reclassification_Service();
+		if ( ! empty( $assoc_args['apply'] ) ) {
+			$count = $service->apply_preview( sanitize_text_field( (string) $assoc_args['apply'] ) );
+			WP_CLI::success( sprintf( 'Applied classification to %d coupon(s).', $count ) );
+			return;
+		}
+
+		$post_ids = get_posts(
+			array(
+				'post_type'                     => 'promocode',
+				'post_status'                   => array( 'publish', 'future', 'draft', 'private' ),
+				'posts_per_page'                => -1,
+				'fields'                        => 'ids',
+				'no_found_rows'                 => true,
+				'promokodiki_include_inactive' => true,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A dry-run intentionally scans only imported coupons.
+				'meta_key'                      => 'admitad_coupon_id',
+			)
+		);
+		$preview  = $service->preview( array_map( 'intval', $post_ids ) );
+		WP_CLI::log( wp_json_encode( $preview, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
+		WP_CLI::success( 'Classification dry-run complete; taxonomy was not changed.' );
+	}
+
+	/**
+	 * Roll back a previously applied classification preview.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <snapshot-id>
+	 * : Stored preview UUID.
+	 *
+	 * @param array<int, string> $args Positional arguments.
+	 */
+	public function rollback( array $args ): void {
+		$snapshot_id = sanitize_text_field( (string) ( $args[0] ?? '' ) );
+		if ( '' === $snapshot_id ) {
+			WP_CLI::error( 'A snapshot ID is required.' );
+		}
+		$count = ( new Promokodiki_Admitad_Reclassification_Service() )->rollback( $snapshot_id );
+		WP_CLI::success( sprintf( 'Rolled back classification for %d coupon(s).', $count ) );
+	}
 }
 
 WP_CLI::add_command( 'admitad', 'Promokodiki_Admitad_CLI' );

@@ -26,6 +26,12 @@ final class Promokodiki_Admitad_Plugin {
 		add_action( 'promokodiki_admitad_coupon_sync', array( self::class, 'handle_coupon_sync' ) );
 		add_action( 'promokodiki_admitad_reference_sync', array( self::class, 'handle_reference_sync' ) );
 		add_action( 'promokodiki_admitad_reconcile', array( self::class, 'handle_reconcile' ) );
+		add_action(
+			'promokodiki_admitad_apply_classification',
+			array( 'Promokodiki_Admitad_Reclassification_Service', 'handle_apply_batch' ),
+			10,
+			2
+		);
 		add_action( 'admin_init', array( self::class, 'check_job_health' ) );
 		add_action( 'admin_notices', array( 'Promokodiki_Admitad_Notifier', 'render_admin_notice' ) );
 		add_action(
@@ -61,6 +67,7 @@ final class Promokodiki_Admitad_Plugin {
 			'promokodiki_admitad_reconcile',
 			'promokodiki_admitad_coupon_batch',
 			'promokodiki_admitad_reference_batch',
+			'promokodiki_admitad_apply_classification',
 			'update_admitad_coupons_event',
 		);
 	}
