@@ -29,4 +29,6 @@ jobs:
           composer global config allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
           composer global require --dev wp-coding-standards/wpcs:^3.0
       - name: WordPress Coding Standards
-        run: phpcs --standard=wp-content/plugins/promokodiki-ajax-filter/phpcs.xml.dist wp-content/plugins/promokodiki-ajax-filter
+        run: |
+          phpcs --standard=wp-content/plugins/admitad-coupons/phpcs.xml.dist wp-content/plugins/admitad-coupons
+          phpcs --standard=wp-content/plugins/promokodiki-ajax-filter/phpcs.xml.dist wp-content/plugins/promokodiki-ajax-filter

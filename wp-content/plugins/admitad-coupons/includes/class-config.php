@@ -101,16 +101,16 @@ final class Promokodiki_Admitad_Config {
 			$settings[ $key ] = self::clamp( $settings[ $key ], 0, 1000 );
 		}
 
-		$settings['max_categories']       = self::clamp( $settings['max_categories'], 1, 3 );
-		$settings['candidate_evidence']   = self::clamp( $settings['candidate_evidence'], 1, 100 );
-		$settings['candidate_campaigns']  = self::clamp( $settings['candidate_campaigns'], 1, 100 );
-		$settings['candidate_conflicts']  = self::clamp( $settings['candidate_conflicts'], 0, 100 );
-		$settings['queue_warning_count']  = self::clamp( $settings['queue_warning_count'], 1, 10000 );
-		$settings['log_retention_days']   = self::clamp( $settings['log_retention_days'], 7, 3650 );
-		$settings['auto_tags']            = self::to_bool( $settings['auto_tags'] );
-		$settings['email_alerts']         = self::to_bool( $settings['email_alerts'] );
+		$settings['max_categories']        = self::clamp( $settings['max_categories'], 1, 3 );
+		$settings['candidate_evidence']    = self::clamp( $settings['candidate_evidence'], 1, 100 );
+		$settings['candidate_campaigns']   = self::clamp( $settings['candidate_campaigns'], 1, 100 );
+		$settings['candidate_conflicts']   = self::clamp( $settings['candidate_conflicts'], 0, 100 );
+		$settings['queue_warning_count']   = self::clamp( $settings['queue_warning_count'], 1, 10000 );
+		$settings['log_retention_days']    = self::clamp( $settings['log_retention_days'], 7, 3650 );
+		$settings['auto_tags']             = self::to_bool( $settings['auto_tags'] );
+		$settings['email_alerts']          = self::to_bool( $settings['email_alerts'] );
 		$settings['editor_review_enabled'] = self::to_bool( $settings['editor_review_enabled'] );
-		$settings['email_recipient']      = sanitize_email( (string) $settings['email_recipient'] );
+		$settings['email_recipient']       = sanitize_email( (string) $settings['email_recipient'] );
 
 		return $settings;
 	}
