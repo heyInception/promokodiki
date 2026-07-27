@@ -2,7 +2,9 @@
 /** Activation integration test. */
 
 require_once dirname( __DIR__ ) . '/harness.php';
-require_once WP_PLUGIN_DIR . '/promokodiki-ajax-filter/promokodiki-ajax-filter.php';
+if ( ! class_exists( 'Promokodiki_Filter_Activator' ) ) {
+	require_once WP_PLUGIN_DIR . '/promokodiki-ajax-filter/promokodiki-ajax-filter.php';
+}
 
 Promokodiki_Filter_Test_Harness::run(
 	'activation creates schema',

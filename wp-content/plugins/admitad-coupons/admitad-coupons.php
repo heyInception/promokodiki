@@ -35,6 +35,9 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-import-context.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-editorial-locks.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-coupon-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reference-repository.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-reconciler.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-visibility.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-notifier.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-sync-coordinator.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-category-mapper.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-company-mapper.php';
@@ -57,4 +60,3 @@ function admitad_coupons_deactivate() {
 register_activation_hook( __FILE__, array( 'Promokodiki_Admitad_Activator', 'activate' ) );
 register_deactivation_hook( __FILE__, 'admitad_coupons_deactivate' );
 Promokodiki_Admitad_Plugin::boot();
-add_action( 'init', 'admitad_schedule_events', 20 );

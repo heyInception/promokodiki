@@ -132,6 +132,38 @@ final class Promokodiki_Admitad_Sync_Run_Repository {
 	}
 
 	/**
+	 * Store reconciliation counters on a completed run.
+	 *
+	 * @param int $run_id     Run ID.
+	 * @param int $deactivated Deactivated coupon count.
+	 * @param int $reactivated Reactivated coupon count.
+	 */
+	public function set_reconciliation_counts( int $run_id, int $deactivated, int $reactivated ): void {
+		$this->update(
+			$run_id,
+			array(
+				'deactivated_count' => max( 0, $deactivated ),
+				'reactivated_count' => max( 0, $reactivated ),
+			)
+		);
+	}
+
+	/**
+	 * Return the newest completed run of one type.
+	 *
+	 * @param string $type Job type.
+	 * @return array<string, mixed>|null
+	 */
+	public function latest_completed( string $type ): ?array {
+		global $wpdb;
+
+		$table = Promokodiki_Admitad_Schema::table( 'sync_run' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The validated table identifier cannot use a value placeholder.
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE job_type = %s AND status = 'completed' ORDER BY id DESC LIMIT 1", sanitize_key( $type ) ), ARRAY_A );
+		return is_array( $row ) ? $row : null;
+	}
+
+	/**
 	 * Map public counter names to table columns.
 	 *
 	 * @param array<string, mixed> $counters Counters.

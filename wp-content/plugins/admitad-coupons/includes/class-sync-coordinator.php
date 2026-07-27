@@ -177,6 +177,7 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 			);
 		}
 		$this->runs->complete( $run_id, array( 'processed' => $next ) );
+		( new Promokodiki_Admitad_Notifier() )->record_success( 'reference' );
 		$this->release( 'reference', $run_id );
 		return array(
 			'phase'       => 'campaigns',
@@ -233,6 +234,7 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 	private function finish_or_continue( string $job, int $run_id, int $next, array $counters, bool $complete, string $hook, array $args ): void {
 		if ( $complete ) {
 			$this->runs->complete( $run_id, $counters );
+			( new Promokodiki_Admitad_Notifier() )->record_success( $job );
 			$this->release( $job, $run_id );
 			return;
 		}
@@ -265,6 +267,7 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 			}
 		}
 		$this->runs->fail( $run_id, $error );
+		( new Promokodiki_Admitad_Notifier() )->record_failure( $job, $error );
 		$this->release( $job, $run_id );
 		return $error;
 	}

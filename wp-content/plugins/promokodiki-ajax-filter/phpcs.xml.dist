@@ -6,7 +6,9 @@
 	<arg name="extensions" value="php"/>
 	<arg value="sp"/>
 	<config name="minimum_supported_wp_version" value="7.0"/>
-	<rule ref="WordPress"/>
+	<rule ref="WordPress">
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+	</rule>
 	<rule ref="WordPress-Docs"/>
 	<rule ref="WordPress-Extra"/>
 </ruleset>

@@ -6,16 +6,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function admitad_cron_hooks() {
-	return array( 'update_admitad_coupons_event' );
+	return Promokodiki_Admitad_Plugin::cron_hooks();
 }
 
 function admitad_schedule_events() {
-	if ( ! wp_next_scheduled( 'update_admitad_coupons_event' ) ) {
-		wp_schedule_event( time() + 300, 'twicedaily', 'update_admitad_coupons_event' );
-	}
+	Promokodiki_Admitad_Plugin::schedule();
 }
-
-add_action( 'update_admitad_coupons_event', 'update_admitad_coupons_data' );
 
 function admitad_acquire_import_lock() {
 	$now      = time();

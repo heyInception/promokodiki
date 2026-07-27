@@ -20,7 +20,7 @@ final class Promokodiki_Admitad_Activator {
 		admitad_register_content_types();
 		Promokodiki_Admitad_Schema::install();
 		Promokodiki_Admitad_Capabilities::install();
-		admitad_schedule_events();
+		Promokodiki_Admitad_Plugin::schedule();
 		flush_rewrite_rules();
 	}
 }

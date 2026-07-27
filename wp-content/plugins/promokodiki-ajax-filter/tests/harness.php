@@ -9,6 +9,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( ! class_exists( 'Promokodiki_Filter_Plugin' ) ) {
+	require_once dirname( __DIR__ ) . '/promokodiki-ajax-filter.php';
+	Promokodiki_Filter_Plugin::boot();
+}
+
 final class Promokodiki_Filter_Test_Harness {
 	/** @var string[] */
 	private static array $failures = array();
