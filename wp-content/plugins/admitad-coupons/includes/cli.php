@@ -7,6 +7,62 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 
 class Promokodiki_Admitad_CLI {
 	/**
+	 * Analyze or execute the non-destructive mapping migration.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--dry-run]
+	 * : Analyze without copying data. This is the default.
+	 *
+	 * [--execute]
+	 * : Copy legacy mappings into the new repositories.
+	 *
+	 * [--yes]
+	 * : Confirm execution.
+	 *
+	 * [--backup=<path>]
+	 * : Existing non-empty database backup required with --execute.
+	 *
+	 * @param array<int,string>    $args       Positional arguments.
+	 * @param array<string,string> $assoc_args Named arguments.
+	 */
+	public function automation_migrate( array $args, array $assoc_args ): void {
+		unset( $args );
+		$migration = new Promokodiki_Admitad_Legacy_Migration();
+		$analysis  = $migration->analyze();
+		if ( empty( $assoc_args['execute'] ) ) {
+			WP_CLI::log( wp_json_encode( $analysis, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
+			WP_CLI::success( 'Mapping migration dry-run complete; legacy data was not changed.' );
+			return;
+		}
+		if ( empty( $assoc_args['yes'] ) ) {
+			WP_CLI::error( '--yes is required.' );
+		}
+		$backup = (string) ( $assoc_args['backup'] ?? '' );
+		if ( ! is_file( $backup ) || 0 === filesize( $backup ) ) {
+			WP_CLI::error( 'A non-empty existing --backup file is required.' );
+		}
+		$offset = 0;
+		do {
+			$batch  = $migration->migrate_batch( $offset, 200 );
+			$offset = $batch['next_offset'];
+		} while ( ! $batch['complete'] );
+		$report = $migration->verify();
+		update_option(
+			'promokodiki_admitad_legacy_migration_report',
+			array(
+				'backup'       => wp_normalize_path( $backup ),
+				'completed_at' => gmdate( 'Y-m-d H:i:s' ),
+				'analysis'     => $analysis,
+				'verification' => $report,
+			),
+			false
+		);
+		WP_CLI::log( wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
+		WP_CLI::success( 'Mapping migration complete; legacy tables were preserved.' );
+	}
+
+	/**
 	 * Analyze or execute the one-CPT migration.
 	 *
 	 * ## OPTIONS
