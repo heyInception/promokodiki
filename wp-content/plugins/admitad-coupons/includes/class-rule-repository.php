@@ -169,6 +169,53 @@ final class Promokodiki_Admitad_Rule_Repository {
 	}
 
 	/**
+	 * Find the first rule ID for a phrase and term.
+	 *
+	 * @param string $phrase  Phrase.
+	 * @param int    $term_id Site term ID.
+	 */
+	public function find_id( string $phrase, int $term_id ): int {
+		global $wpdb;
+
+		$table  = Promokodiki_Admitad_Schema::table( 'rule' );
+		$phrase = Promokodiki_Admitad_Text_Normalizer::normalize( $phrase );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rules are request-cached; the validated table identifier cannot be a placeholder.
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM {$table} WHERE normalized_phrase = %s AND site_term_id = %d ORDER BY id ASC LIMIT 1",
+				$phrase,
+				$term_id
+			)
+		);
+	}
+
+	/**
+	 * Persist accumulated evidence counters.
+	 *
+	 * @param int $rule_id        Rule ID.
+	 * @param int $observations   Observation count.
+	 * @param int $campaigns      Distinct campaign count.
+	 * @param int $contradictions Contradiction count.
+	 */
+	public function update_evidence( int $rule_id, int $observations, int $campaigns, int $contradictions ): void {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable evidence counters use the plugin-owned table.
+		$wpdb->update(
+			Promokodiki_Admitad_Schema::table( 'rule' ),
+			array(
+				'evidence_count'          => max( 0, $observations ),
+				'distinct_campaign_count' => max( 0, $campaigns ),
+				'contradiction_count'     => max( 0, $contradictions ),
+				'updated_at'              => gmdate( 'Y-m-d H:i:s' ),
+			),
+			array( 'id' => $rule_id ),
+			array( '%d', '%d', '%d', '%s' ),
+			array( '%d' )
+		);
+	}
+
+	/**
 	 * Load active rules once per request.
 	 *
 	 * @return array<int, array<string, mixed>>

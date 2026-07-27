@@ -21,12 +21,21 @@ final class Promokodiki_Admitad_Assignment_Service {
 	private Promokodiki_Admitad_Classification_History_Repository $history;
 
 	/**
+	 * Review queue.
+	 *
+	 * @var Promokodiki_Admitad_Review_Queue_Repository
+	 */
+	private Promokodiki_Admitad_Review_Queue_Repository $queue;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Promokodiki_Admitad_Classification_History_Repository|null $history History repository.
+	 * @param Promokodiki_Admitad_Review_Queue_Repository|null           $queue   Review queue.
 	 */
-	public function __construct( ?Promokodiki_Admitad_Classification_History_Repository $history = null ) {
+	public function __construct( ?Promokodiki_Admitad_Classification_History_Repository $history = null, ?Promokodiki_Admitad_Review_Queue_Repository $queue = null ) {
 		$this->history = $history ?? new Promokodiki_Admitad_Classification_History_Repository();
+		$this->queue   = $queue ?? new Promokodiki_Admitad_Review_Queue_Repository();
 	}
 
 	/**
@@ -56,6 +65,23 @@ final class Promokodiki_Admitad_Assignment_Service {
 			wp_json_encode( $result->explanation(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES )
 		);
 		$this->history->record( $post_id, $result, $previous_terms, $previous_primary, $trigger );
+		$explanation = $result->explanation();
+		if ( 'low' === $result->confidence() || ! empty( $explanation['conflicts'] ) ) {
+			$reason    = ! empty( $explanation['conflicts'] ) ? 'conflicting_signals' : 'low_confidence';
+			$entity_id = (string) get_post_meta( $post_id, 'admitad_coupon_id', true );
+			if ( '' === $entity_id ) {
+				$entity_id = (string) $post_id;
+			}
+			$this->queue->enqueue(
+				'coupon',
+				$entity_id,
+				$reason,
+				array(
+					'proposed_terms' => $result->term_ids(),
+					'explanation'    => $explanation,
+				)
+			);
+		}
 		return true;
 	}
 }

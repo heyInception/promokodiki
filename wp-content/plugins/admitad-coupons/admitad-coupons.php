@@ -36,6 +36,10 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-company-profile-repository.php
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-classification-result.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-classifier.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-classification-history-repository.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-review-queue-repository.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-rule-evidence-service.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-taxonomy-rule-seeder.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-tag-manager.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-assignment-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reclassification-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-job-lock.php';
