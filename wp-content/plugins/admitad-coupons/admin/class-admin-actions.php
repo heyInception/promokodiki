@@ -20,6 +20,7 @@ final class Promokodiki_Admitad_Admin_Actions {
 		add_action( 'admin_post_promokodiki_admitad_save_settings', array( self::class, 'handle_save_settings' ) );
 		add_action( 'admin_post_promokodiki_admitad_refresh_token', array( self::class, 'handle_refresh_token' ) );
 		add_action( 'admin_post_promokodiki_admitad_unlock_post', array( self::class, 'handle_unlock_post' ) );
+		add_action( 'admin_post_promokodiki_admitad_operation', array( self::class, 'handle_operation' ) );
 	}
 
 	/**
@@ -100,6 +101,46 @@ final class Promokodiki_Admitad_Admin_Actions {
 	}
 
 	/**
+	 * Run a bounded operational action.
+	 *
+	 * @param string $operation Operation key.
+	 * @param string $nonce     Request nonce.
+	 * @return true|int|WP_Error
+	 */
+	public function run_operation( string $operation, string $nonce ) {
+		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
+			return new WP_Error( 'forbidden', 'You cannot run Admitad operations.' );
+		}
+		if ( ! wp_verify_nonce( $nonce, 'promokodiki_admitad_operation' ) ) {
+			return new WP_Error( 'invalid_nonce', 'Invalid operation nonce.' );
+		}
+		$operation = sanitize_key( $operation );
+		if ( 'coupon_sync' === $operation ) {
+			return ( new Promokodiki_Admitad_Sync_Coordinator() )->start_coupon_sync();
+		}
+		if ( 'reference_sync' === $operation ) {
+			return ( new Promokodiki_Admitad_Sync_Coordinator() )->start_reference_sync();
+		}
+		if ( 'reconcile' === $operation ) {
+			Promokodiki_Admitad_Plugin::handle_reconcile();
+			return true;
+		}
+		if ( in_array( $operation, array( 'recover_coupon_lock', 'recover_reference_lock' ), true ) ) {
+			$job = str_contains( $operation, 'coupon' ) ? 'coupon' : 'reference';
+			return ( new Promokodiki_Admitad_Job_Lock() )->recover_stale( $job )
+				? true
+				: new WP_Error( 'lock_not_stale', 'The selected lock is not stale.' );
+		}
+		if ( 'test_email' === $operation ) {
+			$recipient = (string) Promokodiki_Admitad_Config::get( 'email_recipient' );
+			return wp_mail( $recipient, '[Promokodiki] Admitad test', 'Admitad automation email notifications are working.' )
+				? true
+				: new WP_Error( 'mail_failed', 'WordPress could not send the test email.' );
+		}
+		return new WP_Error( 'invalid_operation', 'Unknown Admitad operation.' );
+	}
+
+	/**
 	 * Handle the settings form.
 	 */
 	public static function handle_save_settings(): void {
@@ -143,6 +184,17 @@ final class Promokodiki_Admitad_Admin_Actions {
 		}
 		wp_safe_redirect( get_edit_post_link( $post_id, 'raw' ) );
 		exit;
+	}
+
+	/**
+	 * Handle a manual operational action.
+	 */
+	public static function handle_operation(): void {
+		$result = ( new self() )->run_operation(
+			sanitize_key( wp_unslash( $_POST['operation'] ?? '' ) ),
+			sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ?? '' ) )
+		);
+		self::redirect_or_die( $result, 'admitad-sync' );
 	}
 
 	/**

@@ -52,6 +52,7 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-reference-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reconciler.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-visibility.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-notifier.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-diagnostics.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-sync-coordinator.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-category-mapper.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-company-mapper.php';
@@ -62,6 +63,9 @@ require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-menu.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-actions.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/class-promocode-lock-metabox.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-settings-page.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-overview-page.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-sync-page.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-diagnostics-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/mapping-dashboard.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/companies-mapping-page.php';
 

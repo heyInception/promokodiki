@@ -97,6 +97,35 @@ final class Promokodiki_Admitad_Job_Lock {
 	}
 
 	/**
+	 * Return lock health without exposing the owner token.
+	 *
+	 * @param string $job Job name.
+	 * @return array{locked:bool,heartbeat:int,ttl:int,expired:bool}
+	 */
+	public function status( string $job ): array {
+		$current   = get_option( $this->key( $job ), array() );
+		$heartbeat = is_array( $current ) ? (int) ( $current['heartbeat'] ?? 0 ) : 0;
+		$ttl       = is_array( $current ) ? max( 1, (int) ( $current['ttl'] ?? 600 ) ) : 0;
+		$locked    = is_array( $current ) && ! empty( $current );
+		return array(
+			'locked'    => $locked,
+			'heartbeat' => $heartbeat,
+			'ttl'       => $ttl,
+			'expired'   => $locked && $heartbeat + $ttl < $this->now(),
+		);
+	}
+
+	/**
+	 * Remove only an expired lock.
+	 *
+	 * @param string $job Job name.
+	 */
+	public function recover_stale( string $job ): bool {
+		$status = $this->status( $job );
+		return $status['expired'] ? delete_option( $this->key( $job ) ) : false;
+	}
+
+	/**
 	 * Return a safe option key.
 	 *
 	 * @param string $job Job name.

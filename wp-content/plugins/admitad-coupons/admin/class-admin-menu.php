@@ -75,6 +75,15 @@ final class Promokodiki_Admitad_Admin_Menu {
 			( new Promokodiki_Admitad_Settings_Page() )->render();
 			return;
 		}
+		$pages = array(
+			'admitad-overview'    => Promokodiki_Admitad_Overview_Page::class,
+			'admitad-sync'        => Promokodiki_Admitad_Sync_Page::class,
+			'admitad-diagnostics' => Promokodiki_Admitad_Diagnostics_Page::class,
+		);
+		if ( isset( $pages[ $page ] ) ) {
+			( new $pages[ $page ]() )->render();
+			return;
+		}
 		if ( ! current_user_can( self::section_capabilities()[ $page ] ?? 'manage_admitad_automation' ) ) {
 			wp_die( esc_html__( 'Недостаточно прав для просмотра этого раздела.', 'promokodiki-admitad' ), '', array( 'response' => 403 ) );
 		}

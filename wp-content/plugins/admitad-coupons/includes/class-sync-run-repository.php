@@ -164,6 +164,28 @@ final class Promokodiki_Admitad_Sync_Run_Repository {
 	}
 
 	/**
+	 * Return recent sanitized runs.
+	 *
+	 * @param int $limit Maximum rows.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function recent( int $limit = 20 ): array {
+		global $wpdb;
+
+		$table = Promokodiki_Admitad_Schema::table( 'sync_run' );
+		$limit = max( 1, min( 100, $limit ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Operational history uses a plugin-owned table with a validated identifier.
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} ORDER BY id DESC LIMIT %d", $limit ), ARRAY_A );
+		foreach ( (array) $rows as &$row ) {
+			$decoded              = json_decode( (string) $row['error_summary'], true );
+			$row['id']            = (int) $row['id'];
+			$row['error_summary'] = is_array( $decoded ) ? $decoded : array();
+		}
+		unset( $row );
+		return (array) $rows;
+	}
+
+	/**
 	 * Map public counter names to table columns.
 	 *
 	 * @param array<string, mixed> $counters Counters.
