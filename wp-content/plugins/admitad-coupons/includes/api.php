@@ -6,17 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function admitad_config( $key ) {
-	$constants = array(
-		'client_id'     => 'PROMOKODIKI_ADMITAD_CLIENT_ID',
-		'client_secret' => 'PROMOKODIKI_ADMITAD_CLIENT_SECRET',
-		'website_id'   => 'PROMOKODIKI_ADMITAD_WEBSITE_ID',
-	);
-
-	if ( isset( $constants[ $key ] ) && defined( $constants[ $key ] ) ) {
-		return (string) constant( $constants[ $key ] );
-	}
-
-	return (string) get_option( 'promokodiki_admitad_' . $key, '' );
+	return (string) Promokodiki_Admitad_Config::get( (string) $key );
 }
 
 function admitad_clear_cached_token() {
@@ -99,10 +89,15 @@ function admitad_api_get( $path, array $query = array(), $retry = 0 ) {
 		return is_wp_error( $refreshed ) ? $refreshed : admitad_api_get( $path, $query, $retry + 1 );
 	}
 
-	if ( ( 429 === $status || $status >= 500 ) && $retry < 2 ) {
-		$retry_after = min( 10, max( 1, (int) wp_remote_retrieve_header( $response, 'retry-after' ) ) );
-		sleep( $retry_after );
-		return admitad_api_get( $path, $query, $retry + 1 );
+	if ( 429 === $status || $status >= 500 ) {
+		return new WP_Error(
+			'admitad_retryable',
+			'Admitad request must be retried.',
+			array(
+				'status'      => $status,
+				'retry_after' => max( 1, (int) wp_remote_retrieve_header( $response, 'retry-after' ) ),
+			)
+		);
 	}
 
 	if ( 200 !== $status ) {
@@ -116,14 +111,7 @@ function admitad_api_get( $path, array $query = array(), $retry = 0 ) {
 }
 
 function get_admitad_coupons_from_api( $limit = 200, $offset = 0 ) {
-	$website_id = admitad_config( 'website_id' );
-	if ( '' === $website_id ) {
-		return new WP_Error( 'admitad_not_configured', 'Admitad website ID is not configured.' );
-	}
-
-	return admitad_api_get(
-		'coupons/website/' . rawurlencode( $website_id ) . '/',
-		array( 'limit' => absint( $limit ), 'offset' => absint( $offset ), 'region' => 'RU' )
-	);
+	$client = new Promokodiki_Admitad_Api_Client();
+	return $client->coupon_page( absint( $limit ), absint( $offset ) );
 }
 
