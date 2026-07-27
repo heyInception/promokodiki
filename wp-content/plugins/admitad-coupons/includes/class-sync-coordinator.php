@@ -20,11 +20,11 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 	 */
 	private Promokodiki_Admitad_Api_Client $api;
 	/**
-	 * Coupon repository.
+	 * Complete coupon pipeline.
 	 *
-	 * @var Promokodiki_Admitad_Coupon_Repository
+	 * @var Promokodiki_Admitad_Import_Pipeline
 	 */
-	private Promokodiki_Admitad_Coupon_Repository $coupons;
+	private Promokodiki_Admitad_Import_Pipeline $pipeline;
 	/**
 	 * Run repository.
 	 *
@@ -53,16 +53,18 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 	/**
 	 * Constructor.
 	 *
-	 * @param Promokodiki_Admitad_Api_Client|null           $api        API client.
-	 * @param Promokodiki_Admitad_Coupon_Repository|null    $coupons    Coupon repository.
-	 * @param Promokodiki_Admitad_Sync_Run_Repository|null  $runs       Run repository.
-	 * @param Promokodiki_Admitad_Job_Lock|null             $locks      Job lock.
-	 * @param callable|null                                 $scheduler  Single-event scheduler.
-	 * @param Promokodiki_Admitad_Reference_Repository|null $references Reference repository.
+	 * @param Promokodiki_Admitad_Api_Client|null                                            $api        API client.
+	 * @param Promokodiki_Admitad_Coupon_Repository|Promokodiki_Admitad_Import_Pipeline|null $coupons Coupon persistence or pipeline.
+	 * @param Promokodiki_Admitad_Sync_Run_Repository|null                                   $runs       Run repository.
+	 * @param Promokodiki_Admitad_Job_Lock|null                                              $locks      Job lock.
+	 * @param callable|null                                                                  $scheduler  Single-event scheduler.
+	 * @param Promokodiki_Admitad_Reference_Repository|null                                  $references Reference repository.
 	 */
 	public function __construct( $api = null, $coupons = null, $runs = null, $locks = null, ?callable $scheduler = null, $references = null ) {
 		$this->api        = $api ?? new Promokodiki_Admitad_Api_Client();
-		$this->coupons    = $coupons ?? new Promokodiki_Admitad_Coupon_Repository();
+		$this->pipeline   = $coupons instanceof Promokodiki_Admitad_Import_Pipeline
+			? $coupons
+			: new Promokodiki_Admitad_Import_Pipeline( $coupons );
 		$this->runs       = $runs ?? new Promokodiki_Admitad_Sync_Run_Repository();
 		$this->locks      = $locks ?? new Promokodiki_Admitad_Job_Lock();
 		$this->references = $references ?? new Promokodiki_Admitad_Reference_Repository();
@@ -124,7 +126,12 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 
 		$counters = $this->counters( $run_id );
 		foreach ( $page['results'] as $raw_coupon ) {
-			$result = $this->coupons->upsert( Promokodiki_Admitad_Coupon_Normalizer::normalize( $raw_coupon ), $run_id );
+			$result = $this->pipeline->process( $raw_coupon, $run_id );
+			if ( is_wp_error( $result ) ) {
+				++$counters['processed'];
+				++$counters['failed'];
+				continue;
+			}
 			++$counters['processed'];
 			++$counters[ $result['state'] ];
 		}

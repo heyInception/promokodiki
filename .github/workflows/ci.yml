@@ -24,6 +24,14 @@ jobs:
         run: |
           ! grep -RInE --include='*.php' "sslverify['\"[:space:]]*=>[[:space:]]*false" wp-content/themes/promokodiki wp-content/plugins/admitad-coupons wp-content/plugins/promokodiki-ajax-filter
           ! grep -RInE --include='*.php' "(client_secret|access_token)[[:space:]]*=[[:space:]]*['\"][A-Za-z0-9_-]{20,}" wp-content/themes/promokodiki wp-content/plugins/admitad-coupons wp-content/plugins/promokodiki-ajax-filter
+          ! grep -RInE --include='*.php' "\b(sleep|usleep)[[:space:]]*\(" wp-content/plugins/admitad-coupons
+      - name: Admitad integration-test contract
+        shell: bash
+        run: |
+          test -f wp-content/plugins/admitad-coupons/tests/run-all.ps1
+          for test_file in wp-content/plugins/admitad-coupons/tests/php/test-*.php; do
+            grep -q "harness.php" "$test_file"
+          done
       - name: Install WordPress Coding Standards
         run: |
           composer global config allow-plugins.dealerdirect/phpcodesniffer-composer-installer true

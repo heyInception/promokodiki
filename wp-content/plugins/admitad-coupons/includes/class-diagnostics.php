@@ -54,6 +54,7 @@ final class Promokodiki_Admitad_Diagnostics {
 			'coupon_sync'    => 'promokodiki_admitad_coupon_sync',
 			'reference_sync' => 'promokodiki_admitad_reference_sync',
 			'reconcile'      => 'promokodiki_admitad_reconcile',
+			'retention'      => 'promokodiki_admitad_retention',
 		);
 		$cron        = array();
 		foreach ( $definitions as $name => $hook ) {

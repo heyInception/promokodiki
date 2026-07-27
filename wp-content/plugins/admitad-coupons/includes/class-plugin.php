@@ -26,6 +26,7 @@ final class Promokodiki_Admitad_Plugin {
 		add_action( 'promokodiki_admitad_coupon_sync', array( self::class, 'handle_coupon_sync' ) );
 		add_action( 'promokodiki_admitad_reference_sync', array( self::class, 'handle_reference_sync' ) );
 		add_action( 'promokodiki_admitad_reconcile', array( self::class, 'handle_reconcile' ) );
+		add_action( 'promokodiki_admitad_retention', array( self::class, 'handle_retention' ) );
 		add_action(
 			'promokodiki_admitad_apply_classification',
 			array( 'Promokodiki_Admitad_Reclassification_Service', 'handle_apply_batch' ),
@@ -65,10 +66,12 @@ final class Promokodiki_Admitad_Plugin {
 			'promokodiki_admitad_coupon_sync',
 			'promokodiki_admitad_reference_sync',
 			'promokodiki_admitad_reconcile',
+			'promokodiki_admitad_retention',
 			'promokodiki_admitad_coupon_batch',
 			'promokodiki_admitad_reference_batch',
 			'promokodiki_admitad_apply_classification',
 			'update_admitad_coupons_event',
+			'update_admitad_shop_coupons_event',
 		);
 	}
 
@@ -102,6 +105,7 @@ final class Promokodiki_Admitad_Plugin {
 			'promokodiki_admitad_coupon_sync'    => 'promokodiki_admitad_coupon',
 			'promokodiki_admitad_reference_sync' => 'promokodiki_admitad_reference',
 			'promokodiki_admitad_reconcile'      => 'promokodiki_admitad_reconcile',
+			'promokodiki_admitad_retention'      => 'daily',
 		);
 		foreach ( $events as $hook => $recurrence ) {
 			if ( ! wp_next_scheduled( $hook ) ) {
@@ -109,6 +113,7 @@ final class Promokodiki_Admitad_Plugin {
 			}
 		}
 		wp_clear_scheduled_hook( 'update_admitad_coupons_event' );
+		wp_clear_scheduled_hook( 'update_admitad_shop_coupons_event' );
 	}
 
 	/**
@@ -150,6 +155,13 @@ final class Promokodiki_Admitad_Plugin {
 		update_option( 'promokodiki_admitad_last_reconciled_run', (int) $run['id'], false );
 		update_option( 'promokodiki_admitad_last_reconcile', time(), false );
 		$notifier->record_success( 'reconcile' );
+	}
+
+	/**
+	 * Delete expired operational detail while preserving active snapshots and queues.
+	 */
+	public static function handle_retention(): void {
+		( new Promokodiki_Admitad_Retention() )->run();
 	}
 
 	/**

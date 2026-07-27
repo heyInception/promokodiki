@@ -10,8 +10,6 @@
 	<file>includes/db.php</file>
 	<exclude-pattern>admin/*</exclude-pattern>
 	<exclude-pattern>includes/api.php</exclude-pattern>
-	<exclude-pattern>includes/class-category-mapper.php</exclude-pattern>
-	<exclude-pattern>includes/class-company-mapper.php</exclude-pattern>
 	<exclude-pattern>includes/cli.php</exclude-pattern>
 	<exclude-pattern>includes/importer.php</exclude-pattern>
 	<exclude-pattern>includes/migration.php</exclude-pattern>

@@ -17,6 +17,8 @@ try {
 	Promokodiki_Admitad_Test_Harness::run(
 		'configured recurring schedules are idempotent',
 		static function (): void {
+			wp_schedule_single_event( time() + HOUR_IN_SECONDS, 'update_admitad_coupons_event' );
+			wp_schedule_single_event( time() + HOUR_IN_SECONDS, 'update_admitad_shop_coupons_event' );
 			Promokodiki_Admitad_Plugin::schedule();
 			$first = wp_get_scheduled_event( 'promokodiki_admitad_coupon_sync' );
 			Promokodiki_Admitad_Plugin::schedule();
@@ -31,6 +33,9 @@ try {
 			Promokodiki_Admitad_Test_Harness::assert_true( false !== has_action( 'promokodiki_admitad_coupon_sync' ) );
 			Promokodiki_Admitad_Test_Harness::assert_true( false !== has_action( 'promokodiki_admitad_reference_sync' ) );
 			Promokodiki_Admitad_Test_Harness::assert_true( false !== has_action( 'promokodiki_admitad_reconcile' ) );
+			Promokodiki_Admitad_Test_Harness::assert_true( false !== has_action( 'promokodiki_admitad_retention' ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( false, wp_next_scheduled( 'update_admitad_coupons_event' ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( false, wp_next_scheduled( 'update_admitad_shop_coupons_event' ) );
 		}
 	);
 

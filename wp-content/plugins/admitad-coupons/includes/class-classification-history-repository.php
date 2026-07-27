@@ -104,6 +104,21 @@ final class Promokodiki_Admitad_Classification_History_Repository {
 	}
 
 	/**
+	 * Return one history row by ID.
+	 *
+	 * @param int $history_id History row ID.
+	 * @return array<string,mixed>|null
+	 */
+	public function get_by_id( int $history_id ): ?array {
+		global $wpdb;
+
+		$table = Promokodiki_Admitad_Schema::table( 'classification_history' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Immutable history uses a plugin-owned table with a validated identifier.
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $history_id ), ARRAY_A );
+		return is_array( $row ) ? $this->decode( $row ) : null;
+	}
+
+	/**
 	 * Return all preview rows from a stored snapshot.
 	 *
 	 * @param string $snapshot_id Snapshot UUID.
