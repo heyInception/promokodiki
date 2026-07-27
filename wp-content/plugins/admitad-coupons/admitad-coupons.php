@@ -17,6 +17,7 @@ define( 'ADMITAD_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ADMITAD_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once ADMITAD_PLUGIN_DIR . 'includes/post-types.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-plugin.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/db.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/api.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-category-mapper.php';
@@ -47,6 +48,6 @@ function admitad_coupons_deactivate() {
 register_activation_hook( __FILE__, 'admitad_coupons_activate' );
 register_deactivation_hook( __FILE__, 'admitad_coupons_deactivate' );
 
-add_action( 'init', 'admitad_register_content_types', 0 );
+Promokodiki_Admitad_Plugin::boot();
 add_action( 'init', 'admitad_schedule_events', 20 );
 
