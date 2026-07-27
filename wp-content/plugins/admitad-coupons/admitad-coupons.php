@@ -33,6 +33,8 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-text-normalizer.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-rule-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-category-map-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-company-profile-repository.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-classification-result.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-classifier.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-job-lock.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-sync-run-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-import-context.php';
