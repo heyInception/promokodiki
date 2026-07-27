@@ -18,6 +18,7 @@ final class Promokodiki_Admitad_Plugin {
 	 */
 	public static function boot(): void {
 		add_action( 'init', array( self::class, 'register' ), 0 );
+		Promokodiki_Admitad_Editorial_Locks::register();
 	}
 
 	/**
