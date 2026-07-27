@@ -14,6 +14,31 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Promokodiki_Admitad_Coupon_Repository {
 	/**
+	 * Duplicate detector.
+	 *
+	 * @var Promokodiki_Admitad_Duplicate_Detector
+	 */
+	private Promokodiki_Admitad_Duplicate_Detector $duplicates;
+
+	/**
+	 * Review queue.
+	 *
+	 * @var Promokodiki_Admitad_Review_Queue_Repository
+	 */
+	private Promokodiki_Admitad_Review_Queue_Repository $queue;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param Promokodiki_Admitad_Duplicate_Detector|null      $duplicates Duplicate detector.
+	 * @param Promokodiki_Admitad_Review_Queue_Repository|null $queue      Review queue.
+	 */
+	public function __construct( ?Promokodiki_Admitad_Duplicate_Detector $duplicates = null, ?Promokodiki_Admitad_Review_Queue_Repository $queue = null ) {
+		$this->duplicates = $duplicates ?? new Promokodiki_Admitad_Duplicate_Detector();
+		$this->queue      = $queue ?? new Promokodiki_Admitad_Review_Queue_Repository();
+	}
+
+	/**
 	 * Create or update one normalized coupon.
 	 *
 	 * @param array<string, mixed> $coupon Normalized coupon.
@@ -37,9 +62,10 @@ final class Promokodiki_Admitad_Coupon_Repository {
 			);
 		}
 
-		$is_new    = 0 === $post_id;
-		$start     = strtotime( (string) ( $coupon['date_start'] ?? '' ) );
-		$post_data = array(
+		$is_new        = 0 === $post_id;
+		$duplicate_ids = $is_new ? $this->duplicates->find( $coupon ) : array();
+		$start         = strtotime( (string) ( $coupon['date_start'] ?? '' ) );
+		$post_data     = array(
 			'post_type'   => 'promocode',
 			'post_status' => $start && $start > time() ? 'future' : 'publish',
 			'post_date'   => $start ? wp_date( 'Y-m-d H:i:s', $start ) : current_time( 'mysql' ),
@@ -68,6 +94,21 @@ final class Promokodiki_Admitad_Coupon_Repository {
 
 		$this->update_meta( $post_id, $coupon, $run_id );
 		$this->assign_shop( $post_id, $coupon['campaign'] );
+		if ( $duplicate_ids ) {
+			$this->queue->enqueue(
+				'coupon',
+				(string) $coupon['external_id'],
+				'suspected_duplicate',
+				array(
+					'matching_post_ids' => $duplicate_ids,
+					'campaign_id'       => (string) ( $coupon['campaign']['id'] ?? '' ),
+					'promocode'         => (string) ( $coupon['promocode'] ?? '' ),
+					'title'             => (string) ( $coupon['title'] ?? '' ),
+					'date_start'        => (string) ( $coupon['date_start'] ?? '' ),
+					'date_end'          => (string) ( $coupon['date_end'] ?? '' ),
+				)
+			);
+		}
 
 		return array(
 			'post_id' => $post_id,
@@ -99,12 +140,13 @@ final class Promokodiki_Admitad_Coupon_Repository {
 		// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Admitad ID is the canonical legacy lookup key.
 		$posts = get_posts(
 			array(
-				'post_type'      => 'promocode',
-				'post_status'    => 'any',
-				'fields'         => 'ids',
-				'posts_per_page' => 1,
-				'meta_key'       => 'admitad_coupon_id',
-				'meta_value'     => $external_id,
+				'post_type'                    => 'promocode',
+				'post_status'                  => 'any',
+				'fields'                       => 'ids',
+				'posts_per_page'               => 1,
+				'promokodiki_include_inactive' => true,
+				'meta_key'                     => 'admitad_coupon_id',
+				'meta_value'                   => $external_id,
 			)
 		);
 		// phpcs:enable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value

@@ -46,6 +46,7 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-job-lock.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-sync-run-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-import-context.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-editorial-locks.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-duplicate-detector.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-coupon-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reference-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reconciler.php';
