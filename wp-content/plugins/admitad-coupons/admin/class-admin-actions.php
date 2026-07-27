@@ -21,6 +21,83 @@ final class Promokodiki_Admitad_Admin_Actions {
 		add_action( 'admin_post_promokodiki_admitad_refresh_token', array( self::class, 'handle_refresh_token' ) );
 		add_action( 'admin_post_promokodiki_admitad_unlock_post', array( self::class, 'handle_unlock_post' ) );
 		add_action( 'admin_post_promokodiki_admitad_operation', array( self::class, 'handle_operation' ) );
+		add_action( 'admin_post_promokodiki_admitad_mapping_action', array( self::class, 'handle_mapping_action' ) );
+	}
+
+	/**
+	 * Resolve a queue item by assigning and locking one coupon only.
+	 *
+	 * @param int             $queue_id Queue row ID.
+	 * @param array<int, int> $term_ids Existing site category IDs.
+	 * @return true|WP_Error
+	 */
+	public function resolve_coupon_only( int $queue_id, array $term_ids ) {
+		if (
+			! current_user_can( 'review_admitad_mapping' )
+			|| ( ! current_user_can( 'manage_admitad_automation' ) && ! Promokodiki_Admitad_Config::get( 'editor_review_enabled' ) )
+		) {
+			return new WP_Error( 'forbidden', 'You cannot resolve Admitad review cases.' );
+		}
+		$queue = new Promokodiki_Admitad_Review_Queue_Repository();
+		$item  = $queue->get_open( $queue_id );
+		if ( ! $item || 'coupon' !== $item['entity_type'] ) {
+			return new WP_Error( 'invalid_queue_item', 'An open coupon review case is required.' );
+		}
+		$term_ids = array_values( array_unique( array_map( 'absint', $term_ids ) ) );
+		$term_ids = array_slice( $term_ids, 0, 3 );
+		foreach ( $term_ids as $term_id ) {
+			if ( ! get_term( $term_id, 'promocode_category' ) instanceof WP_Term ) {
+				return new WP_Error( 'invalid_term', 'Every selected category must already exist.' );
+			}
+		}
+		if ( array() === $term_ids ) {
+			return new WP_Error( 'invalid_term', 'Select at least one existing category.' );
+		}
+		$posts = get_posts(
+			array(
+				'post_type'      => 'promocode',
+				'post_status'    => 'any',
+				'posts_per_page' => 2,
+				'fields'         => 'ids',
+				'meta_key'       => 'admitad_coupon_id',
+				'meta_value'     => (string) $item['entity_id'],
+			)
+		);
+		if ( 1 !== count( $posts ) ) {
+			return new WP_Error( 'coupon_not_unique', 'Exactly one coupon must match the queue entity.' );
+		}
+		$post_id = (int) $posts[0];
+		$result  = wp_set_post_terms( $post_id, $term_ids, 'promocode_category', false );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		update_post_meta( $post_id, '_admitad_primary_term_id', $term_ids[0] );
+		update_post_meta( $post_id, '_admitad_category_locked', 'yes' );
+		update_post_meta( $post_id, '_admitad_locked_term_ids', $term_ids );
+		return $queue->resolve( $queue_id, 'coupon_only' )
+			? true
+			: new WP_Error( 'queue_update_failed', 'The coupon was changed but the queue case could not be resolved.' );
+	}
+
+	/**
+	 * Create one administrator-only stable external category map.
+	 *
+	 * @param string $namespace  coupon or campaign.
+	 * @param int    $external_id External category ID.
+	 * @param int    $term_id     Existing site term ID.
+	 * @param int    $weight      Signal weight.
+	 * @return true|WP_Error
+	 */
+	public function create_global_category_map( string $namespace, int $external_id, int $term_id, int $weight = 100 ) {
+		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
+			return new WP_Error( 'forbidden', 'You cannot change global Admitad mappings.' );
+		}
+		try {
+			( new Promokodiki_Admitad_Category_Map_Repository() )->save( $namespace, $external_id, $term_id, $weight );
+		} catch ( Throwable $error ) {
+			return new WP_Error( 'invalid_mapping', $error->getMessage() );
+		}
+		return true;
 	}
 
 	/**
@@ -195,6 +272,120 @@ final class Promokodiki_Admitad_Admin_Actions {
 			sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ?? '' ) )
 		);
 		self::redirect_or_die( $result, 'admitad-sync' );
+	}
+
+	/**
+	 * Handle all mapping administration forms.
+	 */
+	public static function handle_mapping_action(): void {
+		$nonce = sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ?? '' ) );
+		if ( ! wp_verify_nonce( $nonce, 'promokodiki_admitad_mapping_action' ) ) {
+			wp_die( esc_html__( 'Недопустимый запрос.', 'promokodiki-admitad' ), '', array( 'response' => 403 ) );
+		}
+		$operation = sanitize_key( wp_unslash( $_POST['operation'] ?? '' ) );
+		$actions   = new self();
+		$page      = 'admitad-review';
+		$result    = new WP_Error( 'invalid_operation', 'Unknown mapping operation.' );
+
+		if ( 'save_category_map' === $operation ) {
+			$page   = 'admitad-category-map';
+			$result = $actions->create_global_category_map(
+				sanitize_key( wp_unslash( $_POST['namespace'] ?? '' ) ),
+				absint( $_POST['external_id'] ?? 0 ),
+				absint( $_POST['site_term_id'] ?? 0 ),
+				absint( $_POST['weight'] ?? 100 )
+			);
+		} elseif ( 'resolve_coupon_only' === $operation ) {
+			$result = $actions->resolve_coupon_only(
+				absint( $_POST['queue_id'] ?? 0 ),
+				array_map( 'absint', (array) wp_unslash( $_POST['term_ids'] ?? array() ) )
+			);
+		} elseif ( 'save_company' === $operation ) {
+			$page   = 'admitad-companies';
+			$result = $actions->save_company_profile(
+				absint( $_POST['campaign_id'] ?? 0 ),
+				absint( $_POST['default_term_id'] ?? 0 ),
+				array_map( 'absint', (array) wp_unslash( $_POST['allowed_term_ids'] ?? array() ) ),
+				absint( $_POST['weight'] ?? 40 ),
+				sanitize_text_field( wp_unslash( $_POST['display_name'] ?? '' ) )
+			);
+		} elseif ( 'save_rule' === $operation ) {
+			$page   = 'admitad-rules';
+			$result = $actions->save_rule(
+				sanitize_text_field( wp_unslash( $_POST['phrase'] ?? '' ) ),
+				absint( $_POST['site_term_id'] ?? 0 ),
+				absint( $_POST['weight'] ?? 20 ),
+				sanitize_key( wp_unslash( $_POST['status'] ?? 'candidate' ) ),
+				sanitize_key( wp_unslash( $_POST['mode'] ?? 'phrase' ) )
+			);
+		} elseif ( 'set_rule_status' === $operation ) {
+			$page   = 'admitad-rules';
+			$result = $actions->set_rule_status(
+				absint( $_POST['rule_id'] ?? 0 ),
+				sanitize_key( wp_unslash( $_POST['status'] ?? '' ) )
+			);
+		}
+		self::redirect_or_die( $result, $page );
+	}
+
+	/**
+	 * Save one company classification profile.
+	 *
+	 * @param int             $campaign_id     Campaign ID.
+	 * @param int             $default_term_id Default term.
+	 * @param array<int, int> $allowed_term_ids Allowed terms.
+	 * @param int             $weight          Weight.
+	 * @param string          $display_name    Display name.
+	 * @return true|WP_Error
+	 */
+	public function save_company_profile( int $campaign_id, int $default_term_id, array $allowed_term_ids, int $weight, string $display_name ) {
+		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
+			return new WP_Error( 'forbidden', 'You cannot change company profiles.' );
+		}
+		try {
+			( new Promokodiki_Admitad_Company_Profile_Repository() )->save_profile( $campaign_id, $default_term_id, $allowed_term_ids, $weight, $display_name );
+		} catch ( Throwable $error ) {
+			return new WP_Error( 'invalid_company_profile', $error->getMessage() );
+		}
+		return true;
+	}
+
+	/**
+	 * Save an explicit phrase rule.
+	 *
+	 * @param string $phrase  Phrase.
+	 * @param int    $term_id Term ID.
+	 * @param int    $weight  Weight.
+	 * @param string $status  Status.
+	 * @param string $mode    Match mode.
+	 * @return true|WP_Error
+	 */
+	public function save_rule( string $phrase, int $term_id, int $weight, string $status, string $mode ) {
+		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
+			return new WP_Error( 'forbidden', 'You cannot change phrase rules.' );
+		}
+		try {
+			( new Promokodiki_Admitad_Rule_Repository() )->save( $phrase, $term_id, $weight, $status, $mode, 'editorial' );
+		} catch ( Throwable $error ) {
+			return new WP_Error( 'invalid_rule', $error->getMessage() );
+		}
+		return true;
+	}
+
+	/**
+	 * Change one rule status.
+	 *
+	 * @param int    $rule_id Rule ID.
+	 * @param string $status  Status.
+	 * @return true|WP_Error
+	 */
+	public function set_rule_status( int $rule_id, string $status ) {
+		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
+			return new WP_Error( 'forbidden', 'You cannot change phrase rules.' );
+		}
+		return ( new Promokodiki_Admitad_Rule_Repository() )->set_status( $rule_id, $status )
+			? true
+			: new WP_Error( 'invalid_rule_status', 'Unable to change the rule status.' );
 	}
 
 	/**

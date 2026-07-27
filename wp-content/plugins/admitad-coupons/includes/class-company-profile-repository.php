@@ -14,6 +14,50 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Promokodiki_Admitad_Company_Profile_Repository {
 	/**
+	 * Return a bounded administration page with allowed categories.
+	 *
+	 * @param string $search   Campaign name or ID search.
+	 * @param int    $page     One-based page.
+	 * @param int    $per_page Rows per page.
+	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
+	 */
+	public function list_rows( string $search = '', int $page = 1, int $per_page = 20 ): array {
+		global $wpdb;
+
+		$table    = Promokodiki_Admitad_Schema::table( 'company_profile' );
+		$page     = max( 1, $page );
+		$per_page = max( 1, min( 100, $per_page ) );
+		$offset   = ( $page - 1 ) * $per_page;
+		$search   = sanitize_text_field( $search );
+		$where    = '';
+		$args     = array();
+		if ( '' !== $search ) {
+			$where  = ' WHERE display_name LIKE %s OR CAST(campaign_id AS CHAR) LIKE %s';
+			$needle = '%' . $wpdb->esc_like( $search ) . '%';
+			$args   = array( $needle, $needle );
+		}
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Identifier is plugin-owned and the optional prepared fragments contain only fixed SQL.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned company state.
+		$total = (int) $wpdb->get_var( $args ? $wpdb->prepare( "SELECT COUNT(*) FROM {$table}{$where}", ...$args ) : "SELECT COUNT(*) FROM {$table}" );
+		$query = "SELECT campaign_id, display_name, default_term_id, signal_weight, status, category_snapshot
+			FROM {$table}{$where} ORDER BY display_name ASC, campaign_id ASC LIMIT %d OFFSET %d";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned company state.
+		$items = (array) $wpdb->get_results( $wpdb->prepare( $query, ...array_merge( $args, array( $per_page, $offset ) ) ), ARRAY_A );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		foreach ( $items as &$item ) {
+			$profile                  = $this->profile_for_campaign( (int) $item['campaign_id'] );
+			$item['allowed_term_ids'] = $profile['allowed_term_ids'] ?? array();
+		}
+		unset( $item );
+		return array(
+			'items'    => $items,
+			'total'    => $total,
+			'page'     => $page,
+			'per_page' => $per_page,
+		);
+	}
+
+	/**
 	 * Read one active campaign profile.
 	 *
 	 * @param int $campaign_id Admitad campaign ID.

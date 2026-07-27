@@ -76,9 +76,13 @@ final class Promokodiki_Admitad_Admin_Menu {
 			return;
 		}
 		$pages = array(
-			'admitad-overview'    => Promokodiki_Admitad_Overview_Page::class,
-			'admitad-sync'        => Promokodiki_Admitad_Sync_Page::class,
-			'admitad-diagnostics' => Promokodiki_Admitad_Diagnostics_Page::class,
+			'admitad-overview'     => Promokodiki_Admitad_Overview_Page::class,
+			'admitad-sync'         => Promokodiki_Admitad_Sync_Page::class,
+			'admitad-category-map' => Promokodiki_Admitad_Category_Map_Page::class,
+			'admitad-companies'    => Promokodiki_Admitad_Company_Page::class,
+			'admitad-rules'        => Promokodiki_Admitad_Rule_Page::class,
+			'admitad-review'       => Promokodiki_Admitad_Review_Page::class,
+			'admitad-diagnostics'  => Promokodiki_Admitad_Diagnostics_Page::class,
 		);
 		if ( isset( $pages[ $page ] ) ) {
 			( new $pages[ $page ]() )->render();

@@ -14,6 +14,93 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Promokodiki_Admitad_Review_Queue_Repository {
 	/**
+	 * Return a bounded queue page.
+	 *
+	 * @param string $search   Entity or reason search.
+	 * @param int    $page     One-based page.
+	 * @param int    $per_page Rows per page.
+	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
+	 */
+	public function list_rows( string $search = '', int $page = 1, int $per_page = 20 ): array {
+		global $wpdb;
+
+		$table    = Promokodiki_Admitad_Schema::table( 'review_queue' );
+		$page     = max( 1, $page );
+		$per_page = max( 1, min( 100, $per_page ) );
+		$offset   = ( $page - 1 ) * $per_page;
+		$search   = sanitize_text_field( $search );
+		$where    = " WHERE status = 'open'";
+		$args     = array();
+		if ( '' !== $search ) {
+			$where .= ' AND (entity_id LIKE %s OR reason_code LIKE %s)';
+			$needle = '%' . $wpdb->esc_like( $search ) . '%';
+			$args   = array( $needle, $needle );
+		}
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Identifier is plugin-owned and the optional prepared fragments contain only fixed SQL.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned queue state.
+		$total = (int) $wpdb->get_var( $args ? $wpdb->prepare( "SELECT COUNT(*) FROM {$table}{$where}", ...$args ) : "SELECT COUNT(*) FROM {$table}{$where}" );
+		$query = "SELECT id, entity_type, entity_id, reason_code, severity, proposed_categories, explanation, evidence, created_at
+			FROM {$table}{$where} ORDER BY FIELD(severity, 'high', 'normal'), id ASC LIMIT %d OFFSET %d";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned queue state.
+		$items = (array) $wpdb->get_results( $wpdb->prepare( $query, ...array_merge( $args, array( $per_page, $offset ) ) ), ARRAY_A );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		foreach ( $items as &$item ) {
+			foreach ( array( 'proposed_categories', 'explanation', 'evidence' ) as $field ) {
+				$decoded        = json_decode( (string) $item[ $field ], true );
+				$item[ $field ] = is_array( $decoded ) ? $decoded : array();
+			}
+		}
+		unset( $item );
+		return array(
+			'items'    => $items,
+			'total'    => $total,
+			'page'     => $page,
+			'per_page' => $per_page,
+		);
+	}
+
+	/**
+	 * Read one open case.
+	 *
+	 * @param int $queue_id Queue ID.
+	 * @return array<string,mixed>|null
+	 */
+	public function get_open( int $queue_id ): ?array {
+		global $wpdb;
+
+		$table = Promokodiki_Admitad_Schema::table( 'review_queue' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Queue row is plugin-owned and ID is prepared.
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d AND status = 'open'", $queue_id ), ARRAY_A );
+		return is_array( $row ) ? $row : null;
+	}
+
+	/**
+	 * Resolve one queue case with a compact resolution code.
+	 *
+	 * @param int    $queue_id  Queue ID.
+	 * @param string $resolution Resolution code.
+	 */
+	public function resolve( int $queue_id, string $resolution ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable queue mutation uses the plugin-owned table.
+		$result = $wpdb->update(
+			Promokodiki_Admitad_Schema::table( 'review_queue' ),
+			array(
+				'status'      => 'resolved',
+				'assignee_id' => get_current_user_id(),
+				'resolution'  => sanitize_key( $resolution ),
+				'resolved_at' => gmdate( 'Y-m-d H:i:s' ),
+				'updated_at'  => gmdate( 'Y-m-d H:i:s' ),
+			),
+			array(
+				'id'     => $queue_id,
+				'status' => 'open',
+			)
+		);
+		return false !== $result && $result > 0;
+	}
+	/**
 	 * Enqueue or return an existing case.
 	 *
 	 * @param string               $type      Entity type.
@@ -31,14 +118,31 @@ final class Promokodiki_Admitad_Review_Queue_Repository {
 		$reason     = sanitize_key( $reason );
 		$dedupe_key = hash( 'sha256', $type . '|' . $entity_id . '|' . $reason );
 		$table      = Promokodiki_Admitad_Schema::table( 'review_queue' );
+		$now        = gmdate( 'Y-m-d H:i:s' );
+		$sanitized  = $this->sanitize_evidence( $evidence );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Queue state uses a plugin-owned table with a validated identifier.
-		$existing = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE dedupe_key = %s LIMIT 1", $dedupe_key ) );
-		if ( $existing > 0 ) {
-			return $existing;
+		$existing = $wpdb->get_row( $wpdb->prepare( "SELECT id, status FROM {$table} WHERE dedupe_key = %s LIMIT 1", $dedupe_key ), ARRAY_A );
+		if ( is_array( $existing ) ) {
+			if ( 'open' !== $existing['status'] ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- A recurring issue reopens its deduplicated plugin-owned queue row.
+				$wpdb->update(
+					$table,
+					array(
+						'proposed_categories' => wp_json_encode( array_map( 'absint', (array) ( $sanitized['proposed_terms'] ?? array() ) ) ),
+						'explanation'         => wp_json_encode( (array) ( $sanitized['explanation'] ?? array() ), JSON_UNESCAPED_UNICODE ),
+						'evidence'            => wp_json_encode( $sanitized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+						'status'              => 'open',
+						'assignee_id'         => 0,
+						'resolution'          => '',
+						'resolved_at'         => null,
+						'updated_at'          => $now,
+					),
+					array( 'id' => (int) $existing['id'] )
+				);
+			}
+			return (int) $existing['id'];
 		}
 
-		$now       = gmdate( 'Y-m-d H:i:s' );
-		$sanitized = $this->sanitize_evidence( $evidence );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Durable queue state uses the plugin-owned table.
 		$inserted = $wpdb->insert(
 			$table,

@@ -66,8 +66,10 @@ require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-settings-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-overview-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-sync-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-diagnostics-page.php';
-require_once ADMITAD_PLUGIN_DIR . 'admin/mapping-dashboard.php';
-require_once ADMITAD_PLUGIN_DIR . 'admin/companies-mapping-page.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-category-map-page.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-company-page.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-rule-page.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-review-page.php';
 
 /** Remove scheduled jobs without deleting imported content. */
 function admitad_coupons_deactivate() {

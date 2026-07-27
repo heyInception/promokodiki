@@ -22,6 +22,45 @@ final class Promokodiki_Admitad_Rule_Repository {
 	private static ?array $active_cache = null;
 
 	/**
+	 * Return a bounded administration page.
+	 *
+	 * @param string $search   Phrase search.
+	 * @param int    $page     One-based page.
+	 * @param int    $per_page Rows per page.
+	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
+	 */
+	public function list_rows( string $search = '', int $page = 1, int $per_page = 20 ): array {
+		global $wpdb;
+
+		$table    = Promokodiki_Admitad_Schema::table( 'rule' );
+		$page     = max( 1, $page );
+		$per_page = max( 1, min( 100, $per_page ) );
+		$offset   = ( $page - 1 ) * $per_page;
+		$search   = Promokodiki_Admitad_Text_Normalizer::normalize( $search );
+		$where    = '';
+		$args     = array();
+		if ( '' !== $search ) {
+			$where = ' WHERE normalized_phrase LIKE %s';
+			$args  = array( '%' . $wpdb->esc_like( $search ) . '%' );
+		}
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Optional prepared fragments contain only fixed SQL.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned rule state.
+		$total = (int) $wpdb->get_var( $args ? $wpdb->prepare( "SELECT COUNT(*) FROM {$table}{$where}", ...$args ) : "SELECT COUNT(*) FROM {$table}" );
+		$query = "SELECT id, normalized_phrase, match_mode, site_term_id, weight, status, source,
+			evidence_count, distinct_campaign_count, contradiction_count, rule_version
+			FROM {$table}{$where} ORDER BY normalized_phrase ASC, id ASC LIMIT %d OFFSET %d";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned rule state.
+		$items = $wpdb->get_results( $wpdb->prepare( $query, ...array_merge( $args, array( $per_page, $offset ) ) ), ARRAY_A );
+		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		return array(
+			'items'    => (array) $items,
+			'total'    => $total,
+			'page'     => $page,
+			'per_page' => $per_page,
+		);
+	}
+
+	/**
 	 * Save or update one normalized rule.
 	 *
 	 * @param string $phrase  Source phrase.
