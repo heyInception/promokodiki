@@ -2,24 +2,58 @@
 	'use strict';
 
 	const config = window.PromokodikiAdmitadAdmin;
-	const tableRequests = new WeakMap();
+	const activeRequests = new WeakMap();
+	let requestGeneration = 0;
 
 	if ( ! config ) {
 		return;
 	}
 
+	class AdminRequestError extends Error {}
+
+	function errorMessage( response, json, text ) {
+		if ( json?.data?.code === 'invalid_nonce' || text.trim() === '-1' ) {
+			return 'Сессия истекла. Обновите страницу и повторите действие.';
+		}
+		if ( typeof json?.data?.message === 'string' && json.data.message ) {
+			return json.data.message;
+		}
+		return 'Не удалось выполнить запрос. Попробуйте ещё раз.';
+	}
+
 	async function request( action, payload, signal ) {
-		const body = new URLSearchParams( { action, _ajax_nonce: config.nonce, ...payload } );
-		const response = await fetch( config.ajaxUrl, {
-			method: 'POST',
-			credentials: 'same-origin',
-			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-			body,
-			signal,
-		} );
-		const json = await response.json();
+		const body = new URLSearchParams();
+		body.set( 'action', action );
+		body.set( '_ajax_nonce', config.nonce );
+		payload.forEach( ( value, key ) => body.append( key, value ) );
+
+		let response;
+		let text;
+		try {
+			response = await fetch( config.ajaxUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+				body,
+				signal,
+			} );
+			text = await response.text();
+		} catch ( error ) {
+			if ( error.name === 'AbortError' ) {
+				throw error;
+			}
+			throw new AdminRequestError( 'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.' );
+		}
+
+		let json = null;
+		try {
+			json = JSON.parse( text );
+		} catch ( error ) {
+			throw new AdminRequestError( errorMessage( response, json, text ) );
+		}
+
 		if ( ! response.ok || ! json.success ) {
-			throw new Error( json?.data?.message || config.i18n.error || 'Не удалось выполнить запрос.' );
+			throw new AdminRequestError( errorMessage( response, json, text ) );
 		}
 		return json.data;
 	}
@@ -44,13 +78,21 @@
 		return container;
 	}
 
-	function showNotice( message, type ) {
+	function showNotice( message, type, retry ) {
 		const container = noticeContainer();
 		container.className = `promokodiki-admitad-notices notice notice-${ type }`;
 		container.replaceChildren();
 		const paragraph = document.createElement( 'p' );
 		paragraph.textContent = message;
 		container.append( paragraph );
+		if ( retry ) {
+			const button = document.createElement( 'button' );
+			button.type = 'button';
+			button.className = 'button';
+			button.textContent = config.i18n.retry;
+			button.addEventListener( 'click', retry );
+			container.append( button );
+		}
 	}
 
 	function focusSelector( element ) {
@@ -74,18 +116,24 @@
 
 		table.innerHTML = html;
 		const focusTarget = ( selector && table.querySelector( selector ) ) || table.querySelector( '[data-admitad-focus]' ) || table;
+		if ( focusTarget === table && ! table.getAttribute( 'tabindex' ) ) {
+			table.setAttribute( 'tabindex', '-1' );
+		}
 		if ( typeof focusTarget.focus === 'function' ) {
 			focusTarget.focus( { preventScroll: true } );
 		}
 	}
 
-	function payloadFromForm( form ) {
-		const payload = {};
+	function payloadFromForm( form, submitter ) {
+		const payload = new URLSearchParams();
 		new FormData( form ).forEach( ( value, key ) => {
 			if ( typeof value === 'string' && key !== 'action' && key !== '_ajax_nonce' ) {
-				payload[ key ] = value;
+				payload.append( key, value );
 			}
 		} );
+		if ( submitter?.name ) {
+			payload.append( submitter.name, submitter.value );
+		}
 		return payload;
 	}
 
@@ -94,23 +142,50 @@
 	}
 
 	function tableFor( element ) {
-		return element.closest?.( '[data-admitad-table]' ) || document.querySelector( '[data-admitad-table]' );
+		return element.closest?.( '[data-admitad-table]' ) || null;
+	}
+
+	function canonicalUrl( value ) {
+		if ( typeof value !== 'string' || ! value ) {
+			return null;
+		}
+
+		let url;
+		try {
+			url = new URL( value, window.location.href );
+		} catch ( error ) {
+			return null;
+		}
+		if (
+			url.origin !== window.location.origin ||
+			! url.pathname.endsWith( '/edit.php' ) ||
+			url.searchParams.get( 'post_type' ) !== 'promocode' ||
+			! ( url.searchParams.get( 'page' ) || '' ).startsWith( 'admitad-' )
+		) {
+			return null;
+		}
+
+		return `${ url.pathname }${ url.search }${ url.hash }`;
 	}
 
 	async function send( target, action, payload, submitter, historyMode ) {
 		const table = tableFor( target );
-		const previous = table && tableRequests.get( table );
+		const owner = table || target;
+		const previous = activeRequests.get( owner );
 		const controller = new AbortController();
 		const selector = focusSelector( document.activeElement );
 		const wasDisabled = submitter ? submitter.disabled : false;
+		const generation = ++requestGeneration;
+		let status = 'error';
 
 		if ( previous ) {
-			previous.abort();
+			previous.controller.abort();
 		}
+		activeRequests.set( owner, { controller, generation } );
 		if ( table ) {
-			tableRequests.set( table, controller );
 			table.classList.add( 'promokodiki-admitad-is-loading' );
 			table.setAttribute( 'aria-busy', 'true' );
+			table.setAttribute( 'data-admitad-loading-label', config.i18n.loading );
 		}
 		if ( submitter ) {
 			submitter.disabled = true;
@@ -119,31 +194,44 @@
 		dispatch( target, 'admitad:before', { action, payload } );
 		try {
 			const data = await request( action, payload, controller.signal );
+			if ( activeRequests.get( owner )?.generation !== generation ) {
+				status = 'aborted';
+				return;
+			}
 			if ( table ) {
 				replaceTable( table, data.html, selector );
 			}
 			if ( data.message ) {
 				showNotice( data.message, 'success' );
 			}
-			if ( historyMode === 'push' && data.url ) {
-				history.pushState( {}, '', data.url );
+			const url = historyMode === 'push' ? canonicalUrl( data.url ) : null;
+			if ( url ) {
+				history.pushState( {}, '', url );
 			}
+			status = 'success';
 			dispatch( target, 'admitad:success', { action, payload, data } );
 		} catch ( error ) {
-			if ( error.name !== 'AbortError' ) {
-				showNotice( error.message, 'error' );
-				dispatch( target, 'admitad:error', { action, payload, error } );
+			if ( error.name === 'AbortError' || activeRequests.get( owner )?.generation !== generation ) {
+				status = 'aborted';
+			} else {
+				const message = error instanceof AdminRequestError ? error.message : 'Не удалось выполнить запрос. Попробуйте ещё раз.';
+				showNotice( message, 'error', () => send( target, action, payload, submitter, historyMode ) );
+				dispatch( target, 'admitad:error', { action, payload, error, message } );
 			}
 		} finally {
-			if ( table && tableRequests.get( table ) === controller ) {
-				tableRequests.delete( table );
+			const isCurrent = activeRequests.get( owner )?.generation === generation;
+			if ( isCurrent ) {
+				activeRequests.delete( owner );
+			}
+			if ( table && isCurrent ) {
 				table.classList.remove( 'promokodiki-admitad-is-loading' );
 				table.removeAttribute( 'aria-busy' );
+				table.removeAttribute( 'data-admitad-loading-label' );
 			}
-			if ( submitter ) {
+			if ( submitter && isCurrent ) {
 				submitter.disabled = wasDisabled;
 			}
-			dispatch( target, 'admitad:complete', { action, payload } );
+			dispatch( target, 'admitad:complete', { action, payload, status } );
 		}
 	}
 
@@ -159,12 +247,21 @@
 			showNotice( 'Не удалось определить действие формы.', 'error' );
 			return;
 		}
-		send( form, action, payloadFromForm( form ), event.submitter || form.querySelector( '[type="submit"]' ), 'push' );
+		const submitter = event.submitter || form.querySelector( '[type="submit"]' );
+		send( form, action, payloadFromForm( form, submitter ), submitter, 'push' );
 	} );
 
 	document.addEventListener( 'click', ( event ) => {
 		const link = event.target.closest?.( 'a[data-admitad-ajax]' );
-		if ( ! link || event.defaultPrevented ) {
+		if (
+			! link ||
+			event.defaultPrevented ||
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey
+		) {
 			return;
 		}
 
@@ -174,9 +271,9 @@
 			showNotice( 'Не удалось определить действие ссылки.', 'error' );
 			return;
 		}
-		const payload = Object.fromEntries( new URL( link.href, window.location.href ).searchParams.entries() );
-		delete payload.action;
-		delete payload._ajax_nonce;
+		const payload = new URLSearchParams( new URL( link.href, window.location.href ).searchParams );
+		payload.delete( 'action' );
+		payload.delete( '_ajax_nonce' );
 		send( link, action, payload, null, 'push' );
 	} );
 
@@ -186,9 +283,9 @@
 			return;
 		}
 
-		const payload = Object.fromEntries( new URLSearchParams( window.location.search ).entries() );
-		delete payload.action;
-		delete payload._ajax_nonce;
+		const payload = new URLSearchParams( window.location.search );
+		payload.delete( 'action' );
+		payload.delete( '_ajax_nonce' );
 		send( table, table.dataset.admitadAction, payload, null, 'replace' );
 	} );
 
@@ -203,6 +300,9 @@
 		tooltip.setAttribute( 'role', 'tooltip' );
 		tooltip.textContent = text;
 		trigger.after( tooltip );
+		if ( ! /^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/i.test( trigger.tagName ) && ! trigger.getAttribute( 'tabindex' ) ) {
+			trigger.setAttribute( 'tabindex', '0' );
+		}
 		trigger.setAttribute( 'aria-describedby', tooltip.id );
 	} );
 }() );

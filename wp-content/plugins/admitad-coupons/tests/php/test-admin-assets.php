@@ -46,6 +46,13 @@ Promokodiki_Admitad_Test_Harness::run(
 			do_action( 'admin_enqueue_scripts', 'edit.php' );
 			Promokodiki_Admitad_Test_Harness::assert_true( wp_script_is( 'promokodiki-admitad-admin', 'enqueued' ) );
 			Promokodiki_Admitad_Test_Harness::assert_true( wp_style_is( 'promokodiki-admitad-admin', 'enqueued' ) );
+			$script = wp_scripts()->registered['promokodiki-admitad-admin'];
+			$style  = wp_styles()->registered['promokodiki-admitad-admin'];
+			Promokodiki_Admitad_Test_Harness::assert_same( array(), $script->deps );
+			Promokodiki_Admitad_Test_Harness::assert_same( ADMITAD_PLUGIN_VERSION, $script->ver );
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, wp_scripts()->get_data( 'promokodiki-admitad-admin', 'group' ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( array(), $style->deps );
+			Promokodiki_Admitad_Test_Harness::assert_same( ADMITAD_PLUGIN_VERSION, $style->ver );
 
 			$localized = (string) wp_scripts()->get_data( 'promokodiki-admitad-admin', 'data' );
 			$prefix    = 'var PromokodikiAdmitadAdmin = ';
