@@ -87,6 +87,15 @@ final class Promokodiki_Admitad_Admin_Ajax {
 				return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' );
 			}
 		}
+		if ( in_array( $request['operation'], array( 'rule_list', 'rule_save', 'rule_archive', 'rule_restore', 'rule_status' ), true ) ) {
+			try { return self::handle_rule_operation( $request['operation'], $request, $raw_request ); } catch ( Throwable $error ) { self::log_failure( $request ); return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' ); }
+		}
+		if ( in_array( $request['operation'], array( 'review_list', 'review_resolve_coupon', 'review_archive' ), true ) ) {
+			try { return self::handle_review_operation( $request['operation'], $request, $raw_request ); } catch ( Throwable $error ) { self::log_failure( $request ); return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' ); }
+		}
+		if ( in_array( $request['operation'], array( 'history_list', 'history_snapshot', 'history_sample_review' ), true ) ) {
+			try { return self::handle_history_operation( $request['operation'], $request, $raw_request ); } catch ( Throwable $error ) { self::log_failure( $request ); return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' ); }
+		}
 
 		if ( 'render_fragment' !== $request['operation'] ) {
 			return new WP_Error( 'invalid_operation', 'Неизвестная операция.' );
@@ -120,6 +129,41 @@ final class Promokodiki_Admitad_Admin_Ajax {
 			self::log_failure( $request );
 			return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' );
 		}
+	}
+
+	/** Handle keyword-rule changes through the shared action layer. */
+	private static function handle_rule_operation( string $operation, array $request, array $raw_request ) {
+		if ( 'admitad-rules' !== $request['page'] || ! current_user_can( 'manage_admitad_automation' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для управления правилами.' ); }
+		$actions = new Promokodiki_Admitad_Admin_Actions();
+		if ( 'rule_save' === $operation ) { $result = $actions->save_rule( sanitize_text_field( self::raw_scalar( $raw_request, 'phrase' ) ), absint( self::raw_scalar( $raw_request, 'site_term_id' ) ), absint( self::raw_scalar( $raw_request, 'weight' ) ), sanitize_key( self::raw_scalar( $raw_request, 'status' ) ), sanitize_key( self::raw_scalar( $raw_request, 'mode' ) ) ); }
+		elseif ( 'rule_archive' === $operation ) { $result = $actions->archive_rule( absint( self::raw_scalar( $raw_request, 'rule_id' ) ) ); }
+		elseif ( 'rule_restore' === $operation ) { $result = $actions->restore_rule( absint( self::raw_scalar( $raw_request, 'rule_id' ) ) ); }
+		elseif ( 'rule_status' === $operation ) { $result = $actions->set_rule_status( absint( self::raw_scalar( $raw_request, 'rule_id' ) ), sanitize_key( self::raw_scalar( $raw_request, 'status' ) ) ); }
+		else { $result = true; }
+		if ( is_wp_error( $result ) ) { return $result; }
+		$context = Promokodiki_Admitad_Rule_Page::table_context( $raw_request );
+		return array( 'message' => 'Готово.', 'html' => Promokodiki_Admitad_Admin_Fragments::render( 'rules-table', $context ), 'url' => $context['request']->url(), 'state' => $context['request']->query_args() );
+	}
+
+	/** Handle reviewer operations without widening editor access. */
+	private static function handle_review_operation( string $operation, array $request, array $raw_request ) {
+		if ( 'admitad-review' !== $request['page'] || ! current_user_can( 'review_admitad_mapping' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для очереди проверки.' ); }
+		$actions = new Promokodiki_Admitad_Admin_Actions();
+		if ( 'review_resolve_coupon' === $operation ) { $result = $actions->resolve_coupon_only( absint( self::raw_scalar( $raw_request, 'queue_id' ) ), self::term_ids( $raw_request['term_ids'] ?? array() ) ); }
+		elseif ( 'review_archive' === $operation ) { $result = ( new Promokodiki_Admitad_Review_Queue_Repository() )->archive( absint( self::raw_scalar( $raw_request, 'queue_id' ) ) ) ? true : new WP_Error( 'invalid_queue_item', 'Не удалось архивировать случай.' ); }
+		else { $result = true; }
+		if ( is_wp_error( $result ) ) { return $result; }
+		$context = Promokodiki_Admitad_Review_Page::table_context( $raw_request );
+		return array( 'message' => 'Готово.', 'html' => Promokodiki_Admitad_Admin_Fragments::render( 'review-table', $context ), 'url' => $context['request']->url(), 'state' => $context['request']->query_args() );
+	}
+
+	/** Render history results only; recovery preview/apply/rollback remains on admin-post. */
+	private static function handle_history_operation( string $operation, array $request, array $raw_request ) {
+		if ( 'admitad-history' !== $request['page'] || ! current_user_can( 'review_admitad_mapping' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для истории классификации.' ); }
+		if ( 'history_sample_review' === $operation && current_user_can( 'manage_admitad_automation' ) ) { $sample = sanitize_text_field( self::raw_scalar( $raw_request, 'sample_id' ) ); ( new Promokodiki_Admitad_Validation_Service() )->record_review( $sample, absint( self::raw_scalar( $raw_request, 'post_id' ) ), self::term_ids( $raw_request['expected_terms'] ?? array() ) ); }
+		if ( 'history_snapshot' === $operation ) { $snapshot = ( new Promokodiki_Admitad_Reclassification_Service() )->get_snapshot( sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot' ) ) ); return array( 'message' => 'Готово.', 'html' => Promokodiki_Admitad_Admin_Fragments::render( 'history-snapshot', array( 'snapshot' => $snapshot ) ) ); }
+		$context = Promokodiki_Admitad_History_Page::table_context( $raw_request );
+		return array( 'message' => 'Готово.', 'html' => Promokodiki_Admitad_Admin_Fragments::render( 'history-table', $context ), 'url' => $context['request']->url(), 'state' => $context['request']->query_args() );
 	}
 
 	/**

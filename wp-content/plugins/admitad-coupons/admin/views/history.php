@@ -67,5 +67,5 @@
 	<table class="widefat striped"><thead><tr><th>ID</th><th><?php echo esc_html__( 'Купон', 'promokodiki-admitad' ); ?></th><th><?php echo esc_html__( 'Триггер', 'promokodiki-admitad' ); ?></th><th><?php echo esc_html__( 'Было → стало', 'promokodiki-admitad' ); ?></th><th><?php echo esc_html__( 'Дата', 'promokodiki-admitad' ); ?></th></tr></thead><tbody>
 	<?php foreach ( $history['items'] as $row ) : ?><tr><td><?php echo esc_html( (string) $row['id'] ); ?></td><td><?php echo esc_html( (string) $row['post_id'] ); ?></td><td><?php echo esc_html( (string) $row['trigger_name'] ); ?></td><td><?php echo esc_html( implode( ',', $row['previous_terms'] ) . ' → ' . implode( ',', $row['result_terms'] ) ); ?></td><td><?php echo esc_html( (string) $row['created_at'] ); ?></td></tr><?php endforeach; ?>
 	</tbody></table>
-	<?php echo wp_kses_post( paginate_links( array( 'total' => max( 1, (int) ceil( $history['total'] / $history['per_page'] ) ), 'current' => $history['page'] ) ) ); ?>
+	<div data-admitad-table data-admitad-action="promokodiki_admitad_admin" data-admitad-operation="history_list" data-admitad-page="admitad-history" data-admitad-fragment="history-table"><?php require ADMITAD_PLUGIN_DIR . 'admin/views/partials/history-table.php'; ?></div>
 </div>

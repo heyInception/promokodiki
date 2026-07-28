@@ -30,6 +30,12 @@ final class Promokodiki_Admitad_Admin_Fragments {
 			'page'    => 'admitad-companies',
 			'context' => array( 'request', 'rows' ),
 		),
+		'rules-table' => array(
+			'file' => 'rules-table.php', 'page' => 'admitad-rules', 'context' => array( 'request', 'rows' ),
+		),
+		'review-table' => array( 'file' => 'review-table.php', 'page' => 'admitad-review', 'context' => array( 'request', 'rows', 'term_options', 'totals' ) ),
+		'history-table' => array( 'file' => 'history-table.php', 'page' => 'admitad-history', 'context' => array( 'request', 'history' ) ),
+		'history-snapshot' => array( 'file' => 'history-snapshot.php', 'page' => 'admitad-history', 'context' => array( 'snapshot' ) ),
 		'foundation' => array(
 			'file'    => 'foundation.php',
 			'page'    => 'admitad-settings',
