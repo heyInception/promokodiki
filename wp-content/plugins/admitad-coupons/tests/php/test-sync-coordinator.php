@@ -231,6 +231,36 @@ function promokodiki_admitad_sync_cleanup( array $post_ids, array $term_ids = ar
 $promokodiki_admitad_sync_snapshot = promokodiki_admitad_sync_snapshot();
 
 Promokodiki_Admitad_Test_Harness::run(
+	'coordinator cleanup discovers generated campaign fixtures when tracking arrays are empty',
+	static function (): void {
+		$campaign_id = wp_rand( 800000000, 899999999 );
+		$post_id     = wp_insert_post(
+			array(
+				'post_type'   => 'promocode',
+				'post_status' => 'publish',
+				'post_title'  => 'Coordinator cleanup fixture ' . $campaign_id,
+			)
+		);
+		$term = wp_insert_term( 'Coordinator cleanup shop ' . $campaign_id, 'shops_category' );
+		if ( ! $post_id || is_wp_error( $term ) ) {
+			throw new RuntimeException( 'Unable to create coordinator cleanup fixtures.' );
+		}
+		$term_id = (int) $term['term_id'];
+
+		update_post_meta( $post_id, 'campaign_id', (string) $campaign_id );
+		update_term_meta( $term_id, 'admitad_campaign_id', (string) $campaign_id );
+		try {
+			promokodiki_admitad_sync_cleanup( array(), array(), $campaign_id );
+			Promokodiki_Admitad_Test_Harness::assert_same( null, get_post( $post_id ) );
+			Promokodiki_Admitad_Test_Harness::assert_true( ! term_exists( $term_id, 'shops_category' ) );
+		} finally {
+			// Keep the direct guard's destructive test self-cleaning if an assertion fails.
+			promokodiki_admitad_sync_cleanup( array(), array(), $campaign_id );
+		}
+	}
+);
+
+Promokodiki_Admitad_Test_Harness::run(
 	'coupon coordinator resumes three bounded pages and completes only the last',
 	static function (): void {
 		Promokodiki_Admitad_Plugin::register();
