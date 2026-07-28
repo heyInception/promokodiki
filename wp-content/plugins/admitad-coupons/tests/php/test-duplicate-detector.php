@@ -65,6 +65,8 @@ try {
 	Promokodiki_Admitad_Test_Harness::run(
 		'different IDs with matching campaign, code, title, and dates stay separate and queue',
 		static function () use ( $base_coupon, $external_b, $existing_id, &$post_ids ): void {
+			global $wpdb;
+
 			$coupon                 = $base_coupon;
 			$coupon['external_id']  = $external_b;
 			$coupon['payload_hash'] = hash( 'sha256', $external_b );
@@ -75,10 +77,18 @@ try {
 			$post_ids[] = $result['post_id'];
 			Promokodiki_Admitad_Test_Harness::assert_true( $result['post_id'] !== $existing_id );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'created', $result['state'] );
-			Promokodiki_Admitad_Test_Harness::assert_same(
-				1,
-				( new Promokodiki_Admitad_Review_Queue_Repository() )->count_unresolved( 'suspected_duplicate' )
+			$table = Promokodiki_Admitad_Schema::table( 'review_queue' );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The test verifies its own row in the plugin-owned queue table; values are prepared.
+			$count = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$table} WHERE entity_type = %s AND entity_id = %s AND reason_code = %s AND status = %s",
+					'coupon',
+					$external_b,
+					'suspected_duplicate',
+					'open'
+				)
 			);
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, $count );
 		}
 	);
 } finally {
