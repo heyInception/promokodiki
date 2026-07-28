@@ -309,6 +309,20 @@ test( 'presenter status classes have matching semantic CSS rules', () => {
 	}
 } );
 
+test( 'company autocomplete contract debounces, aborts stale requests, and commits only selected stable IDs', () => {
+	assert.match( source, /function enhanceCompanyAutocomplete\(/ );
+	assert.match( source, /setTimeout\(/ );
+	assert.match( source, /company_search/ );
+	assert.match( source, /controller\.abort\(\)/ );
+	assert.match( source, /role', 'combobox'/ );
+	assert.match( source, /role', 'listbox'/ );
+	assert.match( source, /role', 'option'/ );
+	assert.match( source, /ArrowDown/ );
+	assert.match( source, /ArrowUp/ );
+	assert.match( source, /hidden\.value = ''/ );
+	assert.match( source, /hidden\.value = String\( choice\.id \)/ );
+} );
+
 test( 'does not choose an unrelated page table and makes the replacement target focusable', async () => {
 	const runtime = createRuntime( async () => response( { success: true, data: { html: 'fragment' } } ) );
 	const unrelated = new MockElement( 'table', { dataset: { admitadTable: '' } } );

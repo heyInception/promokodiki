@@ -20,6 +20,16 @@ final class Promokodiki_Admitad_Admin_Fragments {
 	 * @var array<string,array{file:string,page:string,context:string[]}>
 	 */
 	private const FRAGMENTS = array(
+		'category-map-table' => array(
+			'file'    => 'category-map-table.php',
+			'page'    => 'admitad-category-map',
+			'context' => array( 'request', 'rows' ),
+		),
+		'company-table' => array(
+			'file'    => 'company-table.php',
+			'page'    => 'admitad-companies',
+			'context' => array( 'request', 'rows' ),
+		),
 		'foundation' => array(
 			'file'    => 'foundation.php',
 			'page'    => 'admitad-settings',

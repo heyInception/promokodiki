@@ -70,12 +70,17 @@ final class Promokodiki_Admitad_Admin_Ajax {
 	 * @return array<string, mixed>|WP_Error Response data or a stable error.
 	 */
 	public static function handle( array $request ) {
+		$raw_request = $request;
 		$request = self::sanitize_request( $request );
 		if ( ! wp_verify_nonce( $request['_ajax_nonce'], self::NONCE_ACTION ) ) {
 			return new WP_Error( 'invalid_nonce', 'Недействительный запрос.' );
 		}
 		if ( ! $request['valid'] ) {
 			return new WP_Error( 'invalid_request', 'Некорректные данные запроса.' );
+		}
+
+		if ( in_array( $request['operation'], array( 'category_map_list', 'category_map_save', 'company_list', 'company_search', 'company_save' ), true ) ) {
+			return self::handle_mapping_operation( $request['operation'], $request, $raw_request );
 		}
 
 		if ( 'render_fragment' !== $request['operation'] ) {
@@ -110,6 +115,100 @@ final class Promokodiki_Admitad_Admin_Ajax {
 			self::log_failure( $request );
 			return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' );
 		}
+	}
+
+	/**
+	 * Handle the administrator-only mapping and company operations.
+	 *
+	 * @param string              $operation   Allowlisted operation.
+	 * @param array<string,mixed> $request     Sanitized common request values.
+	 * @param array<string,mixed> $raw_request Raw request values, sanitized below by field.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private static function handle_mapping_operation( string $operation, array $request, array $raw_request ) {
+		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
+			return new WP_Error( 'forbidden', 'Недостаточно прав для управления маппингом Admitad.' );
+		}
+
+		if ( 'category_map_list' === $operation || 'category_map_save' === $operation ) {
+			$page_class = Promokodiki_Admitad_Category_Map_Page::class;
+			$page       = 'admitad-category-map';
+			$fragment   = 'category-map-table';
+		} else {
+			$page_class = Promokodiki_Admitad_Company_Page::class;
+			$page       = 'admitad-companies';
+			$fragment   = 'company-table';
+		}
+		if ( $request['page'] !== $page ) {
+			return new WP_Error( 'forbidden', 'Недостаточно прав для выполнения операции.' );
+		}
+
+		$actions = new Promokodiki_Admitad_Admin_Actions();
+		if ( 'category_map_save' === $operation ) {
+			$result = $actions->create_global_category_map(
+				sanitize_key( self::raw_scalar( $raw_request, 'namespace' ) ),
+				absint( self::raw_scalar( $raw_request, 'external_id' ) ),
+				absint( self::raw_scalar( $raw_request, 'site_term_id' ) ),
+				absint( self::raw_scalar( $raw_request, 'weight' ) )
+			);
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+		}
+		if ( 'company_save' === $operation ) {
+			$result = $actions->save_company_profile(
+				absint( self::raw_scalar( $raw_request, 'campaign_id' ) ),
+				absint( self::raw_scalar( $raw_request, 'default_term_id' ) ),
+				self::term_ids( $raw_request['allowed_term_ids'] ?? array() ),
+				absint( self::raw_scalar( $raw_request, 'weight' ) ),
+				sanitize_text_field( self::raw_scalar( $raw_request, 'display_name' ) )
+			);
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+		}
+		if ( 'company_search' === $operation ) {
+			$items = ( new Promokodiki_Admitad_Company_Profile_Repository() )->search_campaigns(
+				sanitize_text_field( self::raw_scalar( $raw_request, 's' ) ),
+				20
+			);
+			return array(
+				'message' => 'Готово.',
+				'items'   => array_map( static fn( array $item ): array => array( 'id' => (int) $item['campaign_id'], 'text' => (string) $item['display_name'] ), $items ),
+			);
+		}
+
+		$context = $page_class::table_context( $raw_request );
+		return array(
+			'message' => 'Готово.',
+			'html'    => Promokodiki_Admitad_Admin_Fragments::render( $fragment, $context ),
+			'url'     => $context['request']->url(),
+			'state'   => $context['request']->query_args(),
+		);
+	}
+
+	/**
+	 * Read one scalar raw request field safely.
+	 *
+	 * @param array<string,mixed> $request Request data.
+	 * @param string              $key     Field key.
+	 * @return string
+	 */
+	private static function raw_scalar( array $request, string $key ): string {
+		return isset( $request[ $key ] ) && is_scalar( $request[ $key ] ) ? (string) wp_unslash( $request[ $key ] ) : '';
+	}
+
+	/**
+	 * Return at most twenty integer term IDs from one request field.
+	 *
+	 * @param mixed $value Raw field value.
+	 * @return array<int,int>
+	 */
+	private static function term_ids( $value ): array {
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+		return array_values( array_unique( array_map( 'absint', array_slice( $value, 0, self::MAX_ARRAY_ITEMS ) ) ) );
 	}
 
 	/**

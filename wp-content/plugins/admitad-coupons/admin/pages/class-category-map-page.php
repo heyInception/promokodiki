@@ -20,9 +20,27 @@ final class Promokodiki_Admitad_Category_Map_Page {
 		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
 			wp_die( esc_html__( 'Недостаточно прав.', 'promokodiki-admitad' ), '', array( 'response' => 403 ) );
 		}
-		$search = sanitize_text_field( wp_unslash( $_GET['s'] ?? '' ) );
-		$page   = max( 1, absint( $_GET['paged'] ?? 1 ) );
-		$rows   = ( new Promokodiki_Admitad_Category_Map_Repository() )->list_rows( $search, $page, 20 );
+		$context = self::table_context( (array) $_GET );
+		$request = $context['request'];
+		$rows = $context['rows'];
+		$term_options = $context['term_options'];
+		require ADMITAD_PLUGIN_DIR . 'admin/views/category-map.php';
+	}
+
+	/**
+	 * Build the bounded view state used by both GET and AJAX rendering.
+	 *
+	 * @param array<mixed> $input Query or AJAX request input.
+	 * @return array{request:Promokodiki_Admitad_Admin_Request,rows:array<string,mixed>,term_options:array<int,array{id:int,label:string}>}
+	 */
+	public static function table_context( array $input ): array {
+		$request = Promokodiki_Admitad_Admin_Request::from_array( $input, 'admitad-category-map' );
+		$rows = ( new Promokodiki_Admitad_Category_Map_Repository() )->list_rows(
+			$request->search(),
+			$request->paged(),
+			$request->per_page(),
+			array( 'status' => $request->filter( 'status' ) )
+		);
 		$terms  = get_terms(
 			array(
 				'taxonomy'   => 'promocode_category',
@@ -31,6 +49,10 @@ final class Promokodiki_Admitad_Category_Map_Page {
 			)
 		);
 		$terms  = is_wp_error( $terms ) ? array() : $terms;
-		require ADMITAD_PLUGIN_DIR . 'admin/views/category-map.php';
+		return array(
+			'request'      => $request,
+			'rows'         => $rows,
+			'term_options' => Promokodiki_Admitad_Admin_Presenter::term_options( $terms ),
+		);
 	}
 }

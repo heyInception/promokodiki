@@ -455,6 +455,10 @@ final class Promokodiki_Admitad_Admin_Actions {
 		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
 			return new WP_Error( 'forbidden', 'You cannot change company profiles.' );
 		}
+		$allowed_term_ids = array_values( array_unique( array_map( 'absint', $allowed_term_ids ) ) );
+		if ( $default_term_id > 0 && ! in_array( $default_term_id, $allowed_term_ids, true ) ) {
+			return new WP_Error( 'invalid_company_profile', 'Рубрика по умолчанию должна входить в список допустимых рубрик.' );
+		}
 		try {
 			( new Promokodiki_Admitad_Company_Profile_Repository() )->save_profile( $campaign_id, $default_term_id, $allowed_term_ids, $weight, $display_name );
 		} catch ( Throwable $error ) {

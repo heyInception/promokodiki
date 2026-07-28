@@ -125,6 +125,7 @@
 
 		table.innerHTML = html;
 		enhanceTooltips( table );
+		enhanceCompanyAutocomplete( table );
 		const focusTarget = ( selector && table.querySelector( selector ) ) || table.querySelector( '[data-admitad-focus]' ) || table;
 		if ( focusTarget === table && ! table.getAttribute( 'tabindex' ) ) {
 			table.setAttribute( 'tabindex', '-1' );
@@ -169,6 +170,9 @@
 	}
 
 	function tableFor( element ) {
+		if ( element?.dataset?.admitadTarget ) {
+			return document.querySelector( element.dataset.admitadTarget );
+		}
 		return element.closest?.( '[data-admitad-table]' ) || null;
 	}
 
@@ -381,6 +385,94 @@
 	} );
 	}
 
+	function enhanceCompanyAutocomplete( root = document ) {
+		const inputs = root.querySelectorAll ? Array.from( root.querySelectorAll( '[data-admitad-company-search]' ) ) : [];
+		inputs.forEach( ( input ) => {
+			if ( input.getAttribute( 'data-admitad-company-search-enhanced' ) ) {
+				return;
+			}
+			const form = input.closest( 'form' );
+			const hidden = form?.querySelector( '[name="campaign_id"]' );
+			const list = document.querySelector( `#${ CSS.escape( input.getAttribute( 'aria-controls' ) || '' ) }` );
+			if ( ! hidden || ! list ) {
+				return;
+			}
+			let controller = null;
+			let timer = null;
+			let choices = [];
+			let activeIndex = -1;
+			input.setAttribute( 'role', 'combobox' );
+			input.setAttribute( 'aria-expanded', 'false' );
+			input.setAttribute( 'data-admitad-company-search-enhanced', 'true' );
+
+			const close = () => {
+				list.hidden = true;
+				input.setAttribute( 'aria-expanded', 'false' );
+				input.removeAttribute( 'aria-activedescendant' );
+				activeIndex = -1;
+			};
+			const select = ( choice ) => {
+				input.value = choice.text;
+				hidden.value = String( choice.id );
+				close();
+			};
+			const render = () => {
+				list.replaceChildren();
+				choices.forEach( ( choice, index ) => {
+					const option = document.createElement( 'button' );
+					option.type = 'button';
+					option.id = `${ input.id }-option-${ index }`;
+					option.setAttribute( 'role', 'option' );
+					option.setAttribute( 'aria-selected', index === activeIndex ? 'true' : 'false' );
+					option.textContent = choice.text;
+					option.addEventListener( 'mousedown', ( event ) => event.preventDefault() );
+					option.addEventListener( 'click', () => select( choice ) );
+					list.append( option );
+				} );
+				list.setAttribute( 'role', 'listbox' );
+				list.hidden = choices.length === 0;
+				input.setAttribute( 'aria-expanded', choices.length ? 'true' : 'false' );
+			};
+			const search = async () => {
+				const value = input.value.trim();
+				if ( controller ) controller.abort();
+				if ( ! value ) {
+					choices = [];
+					render();
+					return;
+				}
+				controller = new AbortController();
+				try {
+					const payload = new URLSearchParams( { operation: 'company_search', page: 'admitad-companies', s: value } );
+					const data = await request( 'promokodiki_admitad_admin', payload, controller.signal );
+					choices = Array.isArray( data.items ) ? data.items : [];
+					render();
+				} catch ( error ) {
+					if ( error.name !== 'AbortError' ) close();
+				}
+			};
+			input.addEventListener( 'input', () => {
+				hidden.value = '';
+				if ( timer ) clearTimeout( timer );
+				timer = setTimeout( search, 300 );
+			} );
+			input.addEventListener( 'keydown', ( event ) => {
+				if ( ! choices.length ) return;
+				if ( event.key === 'ArrowDown' || event.key === 'ArrowUp' ) {
+					event.preventDefault();
+					activeIndex = event.key === 'ArrowDown' ? ( activeIndex + 1 ) % choices.length : ( activeIndex - 1 + choices.length ) % choices.length;
+					input.setAttribute( 'aria-activedescendant', `${ input.id }-option-${ activeIndex }` );
+					render();
+				} else if ( event.key === 'Enter' && activeIndex >= 0 ) {
+					event.preventDefault();
+					select( choices[ activeIndex ] );
+				} else if ( event.key === 'Escape' ) {
+					close();
+				}
+			} );
+		} );
+	}
+
 	document.addEventListener( 'keydown', ( event ) => {
 		if ( event.key === 'Escape' ) {
 			document.querySelectorAll( '[data-admitad-tooltip-enhanced]' ).forEach( ( trigger ) => setTooltipOpen( trigger, false ) );
@@ -395,4 +487,5 @@
 	} );
 
 	enhanceTooltips();
+	enhanceCompanyAutocomplete();
 }() );
