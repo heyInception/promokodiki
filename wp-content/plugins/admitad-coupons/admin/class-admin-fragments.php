@@ -14,12 +14,29 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Promokodiki_Admitad_Admin_Fragments {
 	/**
-	 * Immutable fragment registry. Foundation work intentionally has no AJAX
-	 * partials yet; later entries must declare both a basename and context keys.
+	 * Immutable fragment registry. Every fragment declares its owning section,
+	 * preventing a caller from selecting a lower-privilege page for a fragment.
 	 *
-	 * @var array<string,array{file:string,context:string[]}>
+	 * @var array<string,array{file:string,page:string,context:string[]}>
 	 */
-	private const FRAGMENTS = array();
+	private const FRAGMENTS = array(
+		'foundation' => array(
+			'file'    => 'foundation.php',
+			'page'    => 'admitad-settings',
+			'context' => array( 'message' ),
+		),
+	);
+
+	/**
+	 * Return the owning admin section for an allowlisted fragment.
+	 *
+	 * @param string $fragment Fragment name.
+	 * @return string Admin page slug.
+	 * @throws InvalidArgumentException When the fragment is not allowlisted.
+	 */
+	public static function page( string $fragment ): string {
+		return self::definition( $fragment )['page'];
+	}
 
 	/**
 	 * Render an allowlisted admin partial with explicit context variables.
@@ -31,12 +48,7 @@ final class Promokodiki_Admitad_Admin_Fragments {
 	 * @throws RuntimeException When an allowlisted fragment is unavailable.
 	 */
 	public static function render( string $fragment, array $context ): string {
-		$fragment = sanitize_key( $fragment );
-		if ( ! isset( self::FRAGMENTS[ $fragment ] ) ) {
-			throw new InvalidArgumentException( 'Unknown Admitad admin fragment.' );
-		}
-
-		$definition = self::FRAGMENTS[ $fragment ];
+		$definition = self::definition( $fragment );
 		$file       = $definition['file'];
 		if ( ! preg_match( '/^[a-z0-9-]+\\.php$/', $file ) ) {
 			throw new RuntimeException( 'Invalid Admitad admin fragment definition.' );
@@ -55,9 +67,33 @@ final class Promokodiki_Admitad_Admin_Fragments {
 			}
 		}
 
+		$buffer_level = ob_get_level();
 		ob_start();
-		extract( $variables, EXTR_SKIP );
-		require $path;
-		return (string) ob_get_clean();
+		try {
+			extract( $variables, EXTR_SKIP );
+			require $path;
+			$html = ob_get_contents();
+			return false === $html ? '' : $html;
+		} finally {
+			while ( ob_get_level() > $buffer_level ) {
+				ob_end_clean();
+			}
+		}
+	}
+
+	/**
+	 * Read one immutable fragment definition without accepting filesystem input.
+	 *
+	 * @param string $fragment Fragment name.
+	 * @return array{file:string,page:string,context:string[]} Fragment definition.
+	 * @throws InvalidArgumentException When the fragment is not allowlisted.
+	 */
+	private static function definition( string $fragment ): array {
+		$fragment = sanitize_key( $fragment );
+		if ( ! isset( self::FRAGMENTS[ $fragment ] ) ) {
+			throw new InvalidArgumentException( 'Unknown Admitad admin fragment.' );
+		}
+
+		return self::FRAGMENTS[ $fragment ];
 	}
 }
