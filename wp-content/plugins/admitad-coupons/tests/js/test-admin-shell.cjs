@@ -23,6 +23,10 @@ class MockElement {
 			add: ( name ) => this.classNames.add( name ),
 			remove: ( name ) => this.classNames.delete( name ),
 			contains: ( name ) => this.classNames.has( name ),
+			toggle: ( name, force ) => {
+				if ( force ) this.classNames.add( name );
+				else this.classNames.delete( name );
+			},
 		};
 		this.disabled = false;
 		this.name = options.name || '';
@@ -100,7 +104,7 @@ class MockElement {
 	}
 }
 
-function createRuntime( fetchImplementation ) {
+function createRuntime( fetchImplementation, tooltipTriggers = [] ) {
 	const documentListeners = new Map();
 	const windowListeners = new Map();
 	const document = {
@@ -109,7 +113,13 @@ function createRuntime( fetchImplementation ) {
 		queries: new Map(),
 		addEventListener: ( name, callback ) => documentListeners.set( name, callback ),
 		querySelector: ( selector ) => document.queries.get( selector ) || null,
-		querySelectorAll: () => [],
+		querySelectorAll: ( selector ) => {
+			if ( selector === '[data-admitad-tooltip]' ) return tooltipTriggers;
+			if ( selector === '[data-admitad-tooltip-enhanced]' ) {
+				return tooltipTriggers.filter( ( trigger ) => trigger.getAttribute( 'data-admitad-tooltip-enhanced' ) );
+			}
+			return [];
+		},
 		createElement: ( tagName ) => new MockElement( tagName ),
 	};
 	const historyCalls = [];
@@ -190,17 +200,26 @@ test( 'serializes repeated form fields and the clicked submitter', async () => {
 		return response( { success: true, data: {} } );
 	} );
 	const form = new MockElement( 'form', {
-		dataset: { admitadAjax: '', admitadAction: 'promokodiki_admitad_admin' },
+		dataset: {
+			admitadAjax: '',
+			admitadAction: 'promokodiki_admitad_admin',
+			admitadOperation: 'render_fragment',
+			admitadPage: 'admitad-settings',
+			admitadFragment: 'foundation',
+		},
 		formEntries: [ [ 'term_id', '1' ], [ 'term_id', '2' ] ],
 	} );
-	const submitter = new MockElement( 'button', { name: 'operation', value: 'save' } );
+	const submitter = new MockElement( 'button', { name: 'intent', value: 'save' } );
 	form.queries.set( '[type="submit"]', submitter );
 
 	submit( runtime, form, submitter );
 	await flush();
 
 	assert.deepEqual( [ ...body.getAll( 'term_id' ) ], [ '1', '2' ] );
-	assert.equal( body.get( 'operation' ), 'save' );
+	assert.equal( body.get( 'operation' ), 'render_fragment' );
+	assert.equal( body.get( 'intent' ), 'save' );
+	assert.equal( body.get( 'page' ), 'admitad-settings' );
+	assert.equal( body.get( 'fragment' ), 'foundation' );
 
 	for ( const reservedName of [ 'action', '_ajax_nonce' ] ) {
 		const reservedSubmitter = new MockElement( 'button', { name: reservedName, value: 'override' } );
@@ -232,6 +251,32 @@ test( 'only the current table request may replace content or push a canonical UR
 
 	assert.equal( table.innerHTML, 'new' );
 	assert.equal( runtime.historyCalls.length, 1 );
+	assert.equal( submitter.disabled, false );
+} );
+
+test( 'enhances initial tooltips for touch, Escape, and dynamic fragment replacement', () => {
+	const trigger = new MockElement( 'span' );
+	trigger.setAttribute( 'data-admitad-tooltip', 'Touch help' );
+	const runtime = createRuntime( async () => response( { success: true, data: {} } ), [ trigger ] );
+	assert.match( trigger.getAttribute( 'aria-describedby' ), /^promokodiki-admitad-tooltip-/ );
+	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'false' );
+	trigger.listeners.get( 'click' )();
+	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'true' );
+	assert.equal( trigger.afterChild.classList.contains( 'promokodiki-admitad-tooltip--open' ), true );
+	runtime.documentListeners.get( 'keydown' )( { key: 'Escape' } );
+	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'false' );
+
+	// Fragment replacement re-invokes the same idempotent enhancer.
+	assert.match( source, /function enhanceTooltips\(/ );
+	assert.match( source, /enhanceTooltips\( table \)/ );
+	assert.match( source, /data-admitad-tooltip-enhanced/ );
+} );
+
+test( 'presenter status classes have matching semantic CSS rules', () => {
+	const css = fs.readFileSync( path.resolve( __dirname, '../../assets/css/admin.css' ), 'utf8' );
+	for ( const state of [ 'neutral', 'info', 'success', 'warning', 'error' ] ) {
+		assert.match( css, new RegExp( `promokodiki-admitad-status--${ state }` ) );
+	}
 } );
 
 test( 'does not choose an unrelated page table and makes the replacement target focusable', async () => {

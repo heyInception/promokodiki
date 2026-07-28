@@ -52,7 +52,8 @@ try {
 					'page'        => 'admitad-settings',
 					'fragment'    => 'foundation',
 					'context'     => array( 'message' => '<b>Foundation response</b>' ),
-					'state'       => array( 'paged' => '2', 'per_page' => '50' ),
+					'paged'       => '2',
+					'per_page'    => '50',
 					'_ajax_nonce' => wp_create_nonce( 'promokodiki_admitad_admin_ajax' ),
 				)
 			);
@@ -62,6 +63,7 @@ try {
 			Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $success['html'], '<b>' ) );
 			Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $success['url'], 'page=admitad-settings' ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'admitad-settings', $success['state']['page'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 2, $success['state']['paged'] );
 
 			$invalid_nonce = Promokodiki_Admitad_Admin_Ajax::handle(
 				array(

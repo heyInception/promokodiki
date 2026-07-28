@@ -5,6 +5,43 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $pluginRoot = Split-Path -Parent $PSScriptRoot
+
+function Assert-AdmitadDisposableTestDatabase {
+	# This is deliberately a site-config boundary, not a command-line opt-in:
+	# the configured sentinel must name the same database as WordPress and the
+	# database name must visibly be dedicated to tests.  A content database is
+	# refused before any eval-file command can mutate it.
+	$probe = @'
+if ( ! defined( 'PROMOKODIKI_ADMITAD_TEST_DATABASE' ) ) {
+	echo "MISSING";
+	return;
+}
+echo (string) PROMOKODIKI_ADMITAD_TEST_DATABASE . '|' . (string) DB_NAME;
+'@
+	$previousErrorActionPreference = $ErrorActionPreference
+	try {
+		$ErrorActionPreference = 'Continue'
+		$output = & studio wp --path $SitePath eval $probe 2>&1
+		$exitCode = $LASTEXITCODE
+	} finally {
+		$ErrorActionPreference = $previousErrorActionPreference
+	}
+	if ($exitCode -ne 0) {
+		throw "Unable to verify the configured WordPress database; refusing the Admitad suite."
+	}
+	$line = ($output | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ -match '\|' } | Select-Object -Last 1)
+	if (-not $line) {
+		throw "No verifiable disposable test database sentinel was found; refusing the Admitad suite."
+	}
+	$parts = $line -split '\|', 2
+	$sentinel = $parts[0]
+	$database = $parts[1]
+	if ($sentinel -ne $database -or $database -notmatch '(?i)(?:^|[_-])test(?:s)?(?:[_-]|$)') {
+		throw "Refusing the Admitad suite: PROMOKODIKI_ADMITAD_TEST_DATABASE must equal the WordPress DB_NAME and DB_NAME must be test-dedicated."
+	}
+}
+
+Assert-AdmitadDisposableTestDatabase
 $testFiles = Get-ChildItem (Join-Path $PSScriptRoot 'php\test-*.php') | Sort-Object Name
 
 foreach ($testFile in $testFiles) {

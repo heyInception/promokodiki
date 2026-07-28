@@ -122,19 +122,36 @@ final class Promokodiki_Admitad_Admin_Ajax {
 		$context = isset( $request['context'] ) && is_array( $request['context'] )
 			? self::sanitize_array( $request['context'] )
 			: array( 'value' => array(), 'valid' => ! isset( $request['context'] ) );
-		$state   = isset( $request['state'] ) && is_array( $request['state'] )
-			? self::sanitize_array( $request['state'] )
-			: array( 'value' => array(), 'valid' => ! isset( $request['state'] ) );
-
 		return array(
 			'operation'   => self::key_value( $request, 'operation' ),
 			'page'        => self::key_value( $request, 'page' ),
 			'fragment'    => self::key_value( $request, 'fragment' ),
 			'_ajax_nonce' => self::text_value( $request, '_ajax_nonce' ),
 			'context'     => $context['value'],
-			'state'       => $state['value'],
-			'valid'       => $context['valid'] && $state['valid'],
+			'state'       => self::flat_state( $request ),
+			'valid'       => $context['valid'],
 		);
+	}
+
+	/**
+	 * Extract canonical navigation fields from the ordinary flat request shape.
+	 *
+	 * Forms retain their no-JavaScript GET names, so AJAX deliberately accepts
+	 * those same top-level scalar fields instead of a separate state[] protocol.
+	 *
+	 * @param array<mixed> $request Raw request data.
+	 * @return array<string,mixed> Flat state candidates.
+	 */
+	private static function flat_state( array $request ): array {
+		$state = array();
+		foreach ( $request as $key => $value ) {
+			if ( ! is_scalar( $key ) || in_array( (string) $key, array( 'action', 'operation', 'page', 'fragment', '_ajax_nonce', 'context', 'state' ), true ) || ! is_scalar( $value ) ) {
+				continue;
+			}
+			$state[ sanitize_key( (string) $key ) ] = self::limit_scalar( sanitize_text_field( wp_unslash( (string) $value ) ) );
+		}
+
+		return $state;
 	}
 
 	/**

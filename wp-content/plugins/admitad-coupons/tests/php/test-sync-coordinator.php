@@ -29,10 +29,11 @@ function promokodiki_admitad_sync_http_response( int $status, string $body, arra
 /**
  * Build a complete raw coupon fixture.
  *
- * @param int $id Coupon ID.
+ * @param int $id          Coupon ID.
+ * @param int $campaign_id Test-owned campaign ID.
  * @return array<string, mixed>
  */
-function promokodiki_admitad_sync_coupon( int $id ): array {
+function promokodiki_admitad_sync_coupon( int $id, int $campaign_id ): array {
 	return array(
 		'id'                 => $id,
 		'status'             => 'active',
@@ -40,7 +41,7 @@ function promokodiki_admitad_sync_coupon( int $id ): array {
 		'description'        => '',
 		'short_name'         => 'Sync',
 		'campaign'           => array(
-			'id'       => 991177,
+			'id'       => $campaign_id,
 			'name'     => 'Coordinator Test Shop',
 			'site_url' => 'https://example.test/',
 		),
@@ -58,39 +59,112 @@ function promokodiki_admitad_sync_coupon( int $id ): array {
 }
 
 /**
- * Remove records created by coordinator tests.
+ * Snapshot the tables and options touched by coordinator tests before setup.
+ *
+ * @return array{tables:array<string,array{exists:bool,rows:array<int,array<string,mixed>>,auto_increment:int}>,options:array<string,array{exists:bool,value:string,autoload:string}>}
+ */
+function promokodiki_admitad_sync_snapshot(): array {
+	global $wpdb;
+
+	$tables = array();
+	foreach ( array( 'category_map', 'company_profile', 'company_category', 'rule', 'review_queue', 'sync_run', 'classification_history' ) as $suffix ) {
+		$table  = Promokodiki_Admitad_Schema::table( $suffix );
+		$exists = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
+		$tables[ $table ] = array(
+			'exists'         => $exists,
+			'rows'           => $exists ? $wpdb->get_results( "SELECT * FROM {$table}", ARRAY_A ) : array(),
+			'auto_increment' => $exists ? (int) $wpdb->get_var( "SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$table}'" ) : 0,
+		);
+	}
+
+	$options = array();
+	foreach ( array( 'promokodiki_admitad_db_version', 'promokodiki_admitad_settings', 'promokodiki_admitad_website_id', 'admitad_access_token', 'admitad_token_expires', 'promokodiki_admitad_lock_coupon', 'admitad_import_lock' ) as $option ) {
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT option_value, autoload FROM {$wpdb->options} WHERE option_name = %s", $option ), ARRAY_A );
+		$options[ $option ] = array(
+			'exists'   => is_array( $row ),
+			'value'    => (string) ( $row['option_value'] ?? '' ),
+			'autoload' => (string) ( $row['autoload'] ?? 'no' ),
+		);
+	}
+
+	return array( 'tables' => $tables, 'options' => $options );
+}
+
+/**
+ * Restore pre-existing coordinator state and remove only tables created by a test.
+ *
+ * @param array{tables:array<string,array{exists:bool,rows:array<int,array<string,mixed>>,auto_increment:int}>,options:array<string,array{exists:bool,value:string,autoload:string}>} $snapshot Original state.
+ */
+function promokodiki_admitad_sync_restore( array $snapshot ): void {
+	global $wpdb;
+
+	foreach ( $snapshot['tables'] as $table => $table_snapshot ) {
+		$exists = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
+		if ( ! $table_snapshot['exists'] ) {
+			if ( $exists ) {
+				$wpdb->query( 'DROP TABLE IF EXISTS ' . $table ); // The table was created after the snapshot.
+			}
+			continue;
+		}
+		if ( ! $exists ) {
+			throw new RuntimeException( 'A pre-existing Admitad table disappeared during the coordinator test.' );
+		}
+		$wpdb->query( "DELETE FROM {$table}" );
+		foreach ( $table_snapshot['rows'] as $row ) {
+			$wpdb->insert( $table, $row );
+		}
+		if ( $table_snapshot['auto_increment'] > 0 ) {
+			$wpdb->query( 'ALTER TABLE ' . $table . ' AUTO_INCREMENT = ' . $table_snapshot['auto_increment'] );
+		}
+	}
+
+	foreach ( $snapshot['options'] as $option => $option_snapshot ) {
+		promokodiki_admitad_sync_restore_option( $option, $option_snapshot );
+	}
+}
+
+/**
+ * Restore one option exactly as it existed before a coordinator test.
+ *
+ * @param string                                      $option Option name.
+ * @param array{exists:bool,value:string,autoload:string} $snapshot Original option row.
+ */
+function promokodiki_admitad_sync_restore_option( string $option, array $snapshot ): void {
+	global $wpdb;
+
+	if ( $snapshot['exists'] ) {
+		$wpdb->update( $wpdb->options, array( 'option_value' => $snapshot['value'], 'autoload' => $snapshot['autoload'] ), array( 'option_name' => $option ) );
+	} else {
+		delete_option( $option );
+	}
+	wp_cache_delete( $option, 'options' );
+	wp_cache_delete( 'alloptions', 'options' );
+}
+
+/**
+ * Remove records created by coordinator tests and restore the original state.
  *
  * @param int[] $post_ids Imported post IDs.
+ * @param int[] $term_ids Test-owned shop term IDs.
  */
-function promokodiki_admitad_sync_cleanup( array $post_ids ): void {
+function promokodiki_admitad_sync_cleanup( array $post_ids, array $term_ids = array(), ?array $snapshot = null ): void {
 	global $wpdb;
+	global $promokodiki_admitad_sync_snapshot;
+
+	if ( null === $snapshot ) {
+		$snapshot = $promokodiki_admitad_sync_snapshot;
+	}
 
 	foreach ( $post_ids as $post_id ) {
 		wp_delete_post( $post_id, true );
 	}
-	$terms = get_terms(
-		array(
-			'taxonomy'   => 'shops_category',
-			'hide_empty' => false,
-			'fields'     => 'ids',
-			'meta_key'   => 'admitad_campaign_id',
-			'meta_value' => '991177',
-		)
-	);
-	foreach ( is_wp_error( $terms ) ? array() : $terms as $term_id ) {
+	foreach ( $term_ids as $term_id ) {
 		wp_delete_term( $term_id, 'shops_category' );
 	}
-	foreach ( array( 'category_map', 'company_profile', 'company_category', 'rule', 'review_queue', 'sync_run', 'classification_history' ) as $suffix ) {
-		$table = $wpdb->prefix . 'admitad_' . $suffix;
-		$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
-	}
-	delete_option( 'promokodiki_admitad_db_version' );
-	delete_option( 'promokodiki_admitad_settings' );
-	delete_option( 'promokodiki_admitad_website_id' );
-	delete_option( 'admitad_access_token' );
-	delete_option( 'admitad_token_expires' );
-	delete_option( 'promokodiki_admitad_lock_coupon' );
+	promokodiki_admitad_sync_restore( $snapshot );
 }
+
+$promokodiki_admitad_sync_snapshot = promokodiki_admitad_sync_snapshot();
 
 Promokodiki_Admitad_Test_Harness::run(
 	'coupon coordinator resumes three bounded pages and completes only the last',
@@ -102,10 +176,12 @@ Promokodiki_Admitad_Test_Harness::run(
 		update_option( 'admitad_access_token', 'test-token', false );
 		update_option( 'admitad_token_expires', time() + HOUR_IN_SECONDS, false );
 
+		$campaign_id = wp_rand( 700000000, 799999999 );
+		$coupon_base = $campaign_id * 10;
 		$pages = array(
-			0 => array( promokodiki_admitad_sync_coupon( 991001 ), promokodiki_admitad_sync_coupon( 991002 ) ),
-			2 => array( promokodiki_admitad_sync_coupon( 991003 ), promokodiki_admitad_sync_coupon( 991004 ) ),
-			4 => array( promokodiki_admitad_sync_coupon( 991005 ) ),
+			0 => array( promokodiki_admitad_sync_coupon( $coupon_base + 1, $campaign_id ), promokodiki_admitad_sync_coupon( $coupon_base + 2, $campaign_id ) ),
+			2 => array( promokodiki_admitad_sync_coupon( $coupon_base + 3, $campaign_id ), promokodiki_admitad_sync_coupon( $coupon_base + 4, $campaign_id ) ),
+			4 => array( promokodiki_admitad_sync_coupon( $coupon_base + 5, $campaign_id ) ),
 		);
 		$http  = static function ( $preempt, array $args, string $url ) use ( $pages ) {
 			parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
@@ -126,6 +202,7 @@ Promokodiki_Admitad_Test_Harness::run(
 			return true;
 		};
 		$post_ids = array();
+		$term_ids = array();
 
 		add_filter( 'pre_http_request', $http, 10, 3 );
 		try {
@@ -151,12 +228,21 @@ Promokodiki_Admitad_Test_Harness::run(
 					'fields'         => 'ids',
 					'posts_per_page' => -1,
 					'meta_key'       => 'campaign_id',
-					'meta_value'     => '991177',
+					'meta_value'     => (string) $campaign_id,
+				)
+			);
+			$term_ids = get_terms(
+				array(
+					'taxonomy'   => 'shops_category',
+					'hide_empty' => false,
+					'fields'     => 'ids',
+					'meta_key'   => 'admitad_campaign_id',
+					'meta_value' => (string) $campaign_id,
 				)
 			);
 		} finally {
 			remove_filter( 'pre_http_request', $http, 10 );
-			promokodiki_admitad_sync_cleanup( $post_ids );
+			promokodiki_admitad_sync_cleanup( $post_ids, is_wp_error( $term_ids ) ? array() : $term_ids );
 		}
 	}
 );

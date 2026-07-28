@@ -124,6 +124,7 @@
 		}
 
 		table.innerHTML = html;
+		enhanceTooltips( table );
 		const focusTarget = ( selector && table.querySelector( selector ) ) || table.querySelector( '[data-admitad-focus]' ) || table;
 		if ( focusTarget === table && ! table.getAttribute( 'tabindex' ) ) {
 			table.setAttribute( 'tabindex', '-1' );
@@ -133,17 +134,34 @@
 		}
 	}
 
-	function payloadFromForm( form, submitter ) {
+	function metadataFor( element ) {
+		return {
+			operation: element.dataset.admitadOperation || 'render_fragment',
+			page: element.dataset.admitadPage || '',
+			fragment: element.dataset.admitadFragment || '',
+		};
+	}
+
+	function applyMetadata( payload, metadata ) {
+		for ( const [ key, value ] of Object.entries( metadata ) ) {
+			if ( value ) {
+				payload.set( key, value );
+			}
+		}
+		return payload;
+	}
+
+	function payloadFromForm( form, submitter, metadata ) {
 		const payload = new URLSearchParams();
 		new FormData( form ).forEach( ( value, key ) => {
-			if ( typeof value === 'string' && key !== 'action' && key !== '_ajax_nonce' ) {
+			if ( typeof value === 'string' && ! [ 'action', '_ajax_nonce', 'operation', 'page', 'fragment' ].includes( key ) ) {
 				payload.append( key, value );
 			}
 		} );
-		if ( submitter?.name && submitter.name !== 'action' && submitter.name !== '_ajax_nonce' ) {
+		if ( submitter?.name && ! [ 'action', '_ajax_nonce', 'operation', 'page', 'fragment' ].includes( submitter.name ) ) {
 			payload.append( submitter.name, submitter.value );
 		}
-		return payload;
+		return applyMetadata( payload, metadata );
 	}
 
 	function actionFor( element ) {
@@ -183,14 +201,14 @@
 		const previous = activeRequests.get( owner );
 		const controller = new AbortController();
 		const selector = focusSelector( document.activeElement );
-		const wasDisabled = submitter ? submitter.disabled : false;
+		const originalDisabled = submitter && previous?.submitter === submitter ? previous.originalDisabled : Boolean( submitter?.disabled );
 		const generation = ++requestGeneration;
 		let status = 'error';
 
 		if ( previous ) {
 			previous.controller.abort();
 		}
-		activeRequests.set( owner, { controller, generation } );
+		activeRequests.set( owner, { controller, generation, submitter, originalDisabled } );
 		if ( table ) {
 			table.classList.add( 'promokodiki-admitad-is-loading' );
 			table.setAttribute( 'aria-busy', 'true' );
@@ -242,7 +260,7 @@
 				table.removeAttribute( 'data-admitad-loading-label' );
 			}
 			if ( submitter && isCurrent ) {
-				submitter.disabled = wasDisabled;
+				submitter.disabled = originalDisabled;
 			}
 			dispatch( target, 'admitad:complete', { action, payload, status } );
 		}
@@ -261,7 +279,7 @@
 			return;
 		}
 		const submitter = event.submitter || form.querySelector( '[type="submit"]' );
-		send( form, action, payloadFromForm( form, submitter ), submitter, 'push' );
+		send( form, action, payloadFromForm( form, submitter, metadataFor( form ) ), submitter, 'push' );
 	} );
 
 	document.addEventListener( 'click', ( event ) => {
@@ -287,7 +305,7 @@
 		const payload = new URLSearchParams( new URL( link.href, window.location.href ).searchParams );
 		payload.delete( 'action' );
 		payload.delete( '_ajax_nonce' );
-		send( link, action, payload, null, 'push' );
+		send( link, action, applyMetadata( payload, metadataFor( link ) ), null, 'push' );
 	} );
 
 	window.addEventListener( 'popstate', () => {
@@ -299,10 +317,27 @@
 		const payload = new URLSearchParams( window.location.search );
 		payload.delete( 'action' );
 		payload.delete( '_ajax_nonce' );
-		send( table, table.dataset.admitadAction, payload, null, 'replace' );
+		send( table, table.dataset.admitadAction, applyMetadata( payload, metadataFor( table ) ), null, 'replace' );
 	} );
 
-	document.querySelectorAll( '[data-admitad-tooltip]' ).forEach( ( trigger ) => {
+	function setTooltipOpen( trigger, open ) {
+		const tooltip = trigger._admitadTooltip;
+		if ( ! tooltip ) {
+			return;
+		}
+		tooltip.classList.toggle( 'promokodiki-admitad-tooltip--open', open );
+		trigger.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+	}
+
+	function enhanceTooltips( root = document ) {
+		const triggers = root.querySelectorAll ? Array.from( root.querySelectorAll( '[data-admitad-tooltip]' ) ) : [];
+		if ( root.matches?.( '[data-admitad-tooltip]' ) ) {
+			triggers.unshift( root );
+		}
+		triggers.forEach( ( trigger ) => {
+			if ( trigger.getAttribute( 'data-admitad-tooltip-enhanced' ) ) {
+				return;
+			}
 		const text = trigger.getAttribute( 'data-admitad-tooltip' );
 		if ( ! text ) {
 			return;
@@ -313,9 +348,33 @@
 		tooltip.setAttribute( 'role', 'tooltip' );
 		tooltip.textContent = text;
 		trigger.after( tooltip );
+		trigger._admitadTooltip = tooltip;
+		trigger.setAttribute( 'data-admitad-tooltip-enhanced', 'true' );
 		if ( ! /^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/i.test( trigger.tagName ) && ! trigger.getAttribute( 'tabindex' ) ) {
 			trigger.setAttribute( 'tabindex', '0' );
 		}
 		trigger.setAttribute( 'aria-describedby', tooltip.id );
+		trigger.setAttribute( 'aria-expanded', 'false' );
+		trigger.addEventListener( 'focus', () => setTooltipOpen( trigger, true ) );
+		trigger.addEventListener( 'blur', () => setTooltipOpen( trigger, false ) );
+		trigger.addEventListener( 'mouseenter', () => setTooltipOpen( trigger, true ) );
+		trigger.addEventListener( 'mouseleave', () => setTooltipOpen( trigger, false ) );
+		trigger.addEventListener( 'click', () => setTooltipOpen( trigger, trigger.getAttribute( 'aria-expanded' ) !== 'true' ) );
 	} );
+	}
+
+	document.addEventListener( 'keydown', ( event ) => {
+		if ( event.key === 'Escape' ) {
+			document.querySelectorAll( '[data-admitad-tooltip-enhanced]' ).forEach( ( trigger ) => setTooltipOpen( trigger, false ) );
+		}
+	} );
+	document.addEventListener( 'pointerdown', ( event ) => {
+		document.querySelectorAll( '[data-admitad-tooltip-enhanced]' ).forEach( ( trigger ) => {
+			if ( ! trigger.contains( event.target ) && ! trigger._admitadTooltip?.contains( event.target ) ) {
+				setTooltipOpen( trigger, false );
+			}
+		} );
+	} );
+
+	enhanceTooltips();
 }() );

@@ -40,12 +40,16 @@ final class Promokodiki_Admitad_Admin_Request {
 	 *
 	 * @var string[]
 	 */
-	private const FILTER_KEYS = array(
-		'status',
-		'reason',
-		'tab',
-		'snapshot',
-		'sample',
+	private const PAGE_FILTER_KEYS = array(
+		'admitad-overview'     => array( 'tab' ),
+		'admitad-sync'         => array( 'status' ),
+		'admitad-category-map' => array( 'status' ),
+		'admitad-companies'    => array( 'status' ),
+		'admitad-rules'        => array( 'status' ),
+		'admitad-review'       => array( 'status', 'reason' ),
+		'admitad-history'      => array( 'reason', 'snapshot', 'sample' ),
+		'admitad-settings'     => array( 'tab' ),
+		'admitad-diagnostics'  => array( 'tab' ),
 	);
 
 	/**
@@ -133,7 +137,7 @@ final class Promokodiki_Admitad_Admin_Request {
 			$per_page = self::DEFAULT_PER_PAGE;
 		}
 
-		foreach ( self::FILTER_KEYS as $key ) {
+		foreach ( self::filters_for_page( $page ) as $key ) {
 			$value = self::text_value( $input, $key );
 			if ( '' !== $value ) {
 				$filters[ $key ] = $value;
@@ -206,7 +210,7 @@ final class Promokodiki_Admitad_Admin_Request {
 			$args['s'] = $this->search;
 		}
 
-		foreach ( self::FILTER_KEYS as $key ) {
+		foreach ( self::filters_for_page( $this->page ) as $key ) {
 			if ( isset( $this->filters[ $key ] ) ) {
 				$args[ $key ] = $this->filters[ $key ];
 			}
@@ -237,7 +241,17 @@ final class Promokodiki_Admitad_Admin_Request {
 			return $default;
 		}
 
-		return absint( wp_unslash( (string) $input[ $key ] ) );
+		return (int) wp_unslash( (string) $input[ $key ] );
+	}
+
+	/**
+	 * Return the filters meaningful to one administrative section.
+	 *
+	 * @param string $page Admitad page slug.
+	 * @return string[] Allowlisted filter names.
+	 */
+	private static function filters_for_page( string $page ): array {
+		return self::PAGE_FILTER_KEYS[ $page ] ?? array();
 	}
 
 	/**

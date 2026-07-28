@@ -62,6 +62,19 @@ Promokodiki_Admitad_Test_Harness::run(
 		Promokodiki_Admitad_Test_Harness::assert_same( '', $invalid->search() );
 		Promokodiki_Admitad_Test_Harness::assert_same( '', $invalid->filter( 'unknown' ) );
 		Promokodiki_Admitad_Test_Harness::assert_true( ! isset( $invalid->query_args()['unknown'] ) );
+
+		$negative_history = Promokodiki_Admitad_Admin_Request::from_array(
+			array(
+				'paged'  => '-7',
+				'reason' => 'low_confidence',
+				'status' => 'discard-on-history',
+			),
+			'admitad-history'
+		);
+		Promokodiki_Admitad_Test_Harness::assert_same( 1, $negative_history->paged() );
+		Promokodiki_Admitad_Test_Harness::assert_same( 'low_confidence', $negative_history->filter( 'reason' ) );
+		Promokodiki_Admitad_Test_Harness::assert_same( '', $negative_history->filter( 'status' ) );
+		Promokodiki_Admitad_Test_Harness::assert_true( ! isset( $negative_history->query_args()['status'] ) );
 	}
 );
 
