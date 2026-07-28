@@ -43,13 +43,17 @@ try {
 	Promokodiki_Admitad_Test_Harness::run(
 		'review queue deduplicates unresolved reasons and assignment queues low confidence',
 		static function () use ( $child_id, &$queue_entities, &$post_ids ): void {
+			global $wpdb;
+
 			$entity_id        = 'queue-' . wp_generate_password( 8, false );
 			$queue_entities[] = $entity_id;
 			$queue            = new Promokodiki_Admitad_Review_Queue_Repository();
+			$table            = Promokodiki_Admitad_Schema::table( 'review_queue' );
 			$first            = $queue->enqueue( 'coupon', $entity_id, 'conflicting_signals', array( 'term_id' => $child_id ) );
 			$second           = $queue->enqueue( 'coupon', $entity_id, 'conflicting_signals', array( 'term_id' => $child_id ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( $first, $second );
-			Promokodiki_Admitad_Test_Harness::assert_same( 1, $queue->count_unresolved( 'conflicting_signals' ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The test verifies its own row in the plugin-owned queue table; values are prepared.
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE entity_type = %s AND entity_id = %s AND reason_code = %s AND status = %s", 'coupon', $entity_id, 'conflicting_signals', 'open' ) ) );
 
 			$post_id    = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Low confidence fixture' ) );
 			$post_ids[] = $post_id;
@@ -64,7 +68,8 @@ try {
 			Promokodiki_Admitad_Test_Harness::assert_true(
 				( new Promokodiki_Admitad_Assignment_Service( null, $queue ) )->assign( $post_id, $result, 'queue_test' )
 			);
-			Promokodiki_Admitad_Test_Harness::assert_same( 1, $queue->count_unresolved( 'low_confidence' ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The test verifies its own row in the plugin-owned queue table; values are prepared.
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE entity_type = %s AND entity_id = %s AND reason_code = %s AND status = %s", 'coupon', $entity_id . '-low', 'low_confidence', 'open' ) ) );
 		}
 	);
 
