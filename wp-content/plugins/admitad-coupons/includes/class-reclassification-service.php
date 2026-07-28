@@ -60,6 +60,40 @@ final class Promokodiki_Admitad_Reclassification_Service {
 	 * @return array{id:string,post_ids:array<int,int>,count:int,status:string}
 	 */
 	public function preview( array $post_ids ): array {
+		$started = $this->start_preview( $post_ids );
+		while ( 'previewing' === $this->preview_progress( $started['id'] )['status'] ) { $this->preview_next_batch( $started['id'] ); }
+		$snapshot = $this->get_snapshot( $started['id'] );
+		return array( 'id' => $started['id'], 'post_ids' => $snapshot['post_ids'], 'count' => count( $snapshot['post_ids'] ), 'status' => $snapshot['status'] );
+	}
+
+	/** Create a durable preview cursor without changing taxonomy. */
+	public function start_preview( array $post_ids = array() ): array {
+		if ( array() === $post_ids ) {
+			$post_ids = get_posts( array( 'post_type' => 'promocode', 'post_status' => array( 'publish', 'future', 'draft', 'private' ), 'posts_per_page' => -1, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC', 'meta_key' => 'admitad_coupon_id', 'no_found_rows' => true ) );
+		}
+		$snapshot_id = wp_generate_uuid4();
+		$source_ids = array_values( array_unique( array_filter( array_map( 'absint', $post_ids ) ) ) ); sort( $source_ids );
+		update_option( $this->status_key( $snapshot_id ), array( 'status' => 'previewing', 'owner_id' => get_current_user_id(), 'created_at' => time(), 'expires_at' => time() + DAY_IN_SECONDS, 'source_post_ids' => $source_ids, 'cursor' => 0, 'processed' => 0, 'affected' => 0, 'unchanged' => 0, 'locked' => 0, 'failed' => 0, 'heartbeat' => time() ), false );
+		return array( 'id' => $snapshot_id, 'count' => count( $source_ids ), 'status' => 'previewing' );
+	}
+
+	/** Process at most fifty immutable preview rows without taxonomy mutation. */
+	public function preview_next_batch( string $snapshot_id ) {
+		$state = (array) get_option( $this->status_key( $snapshot_id ), array() );
+		if ( 'previewing' !== ( $state['status'] ?? '' ) ) { return new WP_Error( 'invalid_snapshot_state', 'Снимок недоступен для предварительного просмотра.' ); }
+		$ids = array_slice( array_map( 'absint', (array) $state['source_post_ids'] ), (int) $state['cursor'], self::BATCH_SIZE );
+		$existing = array_flip( array_map( 'intval', array_column( $this->history->snapshot_rows( $snapshot_id ), 'post_id' ) ) );
+		foreach ( $ids as $post_id ) { ++$state['processed']; try { if ( 'promocode' !== get_post_type( $post_id ) ) { ++$state['unchanged']; continue; } if ( Promokodiki_Admitad_Editorial_Locks::category_locked( $post_id ) ) { ++$state['locked']; continue; } $current_terms = array_map( 'intval', wp_get_object_terms( $post_id, 'promocode_category', array( 'fields' => 'ids' ) ) ); $current_primary = (int) get_post_meta( $post_id, '_admitad_primary_term_id', true ); $result = call_user_func( $this->classifier, $this->coupon_from_post( $post_id ), $this->context_for_post( $post_id ) ); $before = $current_terms; $after = $result->term_ids(); sort( $before ); sort( $after ); if ( $before === $after && $current_primary === $result->primary_term_id() ) { ++$state['unchanged']; continue; } if ( ! isset( $existing[ $post_id ] ) ) { $this->history->record( $post_id, $result, $current_terms, $current_primary, 'preview', $snapshot_id ); $existing[ $post_id ] = true; } ++$state['affected']; } catch ( Throwable $error ) { ++$state['failed']; } }
+		$state['cursor'] += count( $ids ); $state['heartbeat'] = time(); if ( $state['cursor'] >= count( $state['source_post_ids'] ) ) { $state['status'] = 'previewed'; } update_option( $this->status_key( $snapshot_id ), $state, false ); return $this->preview_progress( $snapshot_id );
+	}
+
+	/** Read durable preview progress without exposing implementation details. */
+	public function preview_progress( string $snapshot_id ) {
+		$state = (array) get_option( $this->status_key( $snapshot_id ), array() ); if ( empty( $state['status'] ) ) { return new WP_Error( 'invalid_snapshot', 'Снимок не найден.' ); } unset( $state['source_post_ids'] ); return $state;
+	}
+
+	/* Legacy synchronous implementation retained below for comparison. */
+	private function legacy_preview_unused( array $post_ids ): array {
 		$snapshot_id = wp_generate_uuid4();
 		$affected    = array();
 		foreach ( array_values( array_unique( array_map( 'absint', $post_ids ) ) ) as $post_id ) {
