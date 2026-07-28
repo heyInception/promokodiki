@@ -91,10 +91,7 @@ final class Promokodiki_Admitad_Admin_Actions {
 	 * @return true|WP_Error
 	 */
 	public function resolve_coupon_only( int $queue_id, array $term_ids ) {
-		if (
-			! current_user_can( 'review_admitad_mapping' )
-			|| ( ! current_user_can( 'manage_admitad_automation' ) && ! Promokodiki_Admitad_Config::get( 'editor_review_enabled' ) )
-		) {
+		if ( ! $this->can_manage_review_queue() ) {
 			return new WP_Error( 'forbidden', 'You cannot resolve Admitad review cases.' );
 		}
 		$queue = new Promokodiki_Admitad_Review_Queue_Repository();
@@ -136,6 +133,22 @@ final class Promokodiki_Admitad_Admin_Actions {
 		return $queue->resolve( $queue_id, 'coupon_only' )
 			? true
 			: new WP_Error( 'queue_update_failed', 'The coupon was changed but the queue case could not be resolved.' );
+	}
+
+	/** Archive one review case with the same editor gate as coupon resolution. */
+	public function archive_review_case( int $queue_id ) {
+		if ( ! $this->can_manage_review_queue() ) {
+			return new WP_Error( 'forbidden', 'You cannot archive Admitad review cases.' );
+		}
+		return ( new Promokodiki_Admitad_Review_Queue_Repository() )->archive( $queue_id )
+			? true
+			: new WP_Error( 'invalid_queue_item', 'An open review case is required.' );
+	}
+
+	/** Keep all reviewer mutations behind the existing capability/configuration gate. */
+	private function can_manage_review_queue(): bool {
+		return current_user_can( 'review_admitad_mapping' )
+			&& ( current_user_can( 'manage_admitad_automation' ) || Promokodiki_Admitad_Config::get( 'editor_review_enabled' ) );
 	}
 
 	/**
@@ -359,6 +372,8 @@ final class Promokodiki_Admitad_Admin_Actions {
 				absint( $_POST['queue_id'] ?? 0 ),
 				array_map( 'absint', (array) wp_unslash( $_POST['term_ids'] ?? array() ) )
 			);
+		} elseif ( 'archive_review_case' === $operation ) {
+			$result = $actions->archive_review_case( absint( $_POST['queue_id'] ?? 0 ) );
 		} elseif ( 'save_company' === $operation ) {
 			$page   = 'admitad-companies';
 			$result = $actions->save_company_profile(

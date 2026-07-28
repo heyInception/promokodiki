@@ -153,7 +153,7 @@ final class Promokodiki_Admitad_Admin_Ajax {
 		if ( 'admitad-review' !== $request['page'] || ! current_user_can( 'review_admitad_mapping' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для очереди проверки.' ); }
 		$actions = new Promokodiki_Admitad_Admin_Actions();
 		if ( 'review_resolve_coupon' === $operation ) { $result = $actions->resolve_coupon_only( absint( self::raw_scalar( $raw_request, 'queue_id' ) ), self::term_ids( $raw_request['term_ids'] ?? array() ) ); }
-		elseif ( 'review_archive' === $operation ) { $result = ( new Promokodiki_Admitad_Review_Queue_Repository() )->archive( absint( self::raw_scalar( $raw_request, 'queue_id' ) ) ) ? true : new WP_Error( 'invalid_queue_item', 'Не удалось архивировать случай.' ); }
+		elseif ( 'review_archive' === $operation ) { $result = $actions->archive_review_case( absint( self::raw_scalar( $raw_request, 'queue_id' ) ) ); }
 		else { $result = true; }
 		if ( is_wp_error( $result ) ) { return $result; }
 		$context = Promokodiki_Admitad_Review_Page::table_context( $raw_request );

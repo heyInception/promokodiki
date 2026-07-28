@@ -18,3 +18,10 @@
 
 - The local `php` executable is not on PATH. A direct `node --check` inherited an inaccessible path and aborted before parsing, so neither is claimed as a passing check.
 - The shared AJAX controller and fragment registry overlap Tasks 3–5 and were committed with Task 5 to retain a coherent controller state.
+
+## Review queue blocker fix
+
+- Reason tabs now pass an allowlisted group of stored reason codes into the repository, which prepares the `IN` values before counting and limiting rows. Unknown codes remain visible in the unfiltered all tab.
+- Archive now delegates through the same reviewer capability and `editor_review_enabled` gate as coupon-only resolution; both AJAX and admin-post fallbacks use that action.
+- The detailed table restores safe evidence disclosure and includes both resolve and archive forms with action, operation, nonce, and queue fields for progressive enhancement.
+- Focused disposable smoke: `test-queue-evidence-tags.php` passed 4/4; `git diff --check` exited 0 before commit.

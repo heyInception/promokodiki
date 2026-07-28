@@ -19,7 +19,7 @@ final class Promokodiki_Admitad_Review_Queue_Repository {
 	 * @param string $search   Entity or reason search.
 	 * @param int    $page     One-based page.
 	 * @param int    $per_page Rows per page.
-	 * @param array<string, string> $filters Allowlisted status and reason filters.
+	 * @param array<string, mixed> $filters Allowlisted status, reason, and reason-group filters.
 	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
 	 */
 	public function list_rows( string $search = '', int $page = 1, int $per_page = 20, array $filters = array() ): array {
@@ -40,8 +40,15 @@ final class Promokodiki_Admitad_Review_Queue_Repository {
 			$needle = '%' . $wpdb->esc_like( $search ) . '%';
 			$args[] = $needle; $args[] = $needle;
 		}
+		$reasons = array();
+		if ( isset( $filters['reasons'] ) && is_array( $filters['reasons'] ) ) {
+			$reasons = array_values( array_unique( array_filter( array_map( 'sanitize_key', array_slice( $filters['reasons'], 0, 5 ) ) ) ) );
+		}
 		$reason = sanitize_key( $filters['reason'] ?? '' );
-		if ( '' !== $reason ) { $clauses[] = 'reason_code = %s'; $args[] = $reason; }
+		if ( $reasons ) {
+			$clauses[] = 'reason_code IN (' . implode( ', ', array_fill( 0, count( $reasons ), '%s' ) ) . ')';
+			$args = array_merge( $args, $reasons );
+		} elseif ( '' !== $reason ) { $clauses[] = 'reason_code = %s'; $args[] = $reason; }
 		$where = ' WHERE ' . implode( ' AND ', $clauses );
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Identifier is plugin-owned and the optional prepared fragments contain only fixed SQL.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned queue state.
