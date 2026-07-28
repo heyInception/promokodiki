@@ -87,3 +87,11 @@ studio wp cron event run promokodiki_admitad_reconcile
 ```
 
 Для живого smoke-теста нужны локально настроенные credentials. Выполните две последовательные синхронизации и убедитесь, что второй проход возвращает преимущественно `unchanged`, не создаёт дубли и не меняет редакционные блокировки.
+# Recovery backup registration
+
+Before starting the Admitad recovery migration, create and register a database backup. The registration stores only a normalized path, size, SHA-256 checksum, and timestamp; it is valid for 24 hours.
+
+```powershell
+studio export backups/admitad-before-recovery.sql --mode db
+studio wp admitad backup-register --path="C:\\absolute\\path\\to\\admitad-before-recovery.sql"
+```

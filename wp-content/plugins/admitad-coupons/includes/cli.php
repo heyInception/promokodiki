@@ -7,6 +7,24 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 
 class Promokodiki_Admitad_CLI {
 	/**
+	 * Register a fresh database backup for recovery operations.
+	 *
+	 * ## OPTIONS
+	 *
+	 * --path=<absolute-path>
+	 * : Existing non-empty database backup file.
+	 */
+	public function backup_register( array $args, array $assoc_args ): void {
+		unset( $args );
+		try {
+			$state = ( new Promokodiki_Admitad_Backup_Gate() )->register( (string) ( $assoc_args['path'] ?? '' ) );
+		} catch ( Throwable $error ) {
+			WP_CLI::error( 'The backup could not be registered.' );
+		}
+		WP_CLI::success( sprintf( 'Recovery backup registered (%d bytes, %s).', $state['size'], $state['sha256'] ) );
+	}
+
+	/**
 	 * Analyze or execute the non-destructive mapping migration.
 	 *
 	 * ## OPTIONS
