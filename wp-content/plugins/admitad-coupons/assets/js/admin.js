@@ -497,4 +497,15 @@
 
 	enhanceTooltips();
 	enhanceCompanyAutocomplete();
+	let ruleSearchTimer = null;
+	document.addEventListener( 'input', ( event ) => {
+		const input = event.target.closest?.( '[data-admitad-rule-search]' );
+		if ( ! input ) return;
+		const form = input.closest( 'form[data-admitad-ajax]' );
+		if ( ! form ) return;
+		const paged = form.querySelector( '[name="paged"]' );
+		if ( paged ) paged.value = '1';
+		if ( ruleSearchTimer ) clearTimeout( ruleSearchTimer );
+		ruleSearchTimer = setTimeout( () => form.requestSubmit(), 300 );
+	} );
 }() );

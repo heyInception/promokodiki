@@ -383,6 +383,10 @@ final class Promokodiki_Admitad_Admin_Actions {
 				absint( $_POST['rule_id'] ?? 0 ),
 				sanitize_key( wp_unslash( $_POST['status'] ?? '' ) )
 			);
+		} elseif ( 'archive_rule' === $operation ) {
+			$page = 'admitad-rules'; $result = $actions->archive_rule( absint( $_POST['rule_id'] ?? 0 ) );
+		} elseif ( 'restore_rule' === $operation ) {
+			$page = 'admitad-rules'; $result = $actions->restore_rule( absint( $_POST['rule_id'] ?? 0 ) );
 		}
 		self::redirect_or_die( $result, $page );
 	}
@@ -503,6 +507,16 @@ final class Promokodiki_Admitad_Admin_Actions {
 		return ( new Promokodiki_Admitad_Rule_Repository() )->set_status( $rule_id, $status )
 			? true
 			: new WP_Error( 'invalid_rule_status', 'Unable to change the rule status.' );
+	}
+
+	/** Archive a rule without deleting its audit evidence. */
+	public function archive_rule( int $rule_id ) {
+		return $this->set_rule_status( $rule_id, 'archived' );
+	}
+
+	/** Restore an archived rule to the deliberately non-active suspended state. */
+	public function restore_rule( int $rule_id ) {
+		return $this->set_rule_status( $rule_id, 'suspended' );
 	}
 
 	/**
