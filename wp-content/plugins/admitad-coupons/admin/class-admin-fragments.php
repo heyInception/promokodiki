@@ -36,6 +36,9 @@ final class Promokodiki_Admitad_Admin_Fragments {
 		'review-table' => array( 'file' => 'review-table.php', 'page' => 'admitad-review', 'context' => array( 'request', 'rows', 'term_options', 'totals' ) ),
 		'history-table' => array( 'file' => 'history-table.php', 'page' => 'admitad-history', 'context' => array( 'request', 'history' ) ),
 		'history-snapshot' => array( 'file' => 'history-snapshot.php', 'page' => 'admitad-history', 'context' => array( 'snapshot' ) ),
+		'overview-status' => array( 'file' => 'overview-status.php', 'page' => 'admitad-overview', 'context' => array( 'snapshot' ) ),
+		'sync-runs' => array( 'file' => 'sync-runs.php', 'page' => 'admitad-sync', 'context' => array( 'snapshot' ) ),
+		'diagnostics-status' => array( 'file' => 'diagnostics-status.php', 'page' => 'admitad-diagnostics', 'context' => array( 'snapshot' ) ),
 		'foundation' => array(
 			'file'    => 'foundation.php',
 			'page'    => 'admitad-settings',

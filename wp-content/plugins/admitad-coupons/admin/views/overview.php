@@ -1,23 +1,2 @@
-<?php
-/**
- * Overview view.
- *
- * @package Promokodiki_Admitad
- */
-?>
-<div class="wrap">
-	<h1><?php echo esc_html__( 'Admitad: обзор автоматизации', 'promokodiki-admitad' ); ?></h1>
-	<p><?php echo esc_html( sprintf( 'Версия схемы: %s', $snapshot['schema_version'] ) ); ?></p>
-	<h2><?php echo esc_html__( 'Очередь проверки', 'promokodiki-admitad' ); ?></h2>
-	<ul>
-		<?php foreach ( $snapshot['queue'] as $reason => $count ) : ?>
-			<li><code><?php echo esc_html( $reason ); ?></code>: <?php echo esc_html( (string) $count ); ?></li>
-		<?php endforeach; ?>
-	</ul>
-	<h2><?php echo esc_html__( 'Расписание', 'promokodiki-admitad' ); ?></h2>
-	<ul>
-		<?php foreach ( $snapshot['cron'] as $job => $event ) : ?>
-			<li><?php echo esc_html( $job . ': ' . ( $event['scheduled'] ? wp_date( 'Y-m-d H:i:s', $event['timestamp'] ) : 'не запланировано' ) ); ?></li>
-		<?php endforeach; ?>
-	</ul>
-</div>
+<?php /** @package Promokodiki_Admitad */ ?>
+<div class="wrap promokodiki-admitad-admin"><h1>Admitad: обзор автоматизации</h1><p>Состояние очереди, расписания и обработки данных. Версия схемы: <?php echo esc_html( (string) $snapshot['schema_version'] ); ?>.</p><div data-admitad-table data-admitad-action="promokodiki_admitad_admin" data-admitad-operation="overview_refresh" data-admitad-page="admitad-overview" data-admitad-fragment="overview-status"><?php require ADMITAD_PLUGIN_DIR . 'admin/views/partials/overview-status.php'; ?></div></div>

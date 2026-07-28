@@ -1,12 +1,2 @@
-<?php
-/**
- * Sanitized diagnostics view.
- *
- * @package Promokodiki_Admitad
- */
-?>
-<div class="wrap">
-	<h1><?php echo esc_html__( 'Диагностика Admitad', 'promokodiki-admitad' ); ?></h1>
-	<p><?php echo esc_html__( 'Снимок не содержит токены, секреты или заголовки авторизации.', 'promokodiki-admitad' ); ?></p>
-	<textarea readonly rows="30" class="large-text code"><?php echo esc_textarea( wp_json_encode( $snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) ); ?></textarea>
-</div>
+<?php /** @package Promokodiki_Admitad */ ?>
+<div class="wrap promokodiki-admitad-admin"><h1>Диагностика Admitad</h1><p>Снимок не содержит токены, секреты или заголовки авторизации.</p><div data-admitad-table data-admitad-action="promokodiki_admitad_admin" data-admitad-operation="diagnostics_refresh" data-admitad-page="admitad-diagnostics" data-admitad-fragment="diagnostics-status"><?php require ADMITAD_PLUGIN_DIR . 'admin/views/partials/diagnostics-status.php'; ?></div></div>

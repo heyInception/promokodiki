@@ -9,12 +9,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div class="wrap">
+<div class="wrap promokodiki-admitad-admin">
 	<h1><?php echo esc_html__( 'Автоматизация Admitad', 'promokodiki-admitad' ); ?></h1>
 	<?php if ( isset( $_GET['admitad_saved'] ) ) : ?>
 		<div class="notice notice-success"><p><?php echo esc_html__( 'Настройки сохранены.', 'promokodiki-admitad' ); ?></p></div>
 	<?php endif; ?>
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-admitad-ajax data-admitad-action="promokodiki_admitad_admin" data-admitad-operation="settings_save" data-admitad-page="admitad-settings" data-admitad-fragment="foundation">
 		<input type="hidden" name="action" value="promokodiki_admitad_save_settings">
 		<?php wp_nonce_field( 'promokodiki_admitad_save_settings' ); ?>
 		<h2><?php echo esc_html__( 'Подключение', 'promokodiki-admitad' ); ?></h2>

@@ -96,6 +96,9 @@ final class Promokodiki_Admitad_Admin_Ajax {
 		if ( in_array( $request['operation'], array( 'history_list', 'history_snapshot', 'history_sample_review' ), true ) ) {
 			try { return self::handle_history_operation( $request['operation'], $request, $raw_request ); } catch ( Throwable $error ) { self::log_failure( $request ); return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' ); }
 		}
+		if ( in_array( $request['operation'], array( 'overview_refresh', 'sync_refresh', 'sync_operation', 'settings_save', 'diagnostics_refresh' ), true ) ) {
+			try { return self::handle_operations_operation( $request['operation'], $request, $raw_request ); } catch ( Throwable $error ) { self::log_failure( $request ); return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' ); }
+		}
 
 		if ( 'render_fragment' !== $request['operation'] ) {
 			return new WP_Error( 'invalid_operation', 'Неизвестная операция.' );
@@ -164,6 +167,22 @@ final class Promokodiki_Admitad_Admin_Ajax {
 		if ( 'history_snapshot' === $operation ) { $snapshot = ( new Promokodiki_Admitad_Reclassification_Service() )->get_snapshot( sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot' ) ) ); return array( 'message' => 'Готово.', 'html' => Promokodiki_Admitad_Admin_Fragments::render( 'history-snapshot', array( 'snapshot' => $snapshot ) ) ); }
 		$context = Promokodiki_Admitad_History_Page::table_context( $raw_request );
 		return array( 'message' => 'Готово.', 'html' => Promokodiki_Admitad_Admin_Fragments::render( 'history-table', $context ), 'url' => $context['request']->url(), 'state' => $context['request']->query_args() );
+	}
+
+	/** Refresh operational cards and delegate mutations to existing action methods. */
+	private static function handle_operations_operation( string $operation, array $request, array $raw_request ) {
+		$pages = array( 'overview_refresh' => array( 'admitad-overview', 'overview-status' ), 'sync_refresh' => array( 'admitad-sync', 'sync-runs' ), 'sync_operation' => array( 'admitad-sync', 'sync-runs' ), 'settings_save' => array( 'admitad-settings', 'foundation' ), 'diagnostics_refresh' => array( 'admitad-diagnostics', 'diagnostics-status' ) );
+		list( $page, $fragment ) = $pages[ $operation ]; if ( $request['page'] !== $page || ! current_user_can( 'manage_admitad_automation' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для управления автоматизацией.' ); }
+		$actions = new Promokodiki_Admitad_Admin_Actions();
+		if ( 'sync_operation' === $operation ) { $result = $actions->run_operation( sanitize_key( self::raw_scalar( $raw_request, 'run_operation' ) ), self::raw_scalar( $raw_request, '_wpnonce' ) ); if ( is_wp_error( $result ) ) return $result; }
+		if ( 'settings_save' === $operation ) { $result = $actions->save_settings( self::bracket_values( $raw_request, 'settings' ), self::bracket_values( $raw_request, 'credentials' ), self::raw_scalar( $raw_request, '_wpnonce' ) ); if ( is_wp_error( $result ) ) return $result; }
+		$snapshot = Promokodiki_Admitad_Diagnostics::snapshot();
+		return array( 'message' => 'Готово.', 'html' => Promokodiki_Admitad_Admin_Fragments::render( $fragment, array( 'snapshot' => $snapshot, 'message' => 'Настройки сохранены.' ) ) );
+	}
+
+	/** Extract scalar HTML form fields with one bracketed array key. */
+	private static function bracket_values( array $request, string $root ): array {
+		$values = array(); foreach ( $request as $key => $value ) { if ( is_scalar( $key ) && is_scalar( $value ) && preg_match( '/^' . preg_quote( $root, '/' ) . '\\[([a-z_]+)\\]$/', (string) $key, $matches ) ) { $values[ $matches[1] ] = sanitize_text_field( wp_unslash( (string) $value ) ); } } return $values;
 	}
 
 	/**
