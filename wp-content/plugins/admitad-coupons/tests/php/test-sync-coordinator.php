@@ -6,6 +6,8 @@
  */
 
 require_once dirname( __DIR__ ) . '/harness.php';
+require_once __DIR__ . '/class-test-environment-guard.php';
+Promokodiki_Admitad_Test_Environment_Guard::assert_disposable_database();
 require_once dirname( __DIR__, 2 ) . '/admitad-coupons.php';
 
 /**
@@ -61,7 +63,7 @@ function promokodiki_admitad_sync_coupon( int $id, int $campaign_id ): array {
 /**
  * Snapshot the tables and options touched by coordinator tests before setup.
  *
- * @return array{tables:array<string,array{exists:bool,rows:array<int,array<string,mixed>>,auto_increment:int}>,options:array<string,array{exists:bool,value:string,autoload:string}>}
+ * @return array{tables:array<string,array{exists:bool,rows:array<int,array<string,mixed>>,auto_increment:int}>,options:array<string,array{exists:bool,value:string,autoload:string}>,cron:array<int,array{timestamp:int,hook:string,schedule:string|false,args:array<int,mixed>}>}
  */
 function promokodiki_admitad_sync_snapshot(): array {
 	global $wpdb;
@@ -87,13 +89,30 @@ function promokodiki_admitad_sync_snapshot(): array {
 		);
 	}
 
-	return array( 'tables' => $tables, 'options' => $options );
+	return array( 'tables' => $tables, 'options' => $options, 'cron' => promokodiki_admitad_sync_snapshot_cron() );
+}
+
+/**
+ * Snapshot every scheduled event for the coordinator hooks.
+ *
+ * @return array<int,array{timestamp:int,hook:string,schedule:string|false,args:array<int,mixed>}>
+ */
+function promokodiki_admitad_sync_snapshot_cron(): array {
+	$events = array();
+	foreach ( _get_cron_array() as $timestamp => $hooks ) {
+		foreach ( array( 'promokodiki_admitad_coupon_batch', 'promokodiki_admitad_reference_batch' ) as $hook ) {
+			foreach ( $hooks[ $hook ] ?? array() as $event ) {
+				$events[] = array( 'timestamp' => (int) $timestamp, 'hook' => $hook, 'schedule' => $event['schedule'] ?: false, 'args' => $event['args'] );
+			}
+		}
+	}
+	return $events;
 }
 
 /**
  * Restore pre-existing coordinator state and remove only tables created by a test.
  *
- * @param array{tables:array<string,array{exists:bool,rows:array<int,array<string,mixed>>,auto_increment:int}>,options:array<string,array{exists:bool,value:string,autoload:string}>} $snapshot Original state.
+ * @param array{tables:array<string,array{exists:bool,rows:array<int,array<string,mixed>>,auto_increment:int}>,options:array<string,array{exists:bool,value:string,autoload:string}>,cron:array<int,array{timestamp:int,hook:string,schedule:string|false,args:array<int,mixed>}>} $snapshot Original state.
  */
 function promokodiki_admitad_sync_restore( array $snapshot ): void {
 	global $wpdb;
@@ -121,6 +140,7 @@ function promokodiki_admitad_sync_restore( array $snapshot ): void {
 	foreach ( $snapshot['options'] as $option => $option_snapshot ) {
 		promokodiki_admitad_sync_restore_option( $option, $option_snapshot );
 	}
+	promokodiki_admitad_sync_restore_cron( $snapshot['cron'] );
 }
 
 /**
@@ -133,12 +153,30 @@ function promokodiki_admitad_sync_restore_option( string $option, array $snapsho
 	global $wpdb;
 
 	if ( $snapshot['exists'] ) {
-		$wpdb->update( $wpdb->options, array( 'option_value' => $snapshot['value'], 'autoload' => $snapshot['autoload'] ), array( 'option_name' => $option ) );
+		$wpdb->replace( $wpdb->options, array( 'option_name' => $option, 'option_value' => $snapshot['value'], 'autoload' => $snapshot['autoload'] ) );
 	} else {
 		delete_option( $option );
 	}
 	wp_cache_delete( $option, 'options' );
 	wp_cache_delete( 'alloptions', 'options' );
+}
+
+/**
+ * Restore the exact pre-test coordinator cron events after clearing test events.
+ *
+ * @param array<int,array{timestamp:int,hook:string,schedule:string|false,args:array<int,mixed>}> $events Original events.
+ */
+function promokodiki_admitad_sync_restore_cron( array $events ): void {
+	foreach ( array( 'promokodiki_admitad_coupon_batch', 'promokodiki_admitad_reference_batch' ) as $hook ) {
+		wp_clear_scheduled_hook( $hook );
+	}
+	foreach ( $events as $event ) {
+		if ( $event['schedule'] ) {
+			wp_schedule_event( $event['timestamp'], $event['schedule'], $event['hook'], $event['args'] );
+		} else {
+			wp_schedule_single_event( $event['timestamp'], $event['hook'], $event['args'] );
+		}
+	}
 }
 
 /**
@@ -357,7 +395,6 @@ Promokodiki_Admitad_Test_Harness::run(
 			Promokodiki_Admitad_Test_Harness::assert_same( 'scheduled', $result['status'] );
 			Promokodiki_Admitad_Test_Harness::assert_true( $result['run_id'] > 0 );
 		} finally {
-			wp_clear_scheduled_hook( 'promokodiki_admitad_coupon_batch' );
 			delete_option( 'admitad_import_lock' );
 			delete_option( 'promokodiki_admitad_run_owner_' . $result['run_id'] );
 			promokodiki_admitad_sync_cleanup( array() );

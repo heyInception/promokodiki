@@ -206,6 +206,9 @@
 		let status = 'error';
 
 		if ( previous ) {
+			if ( previous.submitter && previous.submitter !== submitter ) {
+				previous.submitter.disabled = previous.originalDisabled;
+			}
 			previous.controller.abort();
 		}
 		activeRequests.set( owner, { controller, generation, submitter, originalDisabled } );
@@ -359,7 +362,16 @@
 		trigger.addEventListener( 'blur', () => setTooltipOpen( trigger, false ) );
 		trigger.addEventListener( 'mouseenter', () => setTooltipOpen( trigger, true ) );
 		trigger.addEventListener( 'mouseleave', () => setTooltipOpen( trigger, false ) );
-		trigger.addEventListener( 'click', () => setTooltipOpen( trigger, trigger.getAttribute( 'aria-expanded' ) !== 'true' ) );
+		trigger.addEventListener( 'pointerdown', () => {
+			trigger._admitadPointerActivation = true;
+		} );
+		trigger.addEventListener( 'click', () => {
+			if ( trigger._admitadPointerActivation ) {
+				trigger._admitadPointerActivation = false;
+				return;
+			}
+			setTooltipOpen( trigger, trigger.getAttribute( 'aria-expanded' ) !== 'true' );
+		} );
 	} );
 	}
 

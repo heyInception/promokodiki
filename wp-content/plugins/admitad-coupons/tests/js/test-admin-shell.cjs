@@ -9,6 +9,10 @@ const source = fs.readFileSync(
 	'utf8'
 );
 
+function cssForTest() {
+	return fs.readFileSync( path.resolve( __dirname, '../../assets/css/admin.css' ), 'utf8' );
+}
+
 class MockElement {
 	constructor( tagName, options = {} ) {
 		this.tagName = tagName;
@@ -254,15 +258,36 @@ test( 'only the current table request may replace content or push a canonical UR
 	assert.equal( submitter.disabled, false );
 } );
 
+test( 'a different superseding submitter is restored immediately and the latest restores on completion', async () => {
+	const pending = [];
+	const runtime = createRuntime( () => new Promise( ( resolve ) => pending.push( resolve ) ) );
+	const table = new MockElement( 'table', { dataset: { admitadTable: '' } } );
+	const form = new MockElement( 'form', { dataset: { admitadAjax: '', admitadAction: 'promokodiki_admitad_admin' }, parent: table } );
+	const first = new MockElement( 'button', { name: 'first', value: '1' } );
+	const second = new MockElement( 'button', { name: 'second', value: '2' } );
+
+	submit( runtime, form, first );
+	assert.equal( first.disabled, true );
+	submit( runtime, form, second );
+	assert.equal( first.disabled, false );
+	assert.equal( second.disabled, true );
+	pending[ 1 ]( response( { success: true, data: {} } ) );
+	await flush();
+	assert.equal( second.disabled, false );
+} );
+
 test( 'enhances initial tooltips for touch, Escape, and dynamic fragment replacement', () => {
 	const trigger = new MockElement( 'span' );
 	trigger.setAttribute( 'data-admitad-tooltip', 'Touch help' );
 	const runtime = createRuntime( async () => response( { success: true, data: {} } ), [ trigger ] );
 	assert.match( trigger.getAttribute( 'aria-describedby' ), /^promokodiki-admitad-tooltip-/ );
 	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'false' );
-	trigger.listeners.get( 'click' )();
+	trigger.listeners.get( 'focus' )();
 	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'true' );
 	assert.equal( trigger.afterChild.classList.contains( 'promokodiki-admitad-tooltip--open' ), true );
+	trigger.listeners.get( 'pointerdown' )();
+	trigger.listeners.get( 'click' )();
+	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'true' );
 	runtime.documentListeners.get( 'keydown' )( { key: 'Escape' } );
 	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'false' );
 
@@ -270,6 +295,8 @@ test( 'enhances initial tooltips for touch, Escape, and dynamic fragment replace
 	assert.match( source, /function enhanceTooltips\(/ );
 	assert.match( source, /enhanceTooltips\( table \)/ );
 	assert.match( source, /data-admitad-tooltip-enhanced/ );
+	assert.match( cssForTest(), /aria-expanded="true"/ );
+	assert.doesNotMatch( cssForTest(), /\[data-admitad-tooltip\]:hover/ );
 } );
 
 test( 'presenter status classes have matching semantic CSS rules', () => {

@@ -53,12 +53,7 @@
 	font-size: 12px;
 }
 
-[data-admitad-tooltip]:hover + .promokodiki-admitad-tooltip,
-[data-admitad-tooltip]:focus + .promokodiki-admitad-tooltip {
-	display: inline-block;
-}
-
-.promokodiki-admitad-tooltip--open {
+[data-admitad-tooltip][aria-expanded="true"] + .promokodiki-admitad-tooltip {
 	display: inline-block;
 }
 

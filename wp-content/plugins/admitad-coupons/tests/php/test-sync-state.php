@@ -6,6 +6,8 @@
  */
 
 require_once dirname( __DIR__ ) . '/harness.php';
+require_once __DIR__ . '/class-test-environment-guard.php';
+Promokodiki_Admitad_Test_Environment_Guard::assert_disposable_database();
 require_once dirname( __DIR__, 2 ) . '/admitad-coupons.php';
 
 Promokodiki_Admitad_Test_Harness::run(

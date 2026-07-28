@@ -11,13 +11,8 @@ function Assert-AdmitadDisposableTestDatabase {
 	# the configured sentinel must name the same database as WordPress and the
 	# database name must visibly be dedicated to tests.  A content database is
 	# refused before any eval-file command can mutate it.
-	$probe = @'
-if ( ! defined( 'PROMOKODIKI_ADMITAD_TEST_DATABASE' ) ) {
-	echo "MISSING";
-	return;
-}
-echo (string) PROMOKODIKI_ADMITAD_TEST_DATABASE . '|' . (string) DB_NAME;
-'@
+	$guardPath = (Join-Path $PSScriptRoot 'php\class-test-environment-guard.php').Replace('\', '/')
+	$probe = "require_once '$guardPath'; echo Promokodiki_Admitad_Test_Environment_Guard::configured_identity();"
 	$previousErrorActionPreference = $ErrorActionPreference
 	try {
 		$ErrorActionPreference = 'Continue'
