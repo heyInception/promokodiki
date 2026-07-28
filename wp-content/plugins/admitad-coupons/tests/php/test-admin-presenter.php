@@ -21,21 +21,35 @@ try {
 				'promocode_category',
 				array( 'parent' => (int) $parent['term_id'] )
 			);
-			$term_ids = array( (int) $child['term_id'], (int) $parent['term_id'] );
+			$grandchild = wp_insert_term(
+				'Grandchild Fixture',
+				'promocode_category',
+				array( 'parent' => (int) $child['term_id'] )
+			);
+			$term_ids = array( (int) $grandchild['term_id'], (int) $child['term_id'], (int) $parent['term_id'] );
 
 			$status = Promokodiki_Admitad_Admin_Presenter::status( 'rule', 'archived' );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'В архиве', $status['label'] );
 			Promokodiki_Admitad_Test_Harness::assert_same(
-				'Parent Fixture → Child Fixture',
-				Promokodiki_Admitad_Admin_Presenter::term_path( (int) $child['term_id'] )
+				array(
+					'label' => 'Неизвестный статус (future_state)',
+					'class' => 'promokodiki-admitad-status--neutral',
+				),
+				Promokodiki_Admitad_Admin_Presenter::status( 'rule', 'future_state' )
 			);
 			Promokodiki_Admitad_Test_Harness::assert_same(
+				'Parent Fixture → Child Fixture → Grandchild Fixture',
+				Promokodiki_Admitad_Admin_Presenter::term_path( (int) $grandchild['term_id'] )
+			);
+			Promokodiki_Admitad_Test_Harness::assert_same( '—', Promokodiki_Admitad_Admin_Presenter::term_path( 0 ) );
+			Promokodiki_Admitad_Test_Harness::assert_same(
 				array(
+					array( 'id' => (int) $grandchild['term_id'], 'label' => 'Parent Fixture → Child Fixture → Grandchild Fixture' ),
 					array( 'id' => (int) $child['term_id'], 'label' => 'Parent Fixture → Child Fixture' ),
 					array( 'id' => (int) $parent['term_id'], 'label' => 'Parent Fixture' ),
 				),
 				Promokodiki_Admitad_Admin_Presenter::term_options(
-					array( get_term( (int) $child['term_id'] ), get_term( (int) $parent['term_id'] ) )
+					array( get_term( (int) $grandchild['term_id'] ), get_term( (int) $child['term_id'] ), get_term( (int) $parent['term_id'] ) )
 				)
 			);
 		}
