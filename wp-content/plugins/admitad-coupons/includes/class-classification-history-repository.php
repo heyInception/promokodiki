@@ -25,11 +25,6 @@ final class Promokodiki_Admitad_Classification_History_Repository {
 	public function list_rows( string $search = '', int $page = 1, int $per_page = 20, array $filters = array() ): array {
 		global $wpdb;
 
-		if ( 2 === func_num_args() && ctype_digit( $search ) ) {
-			$per_page = $page;
-			$page     = (int) $search;
-			$search   = '';
-		}
 		$table    = Promokodiki_Admitad_Schema::table( 'classification_history' );
 		$page     = max( 1, $page );
 		$per_page = $this->page_size( $per_page );

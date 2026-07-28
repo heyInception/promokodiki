@@ -21,7 +21,7 @@ final class Promokodiki_Admitad_History_Page {
 			wp_die( esc_html__( 'Недостаточно прав.', 'promokodiki-admitad' ), '', array( 'response' => 403 ) );
 		}
 		$page     = max( 1, absint( $_GET['paged'] ?? 1 ) );
-		$history  = ( new Promokodiki_Admitad_Classification_History_Repository() )->list_rows( $page, 20 );
+		$history  = ( new Promokodiki_Admitad_Classification_History_Repository() )->list_rows( '', $page, 20, array() );
 		$snapshot = null;
 		if ( isset( $_GET['snapshot'] ) ) {
 			$snapshot = ( new Promokodiki_Admitad_Reclassification_Service() )->get_snapshot( sanitize_text_field( wp_unslash( $_GET['snapshot'] ) ) );
