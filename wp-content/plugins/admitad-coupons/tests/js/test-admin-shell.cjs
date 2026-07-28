@@ -290,6 +290,9 @@ test( 'enhances initial tooltips for touch, Escape, and dynamic fragment replace
 	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'true' );
 	runtime.documentListeners.get( 'keydown' )( { key: 'Escape' } );
 	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'false' );
+	trigger.listeners.get( 'pointerdown' )();
+	trigger.listeners.get( 'click' )();
+	assert.equal( trigger.getAttribute( 'aria-expanded' ), 'true' );
 
 	// Fragment replacement re-invokes the same idempotent enhancer.
 	assert.match( source, /function enhanceTooltips\(/ );

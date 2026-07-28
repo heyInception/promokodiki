@@ -183,14 +183,40 @@ function promokodiki_admitad_sync_restore_cron( array $events ): void {
  * Remove records created by coordinator tests and restore the original state.
  *
  * @param int[] $post_ids Imported post IDs.
- * @param int[] $term_ids Test-owned shop term IDs.
+ * @param int[]   $term_ids    Test-owned shop term IDs.
+ * @param int|null $campaign_id Generated campaign ID for independent cleanup.
  */
-function promokodiki_admitad_sync_cleanup( array $post_ids, array $term_ids = array(), ?array $snapshot = null ): void {
+function promokodiki_admitad_sync_cleanup( array $post_ids, array $term_ids = array(), ?int $campaign_id = null, ?array $snapshot = null ): void {
 	global $wpdb;
 	global $promokodiki_admitad_sync_snapshot;
 
 	if ( null === $snapshot ) {
 		$snapshot = $promokodiki_admitad_sync_snapshot;
+	}
+	if ( null !== $campaign_id ) {
+		$post_ids = array_merge(
+			$post_ids,
+			get_posts(
+				array(
+					'post_type'      => 'promocode',
+					'post_status'    => 'any',
+					'fields'         => 'ids',
+					'posts_per_page' => -1,
+					'meta_key'       => 'campaign_id',
+					'meta_value'     => (string) $campaign_id,
+				)
+			)
+		);
+		$found_terms = get_terms(
+			array(
+				'taxonomy'   => 'shops_category',
+				'hide_empty' => false,
+				'fields'     => 'ids',
+				'meta_key'   => 'admitad_campaign_id',
+				'meta_value' => (string) $campaign_id,
+			)
+		);
+		$term_ids = array_merge( $term_ids, is_wp_error( $found_terms ) ? array() : $found_terms );
 	}
 
 	foreach ( $post_ids as $post_id ) {
@@ -280,7 +306,7 @@ Promokodiki_Admitad_Test_Harness::run(
 			);
 		} finally {
 			remove_filter( 'pre_http_request', $http, 10 );
-			promokodiki_admitad_sync_cleanup( $post_ids, is_wp_error( $term_ids ) ? array() : $term_ids );
+			promokodiki_admitad_sync_cleanup( $post_ids, is_wp_error( $term_ids ) ? array() : $term_ids, $campaign_id );
 		}
 	}
 );

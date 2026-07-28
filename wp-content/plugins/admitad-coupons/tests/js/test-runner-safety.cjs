@@ -35,4 +35,7 @@ test( 'sync coordinator cleanup restores fixtures without dropping pre-existing 
 	assert.match( coordinator, /sync_snapshot_cron/ );
 	assert.match( coordinator, /sync_restore_cron/ );
 	assert.match( coordinator, /wp_rand\( 700000000/ );
+	assert.match( coordinator, /promokodiki_admitad_sync_cleanup\( \$post_ids,[\s\S]*\$campaign_id \)/ );
+	assert.match( coordinator, /'meta_key'\s*=>\s*'campaign_id'/ );
+	assert.match( coordinator, /'meta_key'\s*=>\s*'admitad_campaign_id'/ );
 } );

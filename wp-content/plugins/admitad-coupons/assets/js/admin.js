@@ -363,11 +363,17 @@
 		trigger.addEventListener( 'mouseenter', () => setTooltipOpen( trigger, true ) );
 		trigger.addEventListener( 'mouseleave', () => setTooltipOpen( trigger, false ) );
 		trigger.addEventListener( 'pointerdown', () => {
-			trigger._admitadPointerActivation = true;
+			trigger._admitadPointerActivation = {
+				wasOpen: trigger.getAttribute( 'aria-expanded' ) === 'true',
+			};
 		} );
 		trigger.addEventListener( 'click', () => {
-			if ( trigger._admitadPointerActivation ) {
+			const pointerActivation = trigger._admitadPointerActivation;
+			if ( pointerActivation ) {
 				trigger._admitadPointerActivation = false;
+				if ( ! pointerActivation.wasOpen && trigger.getAttribute( 'aria-expanded' ) !== 'true' ) {
+					setTooltipOpen( trigger, true );
+				}
 				return;
 			}
 			setTooltipOpen( trigger, trigger.getAttribute( 'aria-expanded' ) !== 'true' );
