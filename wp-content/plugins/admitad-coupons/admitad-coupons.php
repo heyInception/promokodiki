@@ -64,6 +64,7 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/cli.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-menu.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-actions.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/class-promocode-lock-metabox.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-presenter.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-settings-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-overview-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-sync-page.php';
