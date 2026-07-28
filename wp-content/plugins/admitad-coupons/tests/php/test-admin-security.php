@@ -103,7 +103,11 @@ try {
 			$html = (string) ob_get_clean();
 			Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $html, 'test-secret-not-for-output' ) );
 			Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $html, 'test-token-not-for-output' ) );
-			Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $html, 'autocomplete="new-password"' ) );
+			if ( defined( 'PROMOKODIKI_ADMITAD_CLIENT_SECRET' ) ) {
+				Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $html, 'Задан константой wp-config.php' ) );
+			} else {
+				Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $html, 'autocomplete="new-password"' ) );
+			}
 			foreach ( array_keys( Promokodiki_Admitad_Config::defaults() ) as $key ) {
 				Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $html, 'settings[' . $key . ']' ), 'Missing setting field: ' . $key );
 			}
