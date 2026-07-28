@@ -59,6 +59,7 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-notifier.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-diagnostics.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-retention.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-sync-coordinator.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-recovery-coordinator.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/importer.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/migration.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/cli.php';
