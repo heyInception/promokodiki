@@ -264,7 +264,7 @@ Promokodiki_Admitad_Test_Harness::run(
 			Promokodiki_Admitad_Test_Harness::assert_true( ! term_exists( $term_id, 'shops_category' ) );
 		} finally {
 			// Keep the direct guard's destructive test self-cleaning if an assertion fails.
-			promokodiki_admitad_sync_cleanup( array(), array(), $campaign_id );
+			promokodiki_admitad_sync_cleanup( $post_id > 0 ? array( $post_id ) : array(), $term_id > 0 ? array( $term_id ) : array(), $campaign_id );
 		}
 	}
 );
