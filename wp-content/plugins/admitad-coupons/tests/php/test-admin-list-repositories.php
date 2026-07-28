@@ -13,6 +13,7 @@ $rule_ids      = array();
 $queue_ids     = array();
 $history_ids   = array();
 $fixture_token = wp_generate_uuid4();
+$fixture_slug  = substr( str_replace( '-', '', $fixture_token ), 0, 12 );
 $campaign_id   = random_int( 2000000000, 2100000000 );
 $external_id   = random_int( 2100000001, 2140000000 );
 $snapshots     = array();
@@ -68,6 +69,12 @@ try {
 	}
 	$term_id    = (int) $term['term_id'];
 	$term_ids[] = $term_id;
+	$second_term = wp_insert_term( 'Admin list tie fixture ' . $fixture_token, 'promocode_category' );
+	if ( is_wp_error( $second_term ) ) {
+		throw new RuntimeException( 'Unable to create a second isolated category fixture.' );
+	}
+	$second_term_id = (int) $second_term['term_id'];
+	$term_ids[]     = $second_term_id;
 
 	$map_table     = Promokodiki_Admitad_Schema::table( 'category_map' );
 	$profile_table = Promokodiki_Admitad_Schema::table( 'company_profile' );
@@ -75,12 +82,13 @@ try {
 	$queue_table   = Promokodiki_Admitad_Schema::table( 'review_queue' );
 	$history_table = Promokodiki_Admitad_Schema::table( 'classification_history' );
 	$snapshots['map']       = promokodiki_admitad_list_test_snapshot( $map_table, array( 'source_namespace' => 'coupon', 'external_category_id' => $external_id ) );
+	$snapshots['campaign_map'] = promokodiki_admitad_list_test_snapshot( $map_table, array( 'source_namespace' => 'campaign', 'external_category_id' => $external_id ) );
 	$snapshots['profile']   = promokodiki_admitad_list_test_snapshot( $profile_table, array( 'campaign_id' => $campaign_id ) );
 	$snapshots['category']  = promokodiki_admitad_list_test_snapshot( $category_table, array( 'campaign_id' => $campaign_id ) );
 
 	Promokodiki_Admitad_Test_Harness::run(
 		'filtered lists clamp page sizes, order stably, and include archived rules',
-		static function () use ( $external_id, $campaign_id, $term_id, $fixture_token, &$rule_ids ): void {
+		static function () use ( $external_id, $campaign_id, $term_id, $second_term_id, $fixture_token, &$rule_ids ): void {
 			global $wpdb;
 			$now           = gmdate( 'Y-m-d H:i:s' );
 			$profile_table = Promokodiki_Admitad_Schema::table( 'company_profile' );
@@ -100,9 +108,17 @@ try {
 			);
 			$maps = new Promokodiki_Admitad_Category_Map_Repository();
 			$maps->save( 'coupon', $external_id, $term_id, 100 );
-			$map_page = $maps->list_rows( (string) $external_id, 1, 21, array( 'source_namespace' => 'coupon' ) );
+			$maps->save( 'campaign', $external_id, $term_id, 100 );
+			$wpdb->update( Promokodiki_Admitad_Schema::table( 'category_map' ), array( 'status' => 'inactive' ), array( 'source_namespace' => 'campaign', 'external_category_id' => $external_id, 'site_term_id' => $term_id ), array( '%s' ), array( '%s', '%d', '%d' ) );
+			$map_page = $maps->list_rows( (string) $external_id, 1, 21, array( 'status' => 'active' ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 20, $map_page['per_page'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, $map_page['total'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( $external_id, (int) $map_page['items'][0]['external_category_id'] );
+			$inactive_maps = $maps->list_rows( (string) $external_id, 1, 50, array( 'status' => 'inactive' ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, $inactive_maps['total'] );
+			$map_order = $maps->list_rows( (string) $external_id, 1, 50 );
+			Promokodiki_Admitad_Test_Harness::assert_same( 2, $map_order['total'] );
+			Promokodiki_Admitad_Test_Harness::assert_true( (int) $map_order['items'][0]['id'] < (int) $map_order['items'][1]['id'] );
 
 			$profiles = new Promokodiki_Admitad_Company_Profile_Repository();
 			$company_page = $profiles->list_rows( $fixture_token, 1, 50, array( 'status' => 'active' ) );
@@ -113,9 +129,17 @@ try {
 			$rule_id = $rules->save( 'fixture ' . $fixture_token, $term_id, 20, 'candidate', 'phrase', 'admin_list_fixture' );
 			$rule_ids[] = $rule_id;
 			Promokodiki_Admitad_Test_Harness::assert_true( $rules->set_status( $rule_id, 'archived' ) );
-			$rule_page = $rules->list_rows( $fixture_token, 1, 50, array( 'status' => 'archived' ) );
+			$token_rule_id = $rules->save( 'fixture ' . $fixture_token, $second_term_id, 20, 'candidate', 'token', 'admin_list_fixture_token' );
+			$rule_ids[] = $token_rule_id;
+			$rule_page = $rules->list_rows( $fixture_token, 1, 50, array( 'status' => 'archived', 'match_mode' => 'phrase', 'source' => 'admin_list_fixture' ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 50, $rule_page['per_page'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, $rule_page['total'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( $rule_id, (int) $rule_page['items'][0]['id'] );
+			$token_rules = $rules->list_rows( $fixture_token, 1, 50, array( 'match_mode' => 'token', 'source' => 'admin_list_fixture_token' ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, $token_rules['total'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( $token_rule_id, (int) $token_rules['items'][0]['id'] );
+			$rule_order = $rules->list_rows( $fixture_token, 1, 50 );
+			Promokodiki_Admitad_Test_Harness::assert_same( array( $rule_id, $token_rule_id ), array_map( 'intval', array_column( $rule_order['items'], 'id' ) ) );
 		}
 	);
 
@@ -141,15 +165,27 @@ try {
 
 	Promokodiki_Admitad_Test_Harness::run(
 		'review filters change both items and totals while history filters remain bounded',
-		static function () use ( $fixture_token, &$queue_ids, &$history_ids ): void {
+		static function () use ( $fixture_token, $fixture_slug, &$queue_ids, &$history_ids ): void {
 			global $wpdb;
 			$queue = new Promokodiki_Admitad_Review_Queue_Repository();
-			$queue_ids[] = $queue->enqueue( 'coupon', 'review-low-' . $fixture_token, 'low_confidence', array() );
-			$queue_ids[] = $queue->enqueue( 'coupon', 'review-missing-' . $fixture_token, 'missing_mapping', array() );
+			$high_id     = $queue->enqueue( 'coupon', 'review-high-' . $fixture_token, 'conflicting_signals', array() );
+			$normal_id   = $queue->enqueue( 'coupon', 'review-low-' . $fixture_token, 'low_confidence', array() );
+			$other_id    = $queue->enqueue( 'coupon', 'review-other-' . $fixture_token, 'missing_mapping', array() );
+			$resolved_id = $queue->enqueue( 'coupon', 'review-resolved-' . $fixture_token, 'missing_company', array() );
+			$queue_ids   = array( $high_id, $normal_id, $other_id, $resolved_id );
+			$table        = Promokodiki_Admitad_Schema::table( 'review_queue' );
+			$wpdb->update( $table, array( 'severity' => 'other' ), array( 'id' => $other_id ), array( '%s' ), array( '%d' ) );
+			$wpdb->update( $table, array( 'status' => 'resolved' ), array( 'id' => $resolved_id ), array( '%s' ), array( '%d' ) );
+			$open = $queue->list_rows( $fixture_token, 1, 100, array( 'status' => 'open' ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 3, $open['total'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( array( $high_id, $normal_id, $other_id ), array_map( 'intval', array_column( $open['items'], 'id' ) ) );
 			$filtered = $queue->list_rows( $fixture_token, 1, 100, array( 'status' => 'open', 'reason' => 'low_confidence' ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 1, $filtered['total'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 1, count( $filtered['items'] ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'low_confidence', $filtered['items'][0]['reason_code'] );
+			$resolved = $queue->list_rows( $fixture_token, 1, 100, array( 'status' => 'resolved', 'reason' => 'missing_company' ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, $resolved['total'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( $resolved_id, (int) $resolved['items'][0]['id'] );
 
 			$table       = Promokodiki_Admitad_Schema::table( 'classification_history' );
 			$snapshot_id = wp_generate_uuid4();
@@ -159,7 +195,7 @@ try {
 				array(
 					'snapshot_id'              => $snapshot_id,
 					'post_id'                  => 0,
-					'algorithm_version'        => 'admin-list-fixture',
+					'algorithm_version'        => 'list-' . $fixture_slug,
 					'rule_version'             => 1,
 					'previous_terms'           => '[]',
 					'result_terms'             => '[]',
@@ -173,9 +209,12 @@ try {
 				)
 			);
 			$history_ids[] = (int) $wpdb->insert_id;
-			$history = ( new Promokodiki_Admitad_Classification_History_Repository() )->list_rows( '', 1, 21, array( 'snapshot_id' => $snapshot_id ) );
+			$history = ( new Promokodiki_Admitad_Classification_History_Repository() )->list_rows( $fixture_slug, 1, 21, array( 'snapshot_id' => $snapshot_id, 'confidence' => 'low', 'trigger_name' => 'admin_list_fixture' ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 20, $history['per_page'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 1, $history['total'] );
+			$legacy_history = ( new Promokodiki_Admitad_Classification_History_Repository() )->list_rows( 1, 20 );
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, $legacy_history['page'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 20, $legacy_history['per_page'] );
 		}
 	);
 } finally {
@@ -194,6 +233,7 @@ try {
 	}
 	if ( isset( $snapshots['map'] ) ) {
 		promokodiki_admitad_list_test_restore( Promokodiki_Admitad_Schema::table( 'category_map' ), array( 'source_namespace' => 'coupon', 'external_category_id' => $external_id ), $snapshots['map'] );
+		promokodiki_admitad_list_test_restore( Promokodiki_Admitad_Schema::table( 'category_map' ), array( 'source_namespace' => 'campaign', 'external_category_id' => $external_id ), $snapshots['campaign_map'] );
 		promokodiki_admitad_list_test_restore( Promokodiki_Admitad_Schema::table( 'company_category' ), array( 'campaign_id' => $campaign_id ), $snapshots['category'] );
 		promokodiki_admitad_list_test_restore( Promokodiki_Admitad_Schema::table( 'company_profile' ), array( 'campaign_id' => $campaign_id ), $snapshots['profile'] );
 	}

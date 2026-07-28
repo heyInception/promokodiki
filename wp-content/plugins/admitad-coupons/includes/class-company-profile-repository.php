@@ -172,7 +172,10 @@ final class Promokodiki_Admitad_Company_Profile_Repository {
 			if ( false === $result ) {
 				throw new RuntimeException( 'Unable to save Admitad company profile.' );
 			}
-			$wpdb->delete( $category_table, array( 'campaign_id' => $campaign_id ), array( '%d' ) );
+			$cleared = $wpdb->delete( $category_table, array( 'campaign_id' => $campaign_id ), array( '%d' ) );
+			if ( false === $cleared ) {
+				throw new RuntimeException( 'Unable to clear existing company categories.' );
+			}
 			foreach ( $allowed as $term_id ) {
 				$inserted = $wpdb->insert(
 					$category_table,
