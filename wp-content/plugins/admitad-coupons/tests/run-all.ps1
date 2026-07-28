@@ -9,9 +9,19 @@ $testFiles = Get-ChildItem (Join-Path $PSScriptRoot 'php\test-*.php') | Sort-Obj
 
 foreach ($testFile in $testFiles) {
 	Write-Host "RUN $($testFile.Name)"
-	$output = & studio wp --path $SitePath eval-file $testFile.FullName --skip-plugins=admitad-coupons,promokodiki-ajax-filter 2>&1
+	$previousErrorActionPreference = $ErrorActionPreference
+	try {
+		# WP-CLI can emit non-fatal PHP logs and warnings on stderr. Keep them
+		# visible, but let the explicit exit-code and harness-error checks below
+		# decide whether this test failed.
+		$ErrorActionPreference = 'Continue'
+		$output = & studio wp --path $SitePath eval-file $testFile.FullName --skip-plugins=admitad-coupons,promokodiki-ajax-filter 2>&1
+		$exitCode = $LASTEXITCODE
+	} finally {
+		$ErrorActionPreference = $previousErrorActionPreference
+	}
 	$output | Write-Host
-	if ($LASTEXITCODE -ne 0 -or ($output -match '^Error:')) {
+	if ($exitCode -ne 0 -or (($output -join "`n") -match '(?m)^Error:')) {
 		throw "Admitad test failed: $($testFile.Name)"
 	}
 }
