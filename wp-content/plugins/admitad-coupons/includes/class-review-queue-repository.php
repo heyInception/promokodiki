@@ -111,6 +111,13 @@ final class Promokodiki_Admitad_Review_Queue_Repository {
 		);
 		return false !== $result && $result > 0;
 	}
+
+	/** Archive an open queue case while retaining its evidence. */
+	public function archive( int $queue_id ): bool {
+		global $wpdb;
+		$result = $wpdb->update( Promokodiki_Admitad_Schema::table( 'review_queue' ), array( 'status' => 'archived', 'updated_at' => gmdate( 'Y-m-d H:i:s' ) ), array( 'id' => $queue_id, 'status' => 'open' ) );
+		return false !== $result && $result > 0;
+	}
 	/**
 	 * Enqueue or return an existing case.
 	 *
