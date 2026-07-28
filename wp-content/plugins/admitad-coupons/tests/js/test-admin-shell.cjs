@@ -43,7 +43,7 @@ class MockElement {
 			return this;
 		}
 		if ( selector === '[data-admitad-table]' ) {
-			return this.tagName === 'table' ? this : this.parent?.closest( selector ) || null;
+			return this.tagName === 'table' && this.dataset.admitadTable !== undefined ? this : this.parent?.closest( selector ) || null;
 		}
 		return null;
 	}
@@ -201,12 +201,20 @@ test( 'serializes repeated form fields and the clicked submitter', async () => {
 
 	assert.deepEqual( [ ...body.getAll( 'term_id' ) ], [ '1', '2' ] );
 	assert.equal( body.get( 'operation' ), 'save' );
+
+	for ( const reservedName of [ 'action', '_ajax_nonce' ] ) {
+		const reservedSubmitter = new MockElement( 'button', { name: reservedName, value: 'override' } );
+		submit( runtime, form, reservedSubmitter );
+		await flush();
+		assert.deepEqual( body.getAll( 'action' ), [ 'promokodiki_admitad_admin' ] );
+		assert.deepEqual( body.getAll( '_ajax_nonce' ), [ 'nonce' ] );
+	}
 } );
 
 test( 'only the current table request may replace content or push a canonical URL', async () => {
 	const pending = [];
 	const runtime = createRuntime( () => new Promise( ( resolve ) => pending.push( resolve ) ) );
-	const table = new MockElement( 'table' );
+	const table = new MockElement( 'table', { dataset: { admitadTable: '' } } );
 	const form = new MockElement( 'form', {
 		dataset: { admitadAjax: '', admitadAction: 'promokodiki_admitad_admin' },
 		parent: table,
@@ -228,7 +236,7 @@ test( 'only the current table request may replace content or push a canonical UR
 
 test( 'does not choose an unrelated page table and makes the replacement target focusable', async () => {
 	const runtime = createRuntime( async () => response( { success: true, data: { html: 'fragment' } } ) );
-	const unrelated = new MockElement( 'table' );
+	const unrelated = new MockElement( 'table', { dataset: { admitadTable: '' } } );
 	runtime.document.queries.set( '[data-admitad-table]', unrelated );
 	const outsideForm = new MockElement( 'form', {
 		dataset: { admitadAjax: '', admitadAction: 'promokodiki_admitad_admin' },
@@ -241,7 +249,7 @@ test( 'does not choose an unrelated page table and makes the replacement target 
 	assert.equal( unrelated.innerHTML, '' );
 	assert.equal( unrelated.classList.contains( 'promokodiki-admitad-is-loading' ), false );
 
-	const table = new MockElement( 'table' );
+	const table = new MockElement( 'table', { dataset: { admitadTable: '' } } );
 	const insideForm = new MockElement( 'form', {
 		dataset: { admitadAjax: '', admitadAction: 'promokodiki_admitad_admin' },
 		parent: table,
@@ -319,4 +327,26 @@ test( 'normalizes failed responses into a Russian retryable notice and completes
 	await notices.children[ 1 ].listeners.get( 'click' )();
 	await flush();
 	assert.equal( attempts, 2 );
+} );
+
+test( 'does not offer a stale-nonce retry for invalid_nonce or WordPress -1 responses', async () => {
+	for ( const failedResponse of [
+		response( { success: false, data: { code: 'invalid_nonce', message: 'Сессия истекла.' } }, { ok: false, status: 403 } ),
+		{ ok: false, status: 403, text: async () => '-1' },
+	] ) {
+		const runtime = createRuntime( async () => failedResponse );
+		const notices = new MockElement( 'div' );
+		runtime.document.queries.set( '[data-admitad-notices]', notices );
+		const form = new MockElement( 'form', {
+			dataset: { admitadAjax: '', admitadAction: 'promokodiki_admitad_admin' },
+		} );
+		const submitter = new MockElement( 'button' );
+		form.queries.set( '[type="submit"]', submitter );
+
+		submit( runtime, form, submitter );
+		await flush();
+
+		assert.match( notices.children[ 0 ].textContent, /Сессия/ );
+		assert.equal( notices.children.length, 1 );
+	}
 } );

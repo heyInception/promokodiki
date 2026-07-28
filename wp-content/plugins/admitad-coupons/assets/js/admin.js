@@ -9,10 +9,19 @@
 		return;
 	}
 
-	class AdminRequestError extends Error {}
+	class AdminRequestError extends Error {
+		constructor( message, retryable = true ) {
+			super( message );
+			this.retryable = retryable;
+		}
+	}
+
+	function isExpiredSession( json, text ) {
+		return json?.data?.code === 'invalid_nonce' || String( text ).trim() === '-1';
+	}
 
 	function errorMessage( response, json, text ) {
-		if ( json?.data?.code === 'invalid_nonce' || text.trim() === '-1' ) {
+		if ( isExpiredSession( json, text ) ) {
 			return 'Сессия истекла. Обновите страницу и повторите действие.';
 		}
 		if ( typeof json?.data?.message === 'string' && json.data.message ) {
@@ -49,11 +58,11 @@
 		try {
 			json = JSON.parse( text );
 		} catch ( error ) {
-			throw new AdminRequestError( errorMessage( response, json, text ) );
+			throw new AdminRequestError( errorMessage( response, json, text ), ! isExpiredSession( json, text ) );
 		}
 
 		if ( ! response.ok || ! json.success ) {
-			throw new AdminRequestError( errorMessage( response, json, text ) );
+			throw new AdminRequestError( errorMessage( response, json, text ), ! isExpiredSession( json, text ) );
 		}
 		return json.data;
 	}
@@ -131,7 +140,7 @@
 				payload.append( key, value );
 			}
 		} );
-		if ( submitter?.name ) {
+		if ( submitter?.name && submitter.name !== 'action' && submitter.name !== '_ajax_nonce' ) {
 			payload.append( submitter.name, submitter.value );
 		}
 		return payload;
@@ -215,7 +224,11 @@
 				status = 'aborted';
 			} else {
 				const message = error instanceof AdminRequestError ? error.message : 'Не удалось выполнить запрос. Попробуйте ещё раз.';
-				showNotice( message, 'error', () => send( target, action, payload, submitter, historyMode ) );
+				showNotice(
+					message,
+					'error',
+					error instanceof AdminRequestError && error.retryable ? () => send( target, action, payload, submitter, historyMode ) : null
+				);
 				dispatch( target, 'admitad:error', { action, payload, error, message } );
 			}
 		} finally {
