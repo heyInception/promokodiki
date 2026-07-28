@@ -19,23 +19,28 @@ final class Promokodiki_Admitad_Company_Profile_Repository {
 	 * @param string $search   Campaign name or ID search.
 	 * @param int    $page     One-based page.
 	 * @param int    $per_page Rows per page.
+	 * @param array<string, string> $filters Allowlisted status filter.
 	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
 	 */
-	public function list_rows( string $search = '', int $page = 1, int $per_page = 20 ): array {
+	public function list_rows( string $search = '', int $page = 1, int $per_page = 20, array $filters = array() ): array {
 		global $wpdb;
 
 		$table    = Promokodiki_Admitad_Schema::table( 'company_profile' );
 		$page     = max( 1, $page );
-		$per_page = max( 1, min( 100, $per_page ) );
+		$per_page = $this->page_size( $per_page );
 		$offset   = ( $page - 1 ) * $per_page;
 		$search   = sanitize_text_field( $search );
-		$where    = '';
+		$clauses  = array();
 		$args     = array();
 		if ( '' !== $search ) {
-			$where  = ' WHERE display_name LIKE %s OR CAST(campaign_id AS CHAR) LIKE %s';
+			$clauses[] = '(display_name LIKE %s OR CAST(campaign_id AS CHAR) LIKE %s)';
 			$needle = '%' . $wpdb->esc_like( $search ) . '%';
 			$args   = array( $needle, $needle );
 		}
+		if ( in_array( $filters['status'] ?? '', array( 'active', 'inactive', 'archived' ), true ) ) {
+			$clauses[] = 'status = %s'; $args[] = $filters['status'];
+		}
+		$where = $clauses ? ' WHERE ' . implode( ' AND ', $clauses ) : '';
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Identifier is plugin-owned and the optional prepared fragments contain only fixed SQL.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned company state.
 		$total = (int) $wpdb->get_var( $args ? $wpdb->prepare( "SELECT COUNT(*) FROM {$table}{$where}", ...$args ) : "SELECT COUNT(*) FROM {$table}" );
@@ -55,6 +60,21 @@ final class Promokodiki_Admitad_Company_Profile_Repository {
 			'page'     => $page,
 			'per_page' => $per_page,
 		);
+	}
+
+	/** @return array<int, array{campaign_id:int,display_name:string}> */
+	public function search_campaigns( string $search, int $limit = 20 ): array {
+		global $wpdb;
+
+		$table  = Promokodiki_Admitad_Schema::table( 'company_profile' );
+		$search = sanitize_text_field( $search );
+		$limit  = max( 1, min( 20, $limit ) );
+		$needle = '%' . $wpdb->esc_like( $search ) . '%';
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned identifier; every value is prepared.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Autocomplete reads plugin-owned campaign references.
+		$rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT campaign_id, display_name FROM {$table} WHERE display_name LIKE %s OR CAST(campaign_id AS CHAR) LIKE %s ORDER BY display_name ASC, campaign_id ASC LIMIT %d", $needle, $needle, $limit ), ARRAY_A );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return array_map( static fn( array $row ): array => array( 'campaign_id' => (int) $row['campaign_id'], 'display_name' => (string) $row['display_name'] ), $rows );
 	}
 
 	/**
@@ -147,19 +167,8 @@ final class Promokodiki_Admitad_Company_Profile_Repository {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic profile replacement uses plugin-owned tables.
 		$wpdb->query( 'START TRANSACTION' );
 		try {
-			$result = $wpdb->replace(
-				$profile_table,
-				array(
-					'campaign_id'       => $campaign_id,
-					'display_name'      => sanitize_text_field( $display_name ),
-					'default_term_id'   => $default_term_id,
-					'signal_weight'     => max( 0, min( 1000, $weight ) ),
-					'status'            => 'active',
-					'category_snapshot' => '[]',
-					'created_at'        => $now,
-					'updated_at'        => $now,
-				)
-			);
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned identifier; every editable value is prepared.
+			$result = $wpdb->query( $wpdb->prepare( "INSERT INTO {$profile_table} (campaign_id, display_name, default_term_id, signal_weight, status, category_snapshot, created_at, updated_at) VALUES (%d, %s, %d, %d, 'active', '[]', %s, %s) ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), default_term_id = VALUES(default_term_id), signal_weight = VALUES(signal_weight), status = 'active', updated_at = VALUES(updated_at)", $campaign_id, sanitize_text_field( $display_name ), $default_term_id, max( 0, min( 1000, $weight ) ), $now, $now ) );
 			if ( false === $result ) {
 				throw new RuntimeException( 'Unable to save Admitad company profile.' );
 			}
@@ -187,6 +196,10 @@ final class Promokodiki_Admitad_Company_Profile_Repository {
 			throw $error;
 		}
 		// phpcs:enable
+	}
+
+	private function page_size( int $per_page ): int {
+		return in_array( $per_page, array( 20, 50, 100 ), true ) ? $per_page : 20;
 	}
 
 	/**

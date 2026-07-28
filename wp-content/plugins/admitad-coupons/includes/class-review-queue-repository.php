@@ -19,27 +19,34 @@ final class Promokodiki_Admitad_Review_Queue_Repository {
 	 * @param string $search   Entity or reason search.
 	 * @param int    $page     One-based page.
 	 * @param int    $per_page Rows per page.
+	 * @param array<string, string> $filters Allowlisted status and reason filters.
 	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
 	 */
-	public function list_rows( string $search = '', int $page = 1, int $per_page = 20 ): array {
+	public function list_rows( string $search = '', int $page = 1, int $per_page = 20, array $filters = array() ): array {
 		global $wpdb;
 
 		$table    = Promokodiki_Admitad_Schema::table( 'review_queue' );
 		$page     = max( 1, $page );
-		$per_page = max( 1, min( 100, $per_page ) );
+		$per_page = $this->page_size( $per_page );
 		$offset   = ( $page - 1 ) * $per_page;
 		$search   = sanitize_text_field( $search );
-		$where    = " WHERE status = 'open'";
+		$clauses  = array();
 		$args     = array();
+		$status   = $filters['status'] ?? 'open';
+		if ( ! in_array( $status, array( 'open', 'resolved', 'archived' ), true ) ) { $status = 'open'; }
+		$clauses[] = 'status = %s'; $args[] = $status;
 		if ( '' !== $search ) {
-			$where .= ' AND (entity_id LIKE %s OR reason_code LIKE %s)';
+			$clauses[] = '(entity_id LIKE %s OR reason_code LIKE %s)';
 			$needle = '%' . $wpdb->esc_like( $search ) . '%';
-			$args   = array( $needle, $needle );
+			$args[] = $needle; $args[] = $needle;
 		}
+		$reason = sanitize_key( $filters['reason'] ?? '' );
+		if ( '' !== $reason ) { $clauses[] = 'reason_code = %s'; $args[] = $reason; }
+		$where = ' WHERE ' . implode( ' AND ', $clauses );
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Identifier is plugin-owned and the optional prepared fragments contain only fixed SQL.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned queue state.
 		$total = (int) $wpdb->get_var( $args ? $wpdb->prepare( "SELECT COUNT(*) FROM {$table}{$where}", ...$args ) : "SELECT COUNT(*) FROM {$table}{$where}" );
-		$query = "SELECT id, entity_type, entity_id, reason_code, severity, proposed_categories, explanation, evidence, created_at
+		$query = "SELECT id, entity_type, entity_id, reason_code, severity, proposed_categories, explanation, evidence, status, created_at
 			FROM {$table}{$where} ORDER BY FIELD(severity, 'high', 'normal'), id ASC LIMIT %d OFFSET %d";
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned queue state.
 		$items = (array) $wpdb->get_results( $wpdb->prepare( $query, ...array_merge( $args, array( $per_page, $offset ) ) ), ARRAY_A );
@@ -57,6 +64,10 @@ final class Promokodiki_Admitad_Review_Queue_Repository {
 			'page'     => $page,
 			'per_page' => $per_page,
 		);
+	}
+
+	private function page_size( int $per_page ): int {
+		return in_array( $per_page, array( 20, 50, 100 ), true ) ? $per_page : 20;
 	}
 
 	/**

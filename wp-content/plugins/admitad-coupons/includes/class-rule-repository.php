@@ -27,22 +27,33 @@ final class Promokodiki_Admitad_Rule_Repository {
 	 * @param string $search   Phrase search.
 	 * @param int    $page     One-based page.
 	 * @param int    $per_page Rows per page.
+	 * @param array<string, string> $filters Allowlisted status/mode/source filters.
 	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
 	 */
-	public function list_rows( string $search = '', int $page = 1, int $per_page = 20 ): array {
+	public function list_rows( string $search = '', int $page = 1, int $per_page = 20, array $filters = array() ): array {
 		global $wpdb;
 
 		$table    = Promokodiki_Admitad_Schema::table( 'rule' );
 		$page     = max( 1, $page );
-		$per_page = max( 1, min( 100, $per_page ) );
+		$per_page = $this->page_size( $per_page );
 		$offset   = ( $page - 1 ) * $per_page;
 		$search   = Promokodiki_Admitad_Text_Normalizer::normalize( $search );
-		$where    = '';
+		$clauses  = array();
 		$args     = array();
 		if ( '' !== $search ) {
-			$where = ' WHERE normalized_phrase LIKE %s';
+			$clauses[] = 'normalized_phrase LIKE %s';
 			$args  = array( '%' . $wpdb->esc_like( $search ) . '%' );
 		}
+		if ( in_array( $filters['status'] ?? '', array( 'active', 'candidate', 'suspended', 'conflict', 'archived' ), true ) ) {
+			$clauses[] = 'status = %s'; $args[] = $filters['status'];
+		}
+		if ( in_array( $filters['match_mode'] ?? '', array( 'phrase', 'token', 'prefix' ), true ) ) {
+			$clauses[] = 'match_mode = %s'; $args[] = $filters['match_mode'];
+		}
+		if ( '' !== sanitize_key( $filters['source'] ?? '' ) ) {
+			$clauses[] = 'source = %s'; $args[] = sanitize_key( $filters['source'] );
+		}
+		$where = $clauses ? ' WHERE ' . implode( ' AND ', $clauses ) : '';
 		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Optional prepared fragments contain only fixed SQL.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned rule state.
 		$total = (int) $wpdb->get_var( $args ? $wpdb->prepare( "SELECT COUNT(*) FROM {$table}{$where}", ...$args ) : "SELECT COUNT(*) FROM {$table}" );
@@ -89,7 +100,7 @@ final class Promokodiki_Admitad_Rule_Repository {
 		if ( '' === $phrase || ! $this->is_valid_term( $term_id ) ) {
 			throw new InvalidArgumentException( 'A non-empty phrase and valid promocode category are required.' );
 		}
-		if ( ! in_array( $status, array( 'active', 'candidate', 'suspended', 'conflict' ), true ) ) {
+		if ( ! in_array( $status, array( 'active', 'candidate', 'suspended', 'conflict', 'archived' ), true ) ) {
 			throw new InvalidArgumentException( 'Invalid Admitad rule status.' );
 		}
 		if ( ! in_array( $mode, array( 'phrase', 'token', 'prefix' ), true ) ) {
@@ -132,6 +143,10 @@ final class Promokodiki_Admitad_Rule_Repository {
 		return $rule_id;
 	}
 
+	private function page_size( int $per_page ): int {
+		return in_array( $per_page, array( 20, 50, 100 ), true ) ? $per_page : 20;
+	}
+
 	/**
 	 * Match active rules against normalized text.
 	 *
@@ -167,7 +182,7 @@ final class Promokodiki_Admitad_Rule_Repository {
 		global $wpdb;
 
 		$status = sanitize_key( $status );
-		if ( ! in_array( $status, array( 'active', 'candidate', 'suspended', 'conflict' ), true ) ) {
+		if ( ! in_array( $status, array( 'active', 'candidate', 'suspended', 'conflict', 'archived' ), true ) ) {
 			return false;
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable rule state uses the plugin-owned table.

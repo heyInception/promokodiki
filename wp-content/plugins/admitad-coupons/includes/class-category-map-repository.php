@@ -19,28 +19,38 @@ final class Promokodiki_Admitad_Category_Map_Repository {
 	 * @param string $search   External name or ID search.
 	 * @param int    $page     One-based page.
 	 * @param int    $per_page Rows per page.
+	 * @param array<string, string> $filters Allowlisted source/status filters.
 	 * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int}
 	 */
-	public function list_rows( string $search = '', int $page = 1, int $per_page = 20 ): array {
+	public function list_rows( string $search = '', int $page = 1, int $per_page = 20, array $filters = array() ): array {
 		global $wpdb;
 
 		$table    = Promokodiki_Admitad_Schema::table( 'category_map' );
 		$page     = max( 1, $page );
-		$per_page = max( 1, min( 100, $per_page ) );
+		$per_page = $this->page_size( $per_page );
 		$offset   = ( $page - 1 ) * $per_page;
 		$search   = sanitize_text_field( $search );
-		$where    = '';
+		$clauses  = array();
 		$args     = array();
 		if ( '' !== $search ) {
-			$where  = ' WHERE external_name LIKE %s OR CAST(external_category_id AS CHAR) LIKE %s';
+			$clauses[] = '(external_name LIKE %s OR CAST(external_category_id AS CHAR) LIKE %s)';
 			$needle = '%' . $wpdb->esc_like( $search ) . '%';
 			$args   = array( $needle, $needle );
 		}
+		if ( in_array( $filters['source_namespace'] ?? '', array( 'coupon', 'campaign' ), true ) ) {
+			$clauses[] = 'source_namespace = %s';
+			$args[]    = $filters['source_namespace'];
+		}
+		if ( in_array( $filters['status'] ?? '', array( 'active', 'unmapped', 'inactive' ), true ) ) {
+			$clauses[] = 'status = %s';
+			$args[]    = $filters['status'];
+		}
+		$where = $clauses ? ' WHERE ' . implode( ' AND ', $clauses ) : '';
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Identifier is plugin-owned and the optional prepared fragments contain only fixed SQL.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned mapping state.
 		$total = (int) $wpdb->get_var( $args ? $wpdb->prepare( "SELECT COUNT(*) FROM {$table}{$where}", ...$args ) : "SELECT COUNT(*) FROM {$table}" );
 		$query = "SELECT id, source_namespace, external_category_id, external_name, external_parent_id, site_term_id, weight, status
-			FROM {$table}{$where} ORDER BY external_name ASC, external_category_id ASC, site_term_id ASC LIMIT %d OFFSET %d";
+			FROM {$table}{$where} ORDER BY external_name ASC, external_category_id ASC, site_term_id ASC, id ASC LIMIT %d OFFSET %d";
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administration reads plugin-owned mapping state.
 		$items = $wpdb->get_results( $wpdb->prepare( $query, ...array_merge( $args, array( $per_page, $offset ) ) ), ARRAY_A );
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
@@ -50,6 +60,10 @@ final class Promokodiki_Admitad_Category_Map_Repository {
 			'page'     => $page,
 			'per_page' => $per_page,
 		);
+	}
+
+	private function page_size( int $per_page ): int {
+		return in_array( $per_page, array( 20, 50, 100 ), true ) ? $per_page : 20;
 	}
 
 	/**
