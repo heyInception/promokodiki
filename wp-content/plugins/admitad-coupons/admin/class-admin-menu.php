@@ -72,7 +72,7 @@ final class Promokodiki_Admitad_Admin_Menu {
 	public static function render_section(): void {
 		$page = sanitize_key( wp_unslash( $_GET['page'] ?? 'admitad-overview' ) );
 		if ( 'admitad-settings' === $page ) {
-			( new Promokodiki_Admitad_Settings_Page() )->render();
+			self::render_page( new Promokodiki_Admitad_Settings_Page() );
 			return;
 		}
 		$pages = array(
@@ -86,7 +86,7 @@ final class Promokodiki_Admitad_Admin_Menu {
 			'admitad-diagnostics'  => Promokodiki_Admitad_Diagnostics_Page::class,
 		);
 		if ( isset( $pages[ $page ] ) ) {
-			( new $pages[ $page ]() )->render();
+			self::render_page( new $pages[ $page ]() );
 			return;
 		}
 		if ( ! current_user_can( self::section_capabilities()[ $page ] ?? 'manage_admitad_automation' ) ) {
@@ -94,5 +94,17 @@ final class Promokodiki_Admitad_Admin_Menu {
 		}
 		echo '<div class="wrap"><h1>' . esc_html__( 'Автоматизация Admitad', 'promokodiki-admitad' ) . '</h1>';
 		echo '<p>' . esc_html__( 'Раздел подключён к новому безопасному административному маршрутизатору.', 'promokodiki-admitad' ) . '</p></div>';
+	}
+
+	/**
+	 * Render a page inside the shared accessible AJAX shell.
+	 *
+	 * @param object $page Page controller with a render method.
+	 */
+	private static function render_page( object $page ): void {
+		echo '<div class="promokodiki-admitad-admin">';
+		echo '<div class="promokodiki-admitad-notices" data-admitad-notices role="status" aria-live="polite" aria-atomic="true"></div>';
+		$page->render();
+		echo '</div>';
 	}
 }

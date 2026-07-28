@@ -1,0 +1,103 @@
+.promokodiki-admitad-admin {
+	--promokodiki-admitad-border: #c3c4c7;
+	--promokodiki-admitad-surface: #fff;
+	--promokodiki-admitad-accent: #2271b1;
+}
+
+.promokodiki-admitad-card {
+	margin: 16px 0;
+	padding: 16px;
+	border: 1px solid var(--promokodiki-admitad-border);
+	border-radius: 4px;
+	background: var(--promokodiki-admitad-surface);
+	box-shadow: 0 1px 1px rgb(0 0 0 / 4%);
+}
+
+.promokodiki-admitad-badge {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: #f0f0f1;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.promokodiki-admitad-badge--success { background: #d7f2df; }
+.promokodiki-admitad-badge--warning { background: #fcf0c3; }
+.promokodiki-admitad-badge--error { background: #f7d6d9; }
+
+.promokodiki-admitad-field-help {
+	display: block;
+	margin-top: 4px;
+	color: #50575e;
+}
+
+[data-admitad-tooltip] {
+	position: relative;
+	cursor: help;
+}
+
+.promokodiki-admitad-tooltip {
+	display: none;
+	max-width: 26rem;
+	margin: 4px 0;
+	padding: 8px;
+	border-radius: 3px;
+	background: #1d2327;
+	color: #fff;
+	font-size: 12px;
+}
+
+[data-admitad-tooltip]:hover + .promokodiki-admitad-tooltip,
+[data-admitad-tooltip]:focus + .promokodiki-admitad-tooltip {
+	display: inline-block;
+}
+
+.promokodiki-admitad-table-wrap,
+[data-admitad-table] {
+	position: relative;
+	overflow-x: auto;
+}
+
+[data-admitad-table].promokodiki-admitad-is-loading::after {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	background: rgb(255 255 255 / 72%);
+	color: #1d2327;
+	content: 'Загрузка…';
+	font-weight: 600;
+}
+
+.promokodiki-admitad-notices {
+	margin: 16px 0;
+}
+
+.promokodiki-admitad-admin :focus-visible {
+	outline: 2px solid var(--promokodiki-admitad-accent);
+	outline-offset: 2px;
+}
+
+@media (max-width: 782px) {
+	.promokodiki-admitad-card {
+		padding: 12px;
+	}
+
+	[data-admitad-table] .widefat {
+		min-width: 680px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.promokodiki-admitad-admin *,
+	.promokodiki-admitad-admin *::before,
+	.promokodiki-admitad-admin *::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

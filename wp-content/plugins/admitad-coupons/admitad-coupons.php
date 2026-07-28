@@ -66,6 +66,7 @@ require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-actions.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/class-promocode-lock-metabox.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-presenter.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-request.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/class-admin-assets.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-settings-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-overview-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-sync-page.php';
@@ -89,5 +90,6 @@ register_activation_hook( __FILE__, array( 'Promokodiki_Admitad_Activator', 'act
 register_deactivation_hook( __FILE__, 'admitad_coupons_deactivate' );
 Promokodiki_Admitad_Plugin::boot();
 Promokodiki_Admitad_Admin_Menu::register();
+Promokodiki_Admitad_Admin_Assets::register();
 Promokodiki_Admitad_Admin_Actions::register();
 Promokodiki_Admitad_Promocode_Lock_Metabox::register();
