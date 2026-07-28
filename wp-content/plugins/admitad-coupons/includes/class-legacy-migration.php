@@ -93,7 +93,7 @@ final class Promokodiki_Admitad_Legacy_Migration {
 	 */
 	public function migrate_batch( int $offset, int $limit ): array {
 		$offset   = max( 0, $offset );
-		$limit    = max( 1, min( 2000, $limit ) );
+		$limit    = max( 1, min( 200, $limit ) );
 		$analysis = $this->analyze();
 		$rows     = $this->batch_rows( $offset, $limit, $analysis );
 		$state    = $this->state();

@@ -96,7 +96,7 @@ final class Promokodiki_Admitad_Admin_Ajax {
 		if ( in_array( $request['operation'], array( 'history_list', 'history_snapshot', 'history_sample_review' ), true ) ) {
 			try { return self::handle_history_operation( $request['operation'], $request, $raw_request ); } catch ( Throwable $error ) { self::log_failure( $request ); return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' ); }
 		}
-		if ( in_array( $request['operation'], array( 'overview_refresh', 'sync_refresh', 'sync_operation', 'settings_save', 'diagnostics_refresh', 'recovery_status', 'recovery_reference_start' ), true ) ) {
+		if ( in_array( $request['operation'], array( 'overview_refresh', 'sync_refresh', 'sync_operation', 'settings_save', 'diagnostics_refresh', 'recovery_status', 'recovery_reference_start', 'recovery_migration_start', 'recovery_migration_step', 'recovery_migration_status' ), true ) ) {
 			try { return self::handle_operations_operation( $request['operation'], $request, $raw_request ); } catch ( Throwable $error ) { self::log_failure( $request ); return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' ); }
 		}
 
@@ -171,10 +171,13 @@ final class Promokodiki_Admitad_Admin_Ajax {
 
 	/** Refresh operational cards and delegate mutations to existing action methods. */
 	private static function handle_operations_operation( string $operation, array $request, array $raw_request ) {
-		if ( in_array( $operation, array( 'recovery_status', 'recovery_reference_start' ), true ) ) {
+		if ( in_array( $operation, array( 'recovery_status', 'recovery_reference_start', 'recovery_migration_start', 'recovery_migration_step', 'recovery_migration_status' ), true ) ) {
 			if ( 'admitad-diagnostics' !== $request['page'] || ! current_user_can( 'manage_admitad_automation' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для восстановления данных.' ); }
 			$recovery = new Promokodiki_Admitad_Recovery_Coordinator();
 			if ( 'recovery_reference_start' === $operation ) { $result = $recovery->start_reference_sync(); if ( is_wp_error( $result ) ) { return $result; } }
+			if ( 'recovery_migration_start' === $operation ) { $result = $recovery->start_migration(); if ( is_wp_error( $result ) ) { return $result; } return array( 'message' => 'Миграция запущена.', 'progress' => $result ); }
+			if ( 'recovery_migration_step' === $operation ) { $result = $recovery->migrate_next_batch( sanitize_text_field( self::raw_scalar( $raw_request, 'owner' ) ) ); if ( is_wp_error( $result ) ) { return $result; } return array( 'message' => 'Обработан следующий пакет.', 'progress' => $result ); }
+			if ( 'recovery_migration_status' === $operation ) { return array( 'message' => 'Готово.', 'progress' => $recovery->migration_progress() ); }
 			return array( 'message' => 'Готово.', 'html' => Promokodiki_Admitad_Admin_Fragments::render( 'recovery-status', array( 'recovery' => $recovery->preflight() ) ) );
 		}
 		$pages = array( 'overview_refresh' => array( 'admitad-overview', 'overview-status' ), 'sync_refresh' => array( 'admitad-sync', 'sync-runs' ), 'sync_operation' => array( 'admitad-sync', 'sync-runs' ), 'settings_save' => array( 'admitad-settings', 'foundation' ), 'diagnostics_refresh' => array( 'admitad-diagnostics', 'diagnostics-status' ) );
