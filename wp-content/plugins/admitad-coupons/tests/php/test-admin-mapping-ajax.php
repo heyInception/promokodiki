@@ -126,6 +126,16 @@ try {
 			Promokodiki_Admitad_Test_Harness::assert_same( 'invalid_company_profile', $result->get_error_code() );
 		}
 	);
+
+	Promokodiki_Admitad_Test_Harness::run(
+		'mapping AJAX operations contain unexpected failures behind a stable server error',
+		static function (): void {
+			$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/admin/class-admin-ajax.php' );
+			Promokodiki_Admitad_Test_Harness::assert_true(
+				1 === preg_match( '/handle_mapping_operation[\\s\\S]*?catch\\s*\\(\\s*Throwable[^)]*\\)[\\s\\S]*?server_error/', $source )
+			);
+		}
+	);
 } finally {
 	global $wpdb;
 	wp_set_current_user( $old_user );

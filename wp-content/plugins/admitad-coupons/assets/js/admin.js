@@ -401,6 +401,7 @@
 			let timer = null;
 			let choices = [];
 			let activeIndex = -1;
+			let generation = 0;
 			input.setAttribute( 'role', 'combobox' );
 			input.setAttribute( 'aria-expanded', 'false' );
 			input.setAttribute( 'data-admitad-company-search-enhanced', 'true' );
@@ -434,29 +435,39 @@
 				input.setAttribute( 'aria-expanded', choices.length ? 'true' : 'false' );
 			};
 			const search = async () => {
-				const value = input.value.trim();
+				const query = input.value.trim();
+				const currentGeneration = ++generation;
 				if ( controller ) controller.abort();
-				if ( ! value ) {
+				if ( ! query ) {
 					choices = [];
 					render();
 					return;
 				}
 				controller = new AbortController();
 				try {
-					const payload = new URLSearchParams( { operation: 'company_search', page: 'admitad-companies', s: value } );
+					const payload = new URLSearchParams( { operation: 'company_search', page: 'admitad-companies', s: query } );
 					const data = await request( 'promokodiki_admitad_admin', payload, controller.signal );
+					if ( currentGeneration !== generation || query !== input.value.trim() ) return;
 					choices = Array.isArray( data.items ) ? data.items : [];
 					render();
 				} catch ( error ) {
-					if ( error.name !== 'AbortError' ) close();
+					if ( error.name !== 'AbortError' && currentGeneration === generation ) close();
 				}
 			};
 			input.addEventListener( 'input', () => {
 				hidden.value = '';
+				++generation;
 				if ( timer ) clearTimeout( timer );
 				timer = setTimeout( search, 300 );
 			} );
 			input.addEventListener( 'keydown', ( event ) => {
+				if ( event.key === 'Escape' ) {
+					event.preventDefault();
+					++generation;
+					if ( controller ) controller.abort();
+					close();
+					return;
+				}
 				if ( ! choices.length ) return;
 				if ( event.key === 'ArrowDown' || event.key === 'ArrowUp' ) {
 					event.preventDefault();
@@ -466,8 +477,6 @@
 				} else if ( event.key === 'Enter' && activeIndex >= 0 ) {
 					event.preventDefault();
 					select( choices[ activeIndex ] );
-				} else if ( event.key === 'Escape' ) {
-					close();
 				}
 			} );
 		} );

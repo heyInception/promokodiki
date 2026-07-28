@@ -80,7 +80,12 @@ final class Promokodiki_Admitad_Admin_Ajax {
 		}
 
 		if ( in_array( $request['operation'], array( 'category_map_list', 'category_map_save', 'company_list', 'company_search', 'company_save' ), true ) ) {
-			return self::handle_mapping_operation( $request['operation'], $request, $raw_request );
+			try {
+				return self::handle_mapping_operation( $request['operation'], $request, $raw_request );
+			} catch ( Throwable $error ) {
+				self::log_failure( $request );
+				return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' );
+			}
 		}
 
 		if ( 'render_fragment' !== $request['operation'] ) {

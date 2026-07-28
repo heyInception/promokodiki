@@ -323,6 +323,13 @@ test( 'company autocomplete contract debounces, aborts stale requests, and commi
 	assert.match( source, /hidden\.value = String\( choice\.id \)/ );
 } );
 
+test( 'company autocomplete suppresses stale responses after a newer query or Escape', () => {
+	assert.match( source, /let generation = 0;/ );
+	assert.match( source, /const currentGeneration = \+\+generation;/ );
+	assert.match( source, /currentGeneration !== generation \|\| query !== input\.value\.trim\(\)/ );
+	assert.match( source, /event\.key === 'Escape'[\s\S]*\+\+generation;/ );
+} );
+
 test( 'does not choose an unrelated page table and makes the replacement target focusable', async () => {
 	const runtime = createRuntime( async () => response( { success: true, data: { html: 'fragment' } } ) );
 	const unrelated = new MockElement( 'table', { dataset: { admitadTable: '' } } );
