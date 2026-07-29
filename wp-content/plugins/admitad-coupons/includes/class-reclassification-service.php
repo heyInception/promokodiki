@@ -92,45 +92,6 @@ final class Promokodiki_Admitad_Reclassification_Service {
 		$state = (array) get_option( $this->status_key( $snapshot_id ), array() ); if ( empty( $state['status'] ) ) { return new WP_Error( 'invalid_snapshot', 'Снимок не найден.' ); } unset( $state['source_post_ids'] ); return $state;
 	}
 
-	/* Legacy synchronous implementation retained below for comparison. */
-	private function legacy_preview_unused( array $post_ids ): array {
-		$snapshot_id = wp_generate_uuid4();
-		$affected    = array();
-		foreach ( array_values( array_unique( array_map( 'absint', $post_ids ) ) ) as $post_id ) {
-			if ( 'promocode' !== get_post_type( $post_id ) || Promokodiki_Admitad_Editorial_Locks::category_locked( $post_id ) ) {
-				continue;
-			}
-			$current_terms   = array_map( 'intval', wp_get_object_terms( $post_id, 'promocode_category', array( 'fields' => 'ids' ) ) );
-			$current_primary = (int) get_post_meta( $post_id, '_admitad_primary_term_id', true );
-			$result          = call_user_func( $this->classifier, $this->coupon_from_post( $post_id ), $this->context_for_post( $post_id ) );
-			$before          = $current_terms;
-			$after           = $result->term_ids();
-			sort( $before );
-			sort( $after );
-			if ( $before === $after && $current_primary === $result->primary_term_id() ) {
-				continue;
-			}
-			$this->history->record( $post_id, $result, $current_terms, $current_primary, 'preview', $snapshot_id );
-			$affected[] = $post_id;
-		}
-		update_option(
-			$this->status_key( $snapshot_id ),
-			array(
-				'status'     => 'previewed',
-				'owner_id'   => get_current_user_id(),
-				'created_at' => time(),
-				'expires_at' => time() + DAY_IN_SECONDS,
-			),
-			false
-		);
-		return array(
-			'id'       => $snapshot_id,
-			'post_ids' => $affected,
-			'count'    => count( $affected ),
-			'status'   => 'previewed',
-		);
-	}
-
 	/**
 	 * Apply an entire stored preview synchronously.
 	 *
