@@ -11,11 +11,32 @@ require_once dirname( __DIR__, 2 ) . '/admitad-coupons.php';
 $post_ids = array();
 $term_ids = array();
 $snapshot_ids = array();
+$user_ids = array();
+$old_user = get_current_user_id();
 
 try {
 	admitad_register_content_types();
 	Promokodiki_Admitad_Schema::install();
+	Promokodiki_Admitad_Capabilities::install();
 	$suffix = wp_generate_password( 8, false );
+	$owner_id = wp_insert_user(
+		array(
+			'user_login' => 'assignment-owner-' . $suffix,
+			'user_pass'  => wp_generate_password( 20 ),
+			'user_email' => wp_generate_password( 8, false ) . '@example.test',
+			'role'       => 'administrator',
+		)
+	);
+	$other_id = wp_insert_user(
+		array(
+			'user_login' => 'assignment-other-' . $suffix,
+			'user_pass'  => wp_generate_password( 20 ),
+			'user_email' => wp_generate_password( 8, false ) . '@example.test',
+			'role'       => 'administrator',
+		)
+	);
+	$user_ids = array( $owner_id, $other_id );
+	wp_set_current_user( $owner_id );
 	$old    = wp_insert_term( 'Тест старая рубрика ' . $suffix, 'promocode_category' );
 	$new    = wp_insert_term( 'Тест новая рубрика ' . $suffix, 'promocode_category' );
 	if ( is_wp_error( $old ) || is_wp_error( $new ) ) {
@@ -85,8 +106,8 @@ try {
 	);
 
 	Promokodiki_Admitad_Test_Harness::run(
-		'preview is immutable, stores affected rows, applies once, and rolls back exactly',
-		static function () use ( $post_id, $old_id, $new_id ): void {
+		'bounded owner preview is immutable, applies once, and rolls back exactly',
+		static function () use ( $post_id, $old_id, $new_id, $owner_id, $other_id, &$snapshot_ids ): void {
 			Promokodiki_Admitad_Import_Context::run(
 				static function () use ( $post_id, $old_id ): void {
 					wp_set_post_terms( $post_id, array( $old_id ), 'promocode_category', false );
@@ -101,43 +122,51 @@ try {
 			);
 			$service = new Promokodiki_Admitad_Reclassification_Service( $classifier );
 			$before  = array_map( 'intval', wp_get_object_terms( $post_id, 'promocode_category', array( 'fields' => 'ids' ) ) );
-			$preview = $service->preview( array( $post_id ) );
+			$preview = $service->start_preview( array( $post_id ) );
 			$snapshot_ids[] = $preview['id'];
+			$preview_progress = $service->preview_next_batch( $preview['id'] );
 			$after   = array_map( 'intval', wp_get_object_terms( $post_id, 'promocode_category', array( 'fields' => 'ids' ) ) );
 
 			Promokodiki_Admitad_Test_Harness::assert_same( $before, $after );
-			Promokodiki_Admitad_Test_Harness::assert_same( array( $post_id ), $preview['post_ids'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'previewed', $preview_progress['status'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( array( $post_id ), $service->get_snapshot( $preview['id'] )['post_ids'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'previewed', $service->get_snapshot( $preview['id'] )['status'] );
-			$service->schedule_apply( $preview['id'] );
-			Promokodiki_Admitad_Test_Harness::assert_true(
-				false !== wp_next_scheduled( 'promokodiki_admitad_apply_classification', array( $preview['id'], 0 ) )
-			);
-			wp_clear_scheduled_hook( 'promokodiki_admitad_apply_classification', array( $preview['id'], 0 ) );
-			Promokodiki_Admitad_Test_Harness::assert_same( 1, $service->apply_preview( $preview['id'] ) );
-			Promokodiki_Admitad_Test_Harness::assert_same( 0, $service->apply_preview( $preview['id'] ) );
+			wp_set_current_user( $other_id );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'foreign_snapshot', $service->start_apply( $preview['id'] )->get_error_code() );
+			wp_set_current_user( $owner_id );
+
+			Promokodiki_Admitad_Test_Harness::assert_same( 'applying', $service->start_apply( $preview['id'] )['status'] );
+			$applied = $service->apply_next_batch( $preview['id'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'applied', $applied['status'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, $applied['changed'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'invalid_snapshot_state', $service->apply_next_batch( $preview['id'] )->get_error_code() );
 			Promokodiki_Admitad_Test_Harness::assert_same(
 				array( $new_id ),
 				array_map( 'intval', wp_get_object_terms( $post_id, 'promocode_category', array( 'fields' => 'ids' ) ) )
 			);
-			Promokodiki_Admitad_Test_Harness::assert_same( 1, $service->rollback( $preview['id'] ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'rolling_back', $service->start_rollback( $preview['id'] )['status'] );
+			$rolled_back = $service->rollback_next_batch( $preview['id'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'rolled_back', $rolled_back['status'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 1, $rolled_back['changed'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'invalid_snapshot_state', $service->rollback_next_batch( $preview['id'] )->get_error_code() );
 			Promokodiki_Admitad_Test_Harness::assert_same(
 				array( $old_id ),
 				array_map( 'intval', wp_get_object_terms( $post_id, 'promocode_category', array( 'fields' => 'ids' ) ) )
 			);
-			$service->schedule_apply( $preview['id'] );
-			Promokodiki_Admitad_Test_Harness::assert_same(
-				false,
-				wp_next_scheduled( 'promokodiki_admitad_apply_classification', array( $preview['id'], 0 ) )
-			);
+			Promokodiki_Admitad_Test_Harness::assert_same( $old_id, (int) get_post_meta( $post_id, '_admitad_primary_term_id', true ) );
 		}
 	);
 } finally {
 	global $wpdb;
+	wp_set_current_user( $old_user );
 	foreach ( $post_ids as $post_id ) {
 		wp_delete_post( $post_id, true );
 	}
 	foreach ( array_reverse( $term_ids ) as $term_id ) {
 		wp_delete_term( $term_id, 'promocode_category' );
+	}
+	foreach ( $user_ids as $user_id ) {
+		wp_delete_user( $user_id );
 	}
 	$table = Promokodiki_Admitad_Schema::table( 'classification_history' );
 	$wpdb->query( "DELETE FROM {$table} WHERE algorithm_version IN ('test','preview-test')" );
