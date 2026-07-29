@@ -69,10 +69,14 @@ try {
 				array( 'operation' => 'snapshot_apply_start', 'page' => 'admitad-history', 'snapshot_id' => $preview['id'], '_ajax_nonce' => $nonce )
 			);
 			Promokodiki_Admitad_Test_Harness::assert_same( 'confirmation_required', $missing_confirmation->get_error_code() );
+			$expired = get_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $preview['id'] ) );
+			$expired['expires_at'] = time() - 10;
+			update_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $preview['id'] ), $expired, false );
 			$started = Promokodiki_Admitad_Admin_Ajax::handle(
 				array( 'operation' => 'snapshot_apply_start', 'page' => 'admitad-history', 'snapshot_id' => $preview['id'], 'confirmed' => '1', '_ajax_nonce' => $nonce )
 			);
 			Promokodiki_Admitad_Test_Harness::assert_same( 'applying', $started['progress']['status'] );
+			Promokodiki_Admitad_Test_Harness::assert_true( $started['progress']['expires_at'] > time() );
 
 			update_post_meta( $post_ids[1], '_admitad_category_locked', 'yes' );
 			update_post_meta( $post_ids[1], '_admitad_locked_term_ids', array( $old_a_id ) );
@@ -84,10 +88,17 @@ try {
 			};
 			add_action( 'set_object_terms', $failure, 1, 4 );
 			try {
+				$lock_key = 'promokodiki_admitad_snapshot_lock_' . sanitize_key( $preview['id'] );
+				add_option( $lock_key, array( 'token' => 'concurrent', 'owner_id' => $owner_id, 'heartbeat' => time() ), '', false );
+				Promokodiki_Admitad_Test_Harness::assert_same( 'snapshot_locked', $service->apply_next_batch( $preview['id'] )->get_error_code() );
+				delete_option( $lock_key );
 				$first = $service->apply_next_batch( $preview['id'] );
 				Promokodiki_Admitad_Test_Harness::assert_same( 50, $first['processed'] );
 				Promokodiki_Admitad_Test_Harness::assert_same( 50, $first['cursor'] );
 				Promokodiki_Admitad_Test_Harness::assert_same( 'applying', $first['status'] );
+				$paused = get_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $preview['id'] ) );
+				$paused['expires_at'] = time() - 10;
+				update_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $preview['id'] ), $paused, false );
 				$second = $service->apply_next_batch( $preview['id'] );
 			} finally {
 				remove_action( 'set_object_terms', $failure, 1 );
@@ -99,11 +110,15 @@ try {
 			Promokodiki_Admitad_Test_Harness::assert_same( 1, $second['failed'] );
 			Promokodiki_Admitad_Test_Harness::assert_true( false === str_contains( wp_json_encode( $second ), 'private' ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( array( $old_a_id ), array_map( 'intval', wp_get_object_terms( $post_ids[1], 'promocode_category', array( 'fields' => 'ids' ) ) ) );
+			global $wpdb;
+			$history_table = Promokodiki_Admitad_Schema::table( 'classification_history' );
+			Promokodiki_Admitad_Test_Harness::assert_same( 50, (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$history_table} WHERE algorithm_version = 'apply-ajax-test' AND trigger_name = 'preview_apply'" ) );
 
 			update_post_meta( $post_ids[2], '_admitad_category_locked', 'yes' );
 			update_post_meta( $post_ids[2], '_admitad_locked_term_ids', array( $new_id ) );
 			$rollback = $service->start_rollback( $preview['id'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'rolling_back', $rollback['status'] );
+			Promokodiki_Admitad_Test_Harness::assert_true( $rollback['expires_at'] > time() );
 			$rollback_first = $service->rollback_next_batch( $preview['id'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 50, $rollback_first['processed'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'rolling_back', $rollback_first['status'] );

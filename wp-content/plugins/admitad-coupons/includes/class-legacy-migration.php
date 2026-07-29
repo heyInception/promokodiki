@@ -99,35 +99,66 @@ final class Promokodiki_Admitad_Legacy_Migration {
 		$state    = $this->state();
 		$created  = 0;
 		$skipped  = 0;
+		$failed   = 0;
+		$processed = 0;
+		if ( empty( $state['source_counts'] ) ) {
+			$state['source_counts'] = $analysis;
+		}
 		foreach ( $rows as $item ) {
 			$type = $item['type'];
 			$row  = $item['row'];
 			$id   = (int) $row['id'];
-			if ( isset( $state[ $type ][ $id ] ) ) {
+			++$processed;
+			if ( isset( $state['outcomes'][ $type ][ $id ] ) ) {
 				++$skipped;
-				continue;
-			}
-			$result = 'companies' === $type
-				? $this->migrate_company( $row )
-				: $this->migrate_rule( $row, $type );
-			if ( $result['destination_id'] > 0 ) {
-				$state[ $type ][ $id ] = $result['destination_id'];
-			}
-			if ( $result['created'] ) {
-				++$created;
 			} else {
-				++$skipped;
+				try {
+					$result = 'companies' === $type
+						? $this->migrate_company( $row )
+						: $this->migrate_rule( $row, $type );
+					if ( $result['destination_id'] > 0 ) {
+						$state[ $type ][ $id ] = $result['destination_id'];
+					}
+					$state['outcomes'][ $type ][ $id ] = array(
+						'status'         => $result['outcome'],
+						'reason'         => $result['reason'],
+						'destination_id' => (int) $result['destination_id'],
+					);
+					if ( $result['created'] ) {
+						++$created;
+					} else {
+						++$skipped;
+					}
+				} catch ( Throwable $error ) {
+					++$failed;
+					$state['outcomes'][ $type ][ $id ] = array(
+						'status'         => 'failed',
+						'reason'         => 'row_exception',
+						'destination_id' => 0,
+					);
+				}
 			}
+			$state['cursor']     = min( (int) $analysis['total'], $offset + $processed );
+			$state['updated_at'] = time();
+			update_option( $this->option_name, $state, false );
 		}
-		$seed                           = ( new Promokodiki_Admitad_Taxonomy_Rule_Seeder() )->seed_all_terms();
-		$state['created_seed_rule_ids'] = array_values(
-			array_unique(
-				array_merge(
-					$state['created_seed_rule_ids'],
-					$seed['created_rule_ids']
+		try {
+			$seed                           = ( new Promokodiki_Admitad_Taxonomy_Rule_Seeder() )->seed_all_terms();
+			$state['created_seed_rule_ids'] = array_values(
+				array_unique(
+					array_merge(
+						$state['created_seed_rule_ids'],
+						$seed['created_rule_ids']
+					)
 				)
-			)
-		);
+			);
+			$state['seed_complete'] = true;
+			$state['seed_error']    = '';
+		} catch ( Throwable $error ) {
+			++$failed;
+			$state['seed_complete'] = false;
+			$state['seed_error']    = 'taxonomy_seed_failed';
+		}
 		$state['version']               = 1;
 		$state['cursor']                = min( (int) $analysis['total'], $offset + count( $rows ) );
 		$state['updated_at']            = time();
@@ -136,8 +167,9 @@ final class Promokodiki_Admitad_Legacy_Migration {
 			'processed'   => count( $rows ),
 			'created'     => $created,
 			'skipped'     => $skipped,
+			'failed'      => $failed,
 			'next_offset' => $state['cursor'],
-			'complete'    => $state['cursor'] >= $analysis['total'],
+			'complete'    => $state['cursor'] >= $analysis['total'] && ! empty( $state['seed_complete'] ),
 		);
 	}
 
@@ -170,7 +202,16 @@ final class Promokodiki_Admitad_Legacy_Migration {
 					++$missing;
 				}
 			}
+		} else {
+			$missing = -1;
 		}
+		$accounted = 0;
+		foreach ( array( 'keywords', 'categories', 'companies' ) as $type ) {
+			$accounted += count( (array) $state['outcomes'][ $type ] );
+		}
+		$source_counts_unchanged = $this->same_source_counts( (array) $state['source_counts'], $analysis );
+		$unaccounted             = max( 0, (int) $analysis['total'] - $accounted );
+		$taxonomy_seed_complete  = ! empty( $state['seed_complete'] ) && 0 === $missing;
 		return array(
 			'migrated_keywords'           => count( array_filter( $state['keywords'] ) ),
 			'migrated_companies'          => count( array_filter( $state['companies'] ) ),
@@ -183,7 +224,11 @@ final class Promokodiki_Admitad_Legacy_Migration {
 			'conflicting_rules'           => $conflicts,
 			'created_seed_rule_ids'       => array_map( 'intval', $state['created_seed_rule_ids'] ),
 			'cursor'                      => (int) $state['cursor'],
-			'complete'                    => (int) $state['cursor'] >= (int) $analysis['total'],
+			'accounted_total'             => $accounted,
+			'unaccounted'                 => $unaccounted,
+			'source_counts_unchanged'     => $source_counts_unchanged,
+			'taxonomy_seed_complete'      => $taxonomy_seed_complete,
+			'complete'                    => (int) $state['cursor'] >= (int) $analysis['total'] && 0 === $unaccounted && $source_counts_unchanged && $taxonomy_seed_complete,
 		);
 	}
 
@@ -225,7 +270,7 @@ final class Promokodiki_Admitad_Legacy_Migration {
 	 *
 	 * @param array<string,mixed> $row  Source row.
 	 * @param string              $type keywords or categories.
-	 * @return array{destination_id:int,created:bool}
+	 * @return array{destination_id:int,created:bool,outcome:string,reason:string}
 	 */
 	private function migrate_rule( array $row, string $type ): array {
 		$phrase  = 'keywords' === $type ? (string) $row['keyword'] : (string) $row['admitad_category_name'];
@@ -234,6 +279,8 @@ final class Promokodiki_Admitad_Legacy_Migration {
 			return array(
 				'destination_id' => 0,
 				'created'        => false,
+				'outcome'        => 'skipped',
+				'reason'         => 'orphan_term',
 			);
 		}
 		$rules      = new Promokodiki_Admitad_Rule_Repository();
@@ -243,6 +290,8 @@ final class Promokodiki_Admitad_Legacy_Migration {
 			return array(
 				'destination_id' => $existing,
 				'created'        => false,
+				'outcome'        => 'skipped',
+				'reason'         => 'duplicate',
 			);
 		}
 		$status = $this->safe_phrase( $normalized ) ? 'active' : 'suspended';
@@ -261,6 +310,8 @@ final class Promokodiki_Admitad_Legacy_Migration {
 		return array(
 			'destination_id' => $id,
 			'created'        => true,
+			'outcome'        => 'created',
+			'reason'         => $status,
 		);
 	}
 
@@ -268,7 +319,7 @@ final class Promokodiki_Admitad_Legacy_Migration {
 	 * Copy a company name only when it resolves to exactly one stable campaign ID.
 	 *
 	 * @param array<string,mixed> $row Source row.
-	 * @return array{destination_id:int,created:bool}
+	 * @return array{destination_id:int,created:bool,outcome:string,reason:string}
 	 */
 	private function migrate_company( array $row ): array {
 		global $wpdb;
@@ -287,6 +338,8 @@ final class Promokodiki_Admitad_Legacy_Migration {
 			return array(
 				'destination_id' => 0,
 				'created'        => false,
+				'outcome'        => 'queued',
+				'reason'         => 'ambiguous_or_missing_campaign',
 			);
 		}
 		$campaign_id = $campaigns[0];
@@ -295,6 +348,8 @@ final class Promokodiki_Admitad_Legacy_Migration {
 			return array(
 				'destination_id' => 0,
 				'created'        => false,
+				'outcome'        => 'skipped',
+				'reason'         => 'orphan_term',
 			);
 		}
 		$current = ( new Promokodiki_Admitad_Company_Profile_Repository() )->profile_for_campaign( $campaign_id );
@@ -310,6 +365,8 @@ final class Promokodiki_Admitad_Legacy_Migration {
 		return array(
 			'destination_id' => $campaign_id,
 			'created'        => true,
+			'outcome'        => 'created',
+			'reason'         => 'company_profile',
 		);
 	}
 
@@ -434,9 +491,23 @@ final class Promokodiki_Admitad_Legacy_Migration {
 				'categories'            => array(),
 				'companies'             => array(),
 				'created_seed_rule_ids' => array(),
+				'outcomes'              => array( 'keywords' => array(), 'categories' => array(), 'companies' => array() ),
+				'source_counts'         => array(),
+				'seed_complete'         => false,
+				'seed_error'            => '',
 				'updated_at'            => 0,
 			),
 			$state
 		);
+	}
+
+	/** Compare only immutable source table counts. */
+	private function same_source_counts( array $before, array $after ): bool {
+		foreach ( array( 'legacy_keywords', 'legacy_companies', 'legacy_category_names' ) as $key ) {
+			if ( (int) ( $before[ $key ] ?? -1 ) !== (int) ( $after[ $key ] ?? -2 ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 }

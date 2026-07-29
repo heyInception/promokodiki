@@ -15,11 +15,18 @@ $term_ids   = array();
 $snapshots  = array();
 $trash_id   = 0;
 $manual_id  = 0;
+$old_user   = get_current_user_id();
+$user_ids   = array();
 
 try {
 	admitad_register_content_types();
 	Promokodiki_Admitad_Schema::install();
+	Promokodiki_Admitad_Capabilities::install();
 	$suffix = strtolower( wp_generate_password( 8, false ) );
+	$owner_id = wp_insert_user( array( 'user_login' => 'preview-owner-' . $suffix, 'user_pass' => wp_generate_password( 20 ), 'user_email' => 'preview-owner-' . $suffix . '@example.test', 'role' => 'administrator' ) );
+	$other_id = wp_insert_user( array( 'user_login' => 'preview-other-' . $suffix, 'user_pass' => wp_generate_password( 20 ), 'user_email' => 'preview-other-' . $suffix . '@example.test', 'role' => 'administrator' ) );
+	$user_ids = array( $owner_id, $other_id );
+	wp_set_current_user( $owner_id );
 	$old    = wp_insert_term( 'Preview old ' . $suffix, 'promocode_category' );
 	$new    = wp_insert_term( 'Preview new ' . $suffix, 'promocode_category' );
 	$old_id = (int) $old['term_id'];
@@ -50,7 +57,7 @@ try {
 
 	Promokodiki_Admitad_Test_Harness::run(
 		'full preview is stable, bounded, lock-safe, taxonomy-read-only, resumable, and history-idempotent',
-		static function () use ( $post_ids, $old_id, $new_id, $trash_id, $manual_id, &$snapshots ): void {
+		static function () use ( $post_ids, $old_id, $new_id, $trash_id, $manual_id, $owner_id, $other_id, &$snapshots ): void {
 			global $wpdb;
 			$classifier = static function ( array $coupon ) use ( $old_id, $new_id ): Promokodiki_Admitad_Classification_Result {
 				$term_id = str_contains( (string) $coupon['title'], 'unchanged' ) ? $old_id : $new_id;
@@ -74,6 +81,15 @@ try {
 			Promokodiki_Admitad_Test_Harness::assert_same( $post_ids, $raw_state['source_post_ids'] );
 			Promokodiki_Admitad_Test_Harness::assert_true( ! in_array( $trash_id, $raw_state['source_post_ids'], true ) );
 			Promokodiki_Admitad_Test_Harness::assert_true( ! in_array( $manual_id, $raw_state['source_post_ids'], true ) );
+			$raw_state['expires_at'] = time() - 10;
+			update_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $started['id'] ), $raw_state, false );
+			wp_set_current_user( $other_id );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'foreign_snapshot', $service->preview_progress( $started['id'] )->get_error_code() );
+			wp_set_current_user( $owner_id );
+			$lock_key = 'promokodiki_admitad_snapshot_lock_' . sanitize_key( $started['id'] );
+			add_option( $lock_key, array( 'token' => 'concurrent', 'owner_id' => $owner_id, 'heartbeat' => time() ), '', false );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'snapshot_locked', $service->preview_next_batch( $started['id'] )->get_error_code() );
+			delete_option( $lock_key );
 
 			$first = $service->preview_next_batch( $started['id'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 50, $first['processed'] );
@@ -109,6 +125,7 @@ try {
 	);
 } finally {
 	global $wpdb;
+	wp_set_current_user( $old_user );
 	foreach ( array_merge( $post_ids, array( $trash_id, $manual_id ) ) as $post_id ) {
 		if ( $post_id > 0 ) {
 			wp_delete_post( $post_id, true );
@@ -117,6 +134,7 @@ try {
 	foreach ( array_reverse( $term_ids ) as $term_id ) {
 		wp_delete_term( $term_id, 'promocode_category' );
 	}
+	foreach ( $user_ids as $user_id ) { wp_delete_user( $user_id ); }
 	foreach ( $snapshots as $snapshot_id ) {
 		$wpdb->delete( Promokodiki_Admitad_Schema::table( 'classification_history' ), array( 'snapshot_id' => $snapshot_id ), array( '%s' ) );
 		delete_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $snapshot_id ) );

@@ -18,6 +18,7 @@ final class Promokodiki_Admitad_Diagnostics_Page {
 	 */
 	public function render(): void {
 		$snapshot = Promokodiki_Admitad_Diagnostics::snapshot();
+		$recovery = ( new Promokodiki_Admitad_Recovery_Coordinator() )->preflight();
 		require ADMITAD_PLUGIN_DIR . 'admin/views/diagnostics.php';
 	}
 }

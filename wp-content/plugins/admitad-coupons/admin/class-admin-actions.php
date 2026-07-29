@@ -424,21 +424,8 @@ final class Promokodiki_Admitad_Admin_Actions {
 		$actions   = new self();
 		$args      = array();
 		$result    = new WP_Error( 'invalid_operation', 'Unknown history operation.' );
-		if ( 'preview' === $operation ) {
-			$post_ids = array_map( 'absint', preg_split( '/[\s,]+/', sanitize_textarea_field( wp_unslash( $_POST['post_ids'] ?? '' ) ) ) );
-			$result   = $actions->create_classification_preview( $post_ids, $nonce );
-			if ( is_string( $result ) ) {
-				$args['snapshot'] = $result;
-				$result           = true;
-			}
-		} elseif ( 'apply' === $operation ) {
-			$snapshot_id = sanitize_text_field( wp_unslash( $_POST['snapshot_id'] ?? '' ) );
-			$result      = $actions->schedule_snapshot_apply( $snapshot_id, $nonce );
-			$args['snapshot'] = $snapshot_id;
-		} elseif ( 'rollback' === $operation ) {
-			$snapshot_id = sanitize_text_field( wp_unslash( $_POST['snapshot_id'] ?? '' ) );
-			$result      = $actions->rollback_snapshot( $snapshot_id, $nonce );
-			$args['snapshot'] = $snapshot_id;
+		if ( in_array( $operation, array( 'preview', 'apply', 'rollback' ), true ) ) {
+			$result = new WP_Error( 'javascript_required', 'Preview, apply, and rollback require bounded AJAX with JavaScript.' );
 		} elseif ( 'create_sample' === $operation ) {
 			$allowed = $actions->validate_history_request( $nonce );
 			if ( ! is_wp_error( $allowed ) ) {

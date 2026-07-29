@@ -6,7 +6,7 @@ final class Promokodiki_Admitad_Recovery_Coordinator {
 	private Promokodiki_Admitad_Legacy_Migration $migration; private Promokodiki_Admitad_Backup_Gate $backup; private Promokodiki_Admitad_Sync_Coordinator $sync; private Promokodiki_Admitad_Sync_Run_Repository $runs;
 	public function __construct( $migration = null, $backup = null, $sync = null, $runs = null ) { $this->migration = $migration ?? new Promokodiki_Admitad_Legacy_Migration(); $this->backup = $backup ?? new Promokodiki_Admitad_Backup_Gate(); $this->sync = $sync ?? new Promokodiki_Admitad_Sync_Coordinator(); $this->runs = $runs ?? new Promokodiki_Admitad_Sync_Run_Repository(); }
 	/** Return a read-only, path-free readiness report. */
-	public function preflight(): array { $analysis = $this->migration->analyze(); $backup = $this->backup->verify(); $reference = $this->reference_ready(); $blockers = array(); if ( is_wp_error( $backup ) ) { $blockers[] = $backup->get_error_code(); } if ( is_wp_error( $reference ) ) { $blockers[] = 'reference_required'; } return array( 'legacy_keywords' => (int) $analysis['legacy_keywords'], 'legacy_companies' => (int) $analysis['legacy_companies'], 'new_rules' => $this->count_table( 'rule' ), 'new_profiles' => $this->count_table( 'company_profile' ), 'backup_ready' => true === $backup, 'reference_ready' => true === $reference, 'latest_reference_run' => $this->runs->latest_completed( 'reference' ), 'migration' => $this->migration->verify(), 'blockers' => $blockers, 'issues' => array() ); }
+	public function preflight(): array { $analysis = $this->migration->analyze(); $backup = $this->backup->verify(); $reference = $this->reference_ready(); $blockers = array(); if ( is_wp_error( $backup ) ) { $blockers[] = $backup->get_error_code(); } if ( is_wp_error( $reference ) ) { $blockers[] = 'reference_required'; } return array( 'legacy_keywords' => (int) $analysis['legacy_keywords'], 'legacy_companies' => (int) $analysis['legacy_companies'], 'new_rules' => $this->count_table( 'rule' ), 'new_profiles' => $this->count_table( 'company_profile' ), 'backup_ready' => true === $backup, 'reference_ready' => true === $reference, 'latest_reference_run' => $this->runs->latest_completed( 'reference' ), 'migration' => $this->migration->verify(), 'migration_progress' => $this->migration_progress(), 'blockers' => $blockers, 'issues' => array() ); }
 	/** Start the existing bounded reference coordinator; this method never imports coupons. */
 	public function start_reference_sync() { return $this->sync->start_reference_sync(); }
 	/** Start a durable migration only after the independent recovery gates are verified. */
@@ -24,10 +24,23 @@ final class Promokodiki_Admitad_Recovery_Coordinator {
 		$state = $this->migration_state();
 		if ( 'running' !== $state['status'] ) { return new WP_Error( 'migration_not_running', 'Миграция не запущена.' ); }
 		if ( ! hash_equals( (string) $state['owner'], $owner ) && (int) $state['heartbeat'] + 600 >= time() ) { return new WP_Error( 'migration_locked', 'Миграция принадлежит другому сеансу.' ); }
+		if ( true !== $this->backup->verify() ) { return new WP_Error( 'backup_required', 'Проверенная резервная копия обязательна для каждого пакета.' ); }
+		if ( true !== $this->reference_ready() ) { return new WP_Error( 'reference_required', 'Справочные данные должны оставаться готовыми для каждого пакета.' ); }
 		$batch = $this->migration->migrate_batch( (int) $state['cursor'], 200 );
-		foreach ( array( 'processed', 'created', 'skipped' ) as $key ) { $state[ $key ] += (int) $batch[ $key ]; }
+		foreach ( array( 'processed', 'created', 'skipped', 'failed' ) as $key ) { $state[ $key ] += (int) ( $batch[ $key ] ?? 0 ); }
 		$state['cursor'] = (int) $batch['next_offset']; $state['heartbeat'] = time(); $state['owner'] = $owner;
-		if ( $batch['complete'] ) { $verify = $this->migration->verify(); $state['verification'] = $verify; $state['status'] = $verify['complete'] && $this->same_source_counts( $state['source_counts'], $this->migration->analyze() ) ? 'completed' : 'failed'; if ( 'failed' === $state['status'] ) { ++$state['failed']; } }
+		if ( $state['cursor'] >= $state['total'] ) {
+			$verify = $this->migration->verify();
+			$state['verification'] = $verify;
+			$state['status'] = ! empty( $verify['complete'] )
+				&& 0 === (int) ( $verify['unaccounted'] ?? -1 )
+				&& ! empty( $verify['source_counts_unchanged'] )
+				&& ! empty( $verify['taxonomy_seed_complete'] )
+				&& $this->same_source_counts( $state['source_counts'], $this->migration->analyze() )
+					? 'completed'
+					: 'failed';
+			if ( 'failed' === $state['status'] ) { ++$state['failed']; }
+		}
 		update_option( self::MIGRATION_OPTION, $state, false ); return $state;
 	}
 	/** Read path-free durable progress for AJAX polling and resume. */

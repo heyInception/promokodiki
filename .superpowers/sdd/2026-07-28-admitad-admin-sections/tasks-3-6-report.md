@@ -25,3 +25,11 @@
 - Archive now delegates through the same reviewer capability and `editor_review_enabled` gate as coupon-only resolution; both AJAX and admin-post fallbacks use that action.
 - The detailed table restores safe evidence disclosure and includes both resolve and archive forms with action, operation, nonce, and queue fields for progressive enhancement.
 - Focused disposable smoke: `test-queue-evidence-tags.php` passed 4/4; `git diff --check` exited 0 before commit.
+
+## Recovery blocker safety pass
+
+- Diagnostics and history now expose nonce-backed progressive recovery, preview, apply, status, and rollback controls; apply requires `confirmed=1`, and synchronous admin-post mutation loops are disabled.
+- Every migration batch rechecks the independent backup/reference gates. Source rows receive durable path-free outcomes, row exceptions advance the cursor, and completion requires accounting, taxonomy seeding, and unchanged-source verification.
+- Preview/apply/rollback steps use an atomic per-snapshot mutex with a live heartbeat and token-safe release. Preview progress is owner/capability protected, cursors persist per row, and active operations extend expiry so interrupted work remains resumable.
+- RED evidence was captured for missing controls, an expired-backup resume, unaccounted row exceptions, foreign preview access, concurrent snapshot steps, and stale active expiry before implementation.
+- GREEN disposable evidence: `test-recovery-ui.php`, `test-recovery-migration-ajax.php`, `test-reclassification-preview-ajax.php`, `test-reclassification-apply-ajax.php`, `test-admin-security.php`, and `test-admin-ajax.php` all passed through the designated `admitad_tests` site. PHP syntax checks, streamed `node --check`, and `git diff --check` also passed.

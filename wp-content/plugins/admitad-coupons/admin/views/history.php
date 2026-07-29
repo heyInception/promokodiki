@@ -10,12 +10,12 @@
 	<?php if ( current_user_can( 'manage_admitad_automation' ) ) : ?>
 		<h2><?php echo esc_html__( 'Предварительный просмотр', 'promokodiki-admitad' ); ?></h2>
 		<p><?php echo esc_html__( 'Укажите ID купонов. Просмотр не меняет рубрики и исключает купоны с редакционной блокировкой.', 'promokodiki-admitad' ); ?></p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="promokodiki_admitad_history_action"><input type="hidden" name="operation" value="preview">
-			<?php wp_nonce_field( 'promokodiki_admitad_history_action' ); ?>
-			<textarea name="post_ids" rows="3" class="large-text" required placeholder="123, 456, 789"></textarea>
+		<form method="post" data-admitad-ajax data-admitad-action="promokodiki_admitad_admin" data-admitad-operation="preview_start" data-admitad-page="admitad-history" data-admitad-step-operation="preview_step" data-admitad-status-operation="preview_status">
+			<input type="hidden" name="_ajax_nonce" value="<?php echo esc_attr( wp_create_nonce( 'promokodiki_admitad_admin_ajax' ) ); ?>">
+			<textarea name="post_ids" rows="3" class="large-text" placeholder="123, 456, 789"></textarea>
 			<?php submit_button( __( 'Создать неизменяемый просмотр', 'promokodiki-admitad' ) ); ?>
 		</form>
+		<noscript>Для безопасного пакетного предварительного просмотра требуется JavaScript.</noscript>
 		<h2><?php echo esc_html__( 'Контрольная выборка', 'promokodiki-admitad' ); ?></h2>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="promokodiki_admitad_history_action"><input type="hidden" name="operation" value="create_sample">
@@ -33,11 +33,19 @@
 		<?php endforeach; ?>
 		</tbody></table>
 		<?php if ( current_user_can( 'manage_admitad_automation' ) && get_current_user_id() === $snapshot['owner_id'] ) : ?>
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-				<input type="hidden" name="action" value="promokodiki_admitad_history_action"><input type="hidden" name="snapshot_id" value="<?php echo esc_attr( $snapshot['id'] ); ?>">
-				<?php wp_nonce_field( 'promokodiki_admitad_history_action' ); ?>
-				<?php if ( 'previewed' === $snapshot['status'] ) : ?><input type="hidden" name="operation" value="apply"><?php submit_button( __( 'Подтвердить и применить пакетно', 'promokodiki-admitad' ) ); ?><?php elseif ( 'applied' === $snapshot['status'] ) : ?><input type="hidden" name="operation" value="rollback"><?php submit_button( __( 'Точно откатить этот снимок', 'promokodiki-admitad' ), 'secondary' ); ?><?php endif; ?>
-			</form>
+			<p><?php echo esc_html( sprintf( 'Подтверждение снимка %s, затронуто купонов: %d.', $snapshot['id'], count( $snapshot['rows'] ) ) ); ?></p>
+			<?php if ( 'previewed' === $snapshot['status'] || 'applying' === $snapshot['status'] ) : ?>
+				<form method="post" data-admitad-ajax data-admitad-action="promokodiki_admitad_admin" data-admitad-operation="snapshot_apply_start" data-admitad-page="admitad-history" data-admitad-step-operation="snapshot_apply_step" data-admitad-status-operation="snapshot_status" data-admitad-snapshot-count="<?php echo esc_attr( (string) count( $snapshot['rows'] ) ); ?>">
+					<input type="hidden" name="_ajax_nonce" value="<?php echo esc_attr( wp_create_nonce( 'promokodiki_admitad_admin_ajax' ) ); ?>"><input type="hidden" name="snapshot_id" value="<?php echo esc_attr( $snapshot['id'] ); ?>"><input type="hidden" name="confirmed" value="1">
+					<?php submit_button( __( 'Подтвердить и применить пакетно', 'promokodiki-admitad' ) ); ?>
+				</form>
+			<?php elseif ( 'applied' === $snapshot['status'] || 'rolling_back' === $snapshot['status'] ) : ?>
+				<form method="post" data-admitad-ajax data-admitad-action="promokodiki_admitad_admin" data-admitad-operation="snapshot_rollback_start" data-admitad-page="admitad-history" data-admitad-step-operation="snapshot_rollback_step" data-admitad-status-operation="snapshot_status">
+					<input type="hidden" name="_ajax_nonce" value="<?php echo esc_attr( wp_create_nonce( 'promokodiki_admitad_admin_ajax' ) ); ?>"><input type="hidden" name="snapshot_id" value="<?php echo esc_attr( $snapshot['id'] ); ?>"><input type="hidden" name="confirmed" value="1">
+					<?php submit_button( __( 'Точно откатить этот снимок', 'promokodiki-admitad' ), 'secondary' ); ?>
+				</form>
+			<?php endif; ?>
+			<noscript>Для применения и отката требуется JavaScript.</noscript>
 		<?php endif; ?>
 	<?php endif; ?>
 

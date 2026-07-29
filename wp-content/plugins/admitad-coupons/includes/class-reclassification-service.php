@@ -79,22 +79,70 @@ final class Promokodiki_Admitad_Reclassification_Service {
 
 	/** Process at most fifty immutable preview rows without taxonomy mutation. */
 	public function preview_next_batch( string $snapshot_id ) {
-		$state = (array) get_option( $this->status_key( $snapshot_id ), array() );
-		if ( 'previewing' !== ( $state['status'] ?? '' ) ) { return new WP_Error( 'invalid_snapshot_state', 'Снимок недоступен для предварительного просмотра.' ); }
-		$ids = array_slice( array_map( 'absint', (array) $state['source_post_ids'] ), (int) $state['cursor'], self::BATCH_SIZE );
-		$existing = array_flip( array_map( 'intval', array_column( $this->history->snapshot_rows( $snapshot_id ), 'post_id' ) ) );
-		foreach ( $ids as $post_id ) { ++$state['processed']; try { if ( 'promocode' !== get_post_type( $post_id ) ) { ++$state['unchanged']; continue; } if ( Promokodiki_Admitad_Editorial_Locks::category_locked( $post_id ) ) { ++$state['locked']; continue; } $current_terms = array_map( 'intval', wp_get_object_terms( $post_id, 'promocode_category', array( 'fields' => 'ids' ) ) ); $current_primary = (int) get_post_meta( $post_id, '_admitad_primary_term_id', true ); $result = call_user_func( $this->classifier, $this->coupon_from_post( $post_id ), $this->context_for_post( $post_id ) ); $before = $current_terms; $after = $result->term_ids(); sort( $before ); sort( $after ); if ( $before === $after && $current_primary === $result->primary_term_id() ) { ++$state['unchanged']; continue; } if ( ! isset( $existing[ $post_id ] ) ) { $this->history->record( $post_id, $result, $current_terms, $current_primary, 'preview', $snapshot_id ); $existing[ $post_id ] = true; } ++$state['affected']; } catch ( Throwable $error ) { ++$state['failed']; } }
-		$state['cursor'] += count( $ids ); $state['heartbeat'] = time(); if ( $state['cursor'] >= count( $state['source_post_ids'] ) ) { $state['status'] = 'previewed'; } update_option( $this->status_key( $snapshot_id ), $state, false ); return $this->preview_progress( $snapshot_id );
+		$state = $this->authorized_state( $snapshot_id, array( 'previewing' ) );
+		if ( is_wp_error( $state ) ) {
+			return $state;
+		}
+		return $this->with_snapshot_lock(
+			$snapshot_id,
+			function () use ( $snapshot_id ) {
+				$state    = (array) get_option( $this->status_key( $snapshot_id ), array() );
+				$ids      = array_slice( array_map( 'absint', (array) $state['source_post_ids'] ), (int) $state['cursor'], self::BATCH_SIZE );
+				$existing = array_flip( array_map( 'intval', array_column( $this->history->snapshot_rows( $snapshot_id ), 'post_id' ) ) );
+				foreach ( $ids as $post_id ) {
+					++$state['processed'];
+					try {
+						if ( 'promocode' !== get_post_type( $post_id ) ) {
+							++$state['unchanged'];
+						} elseif ( Promokodiki_Admitad_Editorial_Locks::category_locked( $post_id ) ) {
+							++$state['locked'];
+						} else {
+							$current_terms   = array_map( 'intval', wp_get_object_terms( $post_id, 'promocode_category', array( 'fields' => 'ids' ) ) );
+							$current_primary = (int) get_post_meta( $post_id, '_admitad_primary_term_id', true );
+							$result          = call_user_func( $this->classifier, $this->coupon_from_post( $post_id ), $this->context_for_post( $post_id ) );
+							$before          = $current_terms;
+							$after           = $result->term_ids();
+							sort( $before );
+							sort( $after );
+							if ( $before === $after && $current_primary === $result->primary_term_id() ) {
+								++$state['unchanged'];
+							} else {
+								if ( ! isset( $existing[ $post_id ] ) ) {
+									$this->history->record( $post_id, $result, $current_terms, $current_primary, 'preview', $snapshot_id );
+									$existing[ $post_id ] = true;
+								}
+								++$state['affected'];
+							}
+						}
+					} catch ( Throwable $error ) {
+						++$state['failed'];
+					}
+					++$state['cursor'];
+					$this->heartbeat_snapshot( $snapshot_id, $state );
+				}
+				if ( $state['cursor'] >= count( $state['source_post_ids'] ) ) {
+					$state['status'] = 'previewed';
+				}
+				$this->heartbeat_snapshot( $snapshot_id, $state );
+				return $this->preview_progress( $snapshot_id );
+			}
+		);
 	}
 
 	/** Read durable preview progress without exposing implementation details. */
 	public function preview_progress( string $snapshot_id ) {
-		$state = (array) get_option( $this->status_key( $snapshot_id ), array() ); if ( empty( $state['status'] ) ) { return new WP_Error( 'invalid_snapshot', 'Снимок не найден.' ); } unset( $state['source_post_ids'] ); $state['snapshot_id'] = sanitize_text_field( $snapshot_id ); return $state;
+		$state = $this->authorized_state( $snapshot_id, array( 'previewing', 'previewed' ) );
+		if ( is_wp_error( $state ) ) {
+			return $state;
+		}
+		unset( $state['source_post_ids'] );
+		$state['snapshot_id'] = sanitize_text_field( $snapshot_id );
+		return $state;
 	}
 
 	/** Begin or resume an owned apply operation. */
 	public function start_apply( string $snapshot_id ) {
-		$state = $this->authorized_state( $snapshot_id, array( 'previewed', 'applying' ) );
+		$state = $this->authorized_state( $snapshot_id, array( 'previewed', 'applying' ), true );
 		if ( is_wp_error( $state ) ) {
 			return $state;
 		}
@@ -110,6 +158,12 @@ final class Promokodiki_Admitad_Reclassification_Service {
 		if ( is_wp_error( $state ) ) {
 			return $state;
 		}
+		return $this->with_snapshot_lock( $snapshot_id, fn() => $this->apply_batch_unlocked( $snapshot_id ) );
+	}
+
+	/** Apply a batch while holding the per-snapshot mutex. */
+	private function apply_batch_unlocked( string $snapshot_id ) {
+		$state = (array) get_option( $this->status_key( $snapshot_id ), array() );
 		$rows  = $this->history->snapshot_rows( $snapshot_id );
 		$batch = array_slice( $rows, (int) $state['cursor'], self::BATCH_SIZE );
 		foreach ( $batch as $row ) {
@@ -117,9 +171,7 @@ final class Promokodiki_Admitad_Reclassification_Service {
 			$post_id = (int) $row['post_id'];
 			if ( 'promocode' !== get_post_type( $post_id ) || Promokodiki_Admitad_Editorial_Locks::category_locked( $post_id ) ) {
 				++$state['skipped'];
-				continue;
-			}
-			try {
+			} else try {
 				$result = new Promokodiki_Admitad_Classification_Result(
 					array_map( 'intval', $row['result_terms'] ),
 					(int) $row['result_primary_term_id'],
@@ -136,20 +188,20 @@ final class Promokodiki_Admitad_Reclassification_Service {
 				++$state['failed'];
 				$this->add_failure( $state, $post_id, 'apply_failed' );
 			}
+			++$state['cursor'];
+			$this->heartbeat_snapshot( $snapshot_id, $state );
 		}
-		$state['cursor'] += count( $batch );
-		$state['heartbeat'] = time();
 		if ( $state['cursor'] >= count( $rows ) ) {
 			$state['status'] = 'applied';
 			$state['expires_at'] = time() + ( DAY_IN_SECONDS * (int) Promokodiki_Admitad_Config::get( 'log_retention_days' ) );
 		}
-		update_option( $this->status_key( $snapshot_id ), $state, false );
+		$this->heartbeat_snapshot( $snapshot_id, $state );
 		return $this->snapshot_progress( $snapshot_id );
 	}
 
 	/** Begin or resume rollback of an owned applied snapshot. */
 	public function start_rollback( string $snapshot_id ) {
-		$state = $this->authorized_state( $snapshot_id, array( 'applied', 'rolling_back' ) );
+		$state = $this->authorized_state( $snapshot_id, array( 'applied', 'rolling_back' ), true );
 		if ( is_wp_error( $state ) ) {
 			return $state;
 		}
@@ -165,6 +217,12 @@ final class Promokodiki_Admitad_Reclassification_Service {
 		if ( is_wp_error( $state ) ) {
 			return $state;
 		}
+		return $this->with_snapshot_lock( $snapshot_id, fn() => $this->rollback_batch_unlocked( $snapshot_id ) );
+	}
+
+	/** Roll back a batch while holding the per-snapshot mutex. */
+	private function rollback_batch_unlocked( string $snapshot_id ) {
+		$state = (array) get_option( $this->status_key( $snapshot_id ), array() );
 		$rows  = $this->history->snapshot_rows( $snapshot_id );
 		$batch = array_slice( $rows, (int) $state['cursor'], self::BATCH_SIZE );
 		foreach ( $batch as $row ) {
@@ -172,9 +230,7 @@ final class Promokodiki_Admitad_Reclassification_Service {
 			$post_id = (int) $row['post_id'];
 			if ( 'promocode' !== get_post_type( $post_id ) || Promokodiki_Admitad_Editorial_Locks::category_locked( $post_id ) ) {
 				++$state['skipped'];
-				continue;
-			}
-			try {
+			} else try {
 				$assigned = Promokodiki_Admitad_Import_Context::run(
 					static fn() => wp_set_post_terms(
 						$post_id,
@@ -192,22 +248,22 @@ final class Promokodiki_Admitad_Reclassification_Service {
 				++$state['failed'];
 				$this->add_failure( $state, $post_id, 'rollback_failed' );
 			}
+			++$state['cursor'];
+			$this->heartbeat_snapshot( $snapshot_id, $state );
 		}
-		$state['cursor'] += count( $batch );
-		$state['heartbeat'] = time();
 		if ( $state['cursor'] >= count( $rows ) ) {
 			$state['status'] = 'rolled_back';
 			$state['expires_at'] = time() + ( DAY_IN_SECONDS * (int) Promokodiki_Admitad_Config::get( 'log_retention_days' ) );
 		}
-		update_option( $this->status_key( $snapshot_id ), $state, false );
+		$this->heartbeat_snapshot( $snapshot_id, $state );
 		return $this->snapshot_progress( $snapshot_id );
 	}
 
 	/** Read sanitized durable apply or rollback progress. */
 	public function snapshot_progress( string $snapshot_id ) {
-		$state = (array) get_option( $this->status_key( $snapshot_id ), array() );
-		if ( empty( $state['status'] ) ) {
-			return new WP_Error( 'invalid_snapshot', 'Снимок не найден.' );
+		$state = $this->authorized_state( $snapshot_id, array( 'previewing', 'previewed', 'applying', 'applied', 'rolling_back', 'rolled_back' ) );
+		if ( is_wp_error( $state ) ) {
+			return $state;
 		}
 		unset( $state['source_post_ids'] );
 		$state['snapshot_id'] = sanitize_text_field( $snapshot_id );
@@ -271,7 +327,12 @@ final class Promokodiki_Admitad_Reclassification_Service {
 		}
 		$rows  = $this->history->snapshot_rows( $snapshot_id );
 		$state = get_option( $this->status_key( $snapshot_id ), array() );
-		if ( ! is_array( $state ) || ! isset( $state['status'] ) || (int) ( $state['expires_at'] ?? 0 ) < time() ) {
+		$active_statuses = array( 'previewing', 'applying', 'rolling_back' );
+		if (
+			! is_array( $state )
+			|| ! isset( $state['status'] )
+			|| ( (int) ( $state['expires_at'] ?? 0 ) < time() && ! in_array( $state['status'], $active_statuses, true ) )
+		) {
 			return null;
 		}
 		return array(
@@ -323,11 +384,20 @@ final class Promokodiki_Admitad_Reclassification_Service {
 	}
 
 	/** Validate capability, ownership, expiry, and an allowed state. */
-	private function authorized_state( string $snapshot_id, array $statuses ) {
+	private function authorized_state( string $snapshot_id, array $statuses, bool $allow_expired = false ) {
 		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
 			return new WP_Error( 'forbidden', 'Недостаточно прав для управления снимком.' );
 		}
 		$snapshot = $this->get_snapshot( sanitize_text_field( $snapshot_id ) );
+		if ( ! $snapshot && $allow_expired && 1 === preg_match( '/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i', $snapshot_id ) ) {
+			$state = (array) get_option( $this->status_key( $snapshot_id ), array() );
+			if ( ! empty( $state['status'] ) ) {
+				$snapshot = array(
+					'status'   => sanitize_key( (string) $state['status'] ),
+					'owner_id' => (int) ( $state['owner_id'] ?? 0 ),
+				);
+			}
+		}
 		if ( ! $snapshot ) {
 			return new WP_Error( 'invalid_snapshot', 'Снимок недоступен.' );
 		}
@@ -350,8 +420,53 @@ final class Promokodiki_Admitad_Reclassification_Service {
 		$state['failed'] = 0;
 		$state['failure_summaries'] = array();
 		$state['heartbeat'] = time();
+		$state['expires_at'] = time() + DAY_IN_SECONDS;
 		update_option( $this->status_key( $snapshot_id ), $state, false );
 		return $this->snapshot_progress( $snapshot_id );
+	}
+
+	/** Persist cursor progress and keep an active operation resumable. */
+	private function heartbeat_snapshot( string $snapshot_id, array &$state ): void {
+		$state['heartbeat']  = time();
+		if ( in_array( $state['status'], array( 'previewing', 'applying', 'rolling_back' ), true ) ) {
+			$state['expires_at'] = time() + DAY_IN_SECONDS;
+		}
+		update_option( $this->status_key( $snapshot_id ), $state, false );
+
+		$lock_key = $this->lock_key( $snapshot_id );
+		$lock     = get_option( $lock_key, array() );
+		if ( is_array( $lock ) && ! empty( $lock['token'] ) ) {
+			$lock['heartbeat'] = time();
+			update_option( $lock_key, $lock, false );
+		}
+	}
+
+	/** Serialize each mutable step and safely recover abandoned locks. */
+	private function with_snapshot_lock( string $snapshot_id, callable $callback ) {
+		$lock_key = $this->lock_key( $snapshot_id );
+		$token    = wp_generate_uuid4();
+		$lock     = array(
+			'token'     => $token,
+			'owner_id'  => get_current_user_id(),
+			'heartbeat' => time(),
+		);
+		if ( ! add_option( $lock_key, $lock, '', false ) ) {
+			$existing = get_option( $lock_key, array() );
+			if ( is_array( $existing ) && (int) ( $existing['heartbeat'] ?? 0 ) < time() - 120 ) {
+				delete_option( $lock_key );
+			}
+			if ( ! add_option( $lock_key, $lock, '', false ) ) {
+				return new WP_Error( 'snapshot_locked', 'Операция над снимком уже выполняется.' );
+			}
+		}
+		try {
+			return call_user_func( $callback );
+		} finally {
+			$current = get_option( $lock_key, array() );
+			if ( is_array( $current ) && hash_equals( $token, (string) ( $current['token'] ?? '' ) ) ) {
+				delete_option( $lock_key );
+			}
+		}
 	}
 
 	/** Store only stable path-free failure evidence. */
@@ -444,5 +559,10 @@ final class Promokodiki_Admitad_Reclassification_Service {
 	 */
 	private function status_key( string $snapshot_id ): string {
 		return 'promokodiki_admitad_snapshot_' . sanitize_key( $snapshot_id );
+	}
+
+	/** Return per-snapshot mutex option key. */
+	private function lock_key( string $snapshot_id ): string {
+		return 'promokodiki_admitad_snapshot_lock_' . sanitize_key( $snapshot_id );
 	}
 }

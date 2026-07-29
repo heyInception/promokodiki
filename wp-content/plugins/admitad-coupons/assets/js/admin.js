@@ -208,17 +208,22 @@
 			previewing: 'preview_step',
 			applying: 'snapshot_apply_step',
 			rolling_back: 'snapshot_rollback_step',
+			running: progress.owner ? 'recovery_migration_step' : '',
 		}[ progress.status ];
 		const snapshotId = progress.snapshot_id || progress.id;
-		if ( ! operation || typeof snapshotId !== 'string' || ! snapshotId ) {
+		if ( ! operation || ( operation !== 'recovery_migration_step' && ( typeof snapshotId !== 'string' || ! snapshotId ) ) ) {
 			return;
 		}
 		window.setTimeout( () => {
 			const payload = new URLSearchParams( {
 				operation,
-				page: 'admitad-history',
-				snapshot_id: snapshotId,
+				page: operation === 'recovery_migration_step' ? 'admitad-diagnostics' : 'admitad-history',
 			} );
+			if ( operation === 'recovery_migration_step' ) {
+				payload.set( 'owner', progress.owner );
+			} else {
+				payload.set( 'snapshot_id', snapshotId );
+			}
 			send( target, action, payload, null, 'replace' );
 		}, 0 );
 	}

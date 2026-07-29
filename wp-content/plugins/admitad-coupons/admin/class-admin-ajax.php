@@ -162,7 +162,7 @@ final class Promokodiki_Admitad_Admin_Ajax {
 
 	/** Render history results only; recovery preview/apply/rollback remains on admin-post. */
 	private static function handle_history_operation( string $operation, array $request, array $raw_request ) {
-		if ( in_array( $operation, array( 'preview_start', 'preview_step', 'preview_status' ), true ) ) { if ( 'admitad-history' !== $request['page'] || ! current_user_can( 'manage_admitad_automation' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для предварительного просмотра.' ); } $service = new Promokodiki_Admitad_Reclassification_Service(); if ( 'preview_start' === $operation ) { $result = $service->start_preview( self::term_ids( $raw_request['post_ids'] ?? array() ) ); } elseif ( 'preview_step' === $operation ) { $result = $service->preview_next_batch( sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot_id' ) ) ); } else { $result = $service->preview_progress( sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot_id' ) ) ); } return is_wp_error( $result ) ? $result : array( 'message' => 'Готово.', 'progress' => $result ); }
+		if ( in_array( $operation, array( 'preview_start', 'preview_step', 'preview_status' ), true ) ) { if ( 'admitad-history' !== $request['page'] || ! current_user_can( 'manage_admitad_automation' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для предварительного просмотра.' ); } $service = new Promokodiki_Admitad_Reclassification_Service(); if ( 'preview_start' === $operation ) { $result = $service->start_preview( self::post_ids( $raw_request['post_ids'] ?? array() ) ); } elseif ( 'preview_step' === $operation ) { $result = $service->preview_next_batch( sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot_id' ) ) ); } else { $result = $service->preview_progress( sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot_id' ) ) ); } return is_wp_error( $result ) ? $result : array( 'message' => 'Готово.', 'progress' => $result ); }
 		if ( in_array( $operation, array( 'snapshot_apply_start', 'snapshot_apply_step', 'snapshot_rollback_start', 'snapshot_rollback_step', 'snapshot_status' ), true ) ) {
 			if ( 'admitad-history' !== $request['page'] || ! current_user_can( 'manage_admitad_automation' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для управления снимком.' ); }
 			$service = new Promokodiki_Admitad_Reclassification_Service();
@@ -299,6 +299,14 @@ final class Promokodiki_Admitad_Admin_Ajax {
 			return array();
 		}
 		return array_values( array_unique( array_map( 'absint', array_slice( $value, 0, self::MAX_ARRAY_ITEMS ) ) ) );
+	}
+
+	/** Return bounded post IDs from either a textarea or repeated fields. */
+	private static function post_ids( $value ): array {
+		if ( is_scalar( $value ) ) {
+			$value = preg_split( '/[\s,;]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY );
+		}
+		return self::term_ids( $value );
 	}
 
 	/**
