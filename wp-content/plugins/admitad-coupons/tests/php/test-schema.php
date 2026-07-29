@@ -43,7 +43,11 @@ Promokodiki_Admitad_Test_Harness::run(
 			$existing[ $table ] = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 		}
 		foreach ( $legacy_tables as $table ) {
-			$legacy_counts[ $table ] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+			$exists = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+			$legacy_counts[ $table ] = array(
+				'exists' => $exists,
+				'count'  => $exists ? (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ) : 0,
+			);
 		}
 
 		try {
@@ -72,11 +76,15 @@ Promokodiki_Admitad_Test_Harness::run(
 				)
 			);
 
-			foreach ( $legacy_counts as $table => $count ) {
-				Promokodiki_Admitad_Test_Harness::assert_same(
-					$count,
-					(int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" )
-				);
+			foreach ( $legacy_counts as $table => $baseline ) {
+				$exists = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+				Promokodiki_Admitad_Test_Harness::assert_same( $baseline['exists'], $exists );
+				if ( $exists ) {
+					Promokodiki_Admitad_Test_Harness::assert_same(
+						$baseline['count'],
+						(int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" )
+					);
+				}
 			}
 		} finally {
 			foreach ( $existing as $table => $did_exist ) {

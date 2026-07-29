@@ -69,13 +69,16 @@ function promokodiki_admitad_sync_snapshot(): array {
 	global $wpdb;
 
 	$tables = array();
+	$sqlite = ( defined( 'DB_ENGINE' ) && 'sqlite' === DB_ENGINE )
+		|| ( defined( 'DATABASE_TYPE' ) && 'sqlite' === DATABASE_TYPE )
+		|| $wpdb instanceof WP_SQLite_DB;
 	foreach ( array( 'category_map', 'company_profile', 'company_category', 'rule', 'review_queue', 'sync_run', 'classification_history' ) as $suffix ) {
 		$table  = Promokodiki_Admitad_Schema::table( $suffix );
 		$exists = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
 		$tables[ $table ] = array(
 			'exists'         => $exists,
 			'rows'           => $exists ? $wpdb->get_results( "SELECT * FROM {$table}", ARRAY_A ) : array(),
-			'auto_increment' => $exists ? (int) $wpdb->get_var( "SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$table}'" ) : 0,
+			'auto_increment' => $exists && ! $sqlite ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s', $table ) ) : 0,
 		);
 	}
 
@@ -117,9 +120,15 @@ function promokodiki_admitad_sync_snapshot_cron(): array {
 function promokodiki_admitad_sync_restore( array $snapshot ): void {
 	global $wpdb;
 
-	foreach ( $snapshot['tables'] as $table => $table_snapshot ) {
+	$sqlite = ( defined( 'DB_ENGINE' ) && 'sqlite' === DB_ENGINE )
+		|| ( defined( 'DATABASE_TYPE' ) && 'sqlite' === DATABASE_TYPE )
+		|| $wpdb instanceof WP_SQLite_DB;
+	foreach ( (array) ( $snapshot['tables'] ?? array() ) as $table => $table_snapshot ) {
+		if ( ! is_array( $table_snapshot ) ) {
+			continue;
+		}
 		$exists = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
-		if ( ! $table_snapshot['exists'] ) {
+		if ( empty( $table_snapshot['exists'] ) ) {
 			if ( $exists ) {
 				$wpdb->query( 'DROP TABLE IF EXISTS ' . $table ); // The table was created after the snapshot.
 			}
@@ -129,18 +138,20 @@ function promokodiki_admitad_sync_restore( array $snapshot ): void {
 			throw new RuntimeException( 'A pre-existing Admitad table disappeared during the coordinator test.' );
 		}
 		$wpdb->query( "DELETE FROM {$table}" );
-		foreach ( $table_snapshot['rows'] as $row ) {
+		foreach ( (array) ( $table_snapshot['rows'] ?? array() ) as $row ) {
 			$wpdb->insert( $table, $row );
 		}
-		if ( $table_snapshot['auto_increment'] > 0 ) {
+		if ( ! $sqlite && (int) ( $table_snapshot['auto_increment'] ?? 0 ) > 0 ) {
 			$wpdb->query( 'ALTER TABLE ' . $table . ' AUTO_INCREMENT = ' . $table_snapshot['auto_increment'] );
 		}
 	}
 
-	foreach ( $snapshot['options'] as $option => $option_snapshot ) {
-		promokodiki_admitad_sync_restore_option( $option, $option_snapshot );
+	foreach ( (array) ( $snapshot['options'] ?? array() ) as $option => $option_snapshot ) {
+		if ( is_array( $option_snapshot ) ) {
+			promokodiki_admitad_sync_restore_option( $option, $option_snapshot );
+		}
 	}
-	promokodiki_admitad_sync_restore_cron( $snapshot['cron'] );
+	promokodiki_admitad_sync_restore_cron( (array) ( $snapshot['cron'] ?? array() ) );
 }
 
 /**
@@ -191,7 +202,9 @@ function promokodiki_admitad_sync_cleanup( array $post_ids, array $term_ids = ar
 	global $promokodiki_admitad_sync_snapshot;
 
 	if ( null === $snapshot ) {
-		$snapshot = $promokodiki_admitad_sync_snapshot;
+		$snapshot = is_array( $promokodiki_admitad_sync_snapshot )
+			? $promokodiki_admitad_sync_snapshot
+			: array( 'tables' => array(), 'options' => array(), 'cron' => array() );
 	}
 	if ( null !== $campaign_id ) {
 		$post_ids = array_merge(
@@ -378,6 +391,10 @@ Promokodiki_Admitad_Test_Harness::run(
 			Promokodiki_Admitad_Test_Harness::assert_true( $scheduled[1]['timestamp'] >= time() + 16 );
 		} finally {
 			remove_filter( 'pre_http_request', $http );
+			$owner = (string) get_option( 'promokodiki_admitad_run_owner_' . $run_id, '' );
+			if ( $run_id > 0 && '' !== $owner ) {
+				( new Promokodiki_Admitad_Job_Lock() )->release( 'coupon', $owner );
+			}
 			delete_option( 'promokodiki_admitad_run_owner_' . $run_id );
 			delete_option( 'promokodiki_admitad_retry_' . $run_id );
 			promokodiki_admitad_sync_cleanup( array() );
@@ -442,6 +459,7 @@ Promokodiki_Admitad_Test_Harness::run(
 		Promokodiki_Admitad_Schema::install();
 		Promokodiki_Admitad_Plugin::boot();
 		$result = array( 'run_id' => 0 );
+		$run_id = 0;
 
 		try {
 			Promokodiki_Admitad_Test_Harness::assert_true(
@@ -457,11 +475,21 @@ Promokodiki_Admitad_Test_Harness::run(
 				)
 			);
 			$result = update_admitad_coupons_data();
+			if ( is_wp_error( $result ) ) {
+				throw new RuntimeException( 'Legacy facade failed: ' . $result->get_error_code() );
+			}
+			$run_id = (int) $result['run_id'];
 			Promokodiki_Admitad_Test_Harness::assert_same( 'scheduled', $result['status'] );
 			Promokodiki_Admitad_Test_Harness::assert_true( $result['run_id'] > 0 );
 		} finally {
 			delete_option( 'admitad_import_lock' );
-			delete_option( 'promokodiki_admitad_run_owner_' . $result['run_id'] );
+			if ( $run_id > 0 ) {
+				$owner = (string) get_option( 'promokodiki_admitad_run_owner_' . $run_id, '' );
+				if ( '' !== $owner ) {
+					( new Promokodiki_Admitad_Job_Lock() )->release( 'coupon', $owner );
+				}
+				delete_option( 'promokodiki_admitad_run_owner_' . $run_id );
+			}
 			promokodiki_admitad_sync_cleanup( array() );
 		}
 	}
