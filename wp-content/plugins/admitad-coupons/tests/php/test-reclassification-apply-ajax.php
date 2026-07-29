@@ -72,6 +72,12 @@ try {
 			$expired = get_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $preview['id'] ) );
 			$expired['expires_at'] = time() - 10;
 			update_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $preview['id'] ), $expired, false );
+			$expired_start = Promokodiki_Admitad_Admin_Ajax::handle(
+				array( 'operation' => 'snapshot_apply_start', 'page' => 'admitad-history', 'snapshot_id' => $preview['id'], 'confirmed' => '1', '_ajax_nonce' => $nonce )
+			);
+			Promokodiki_Admitad_Test_Harness::assert_same( 'invalid_snapshot', $expired_start->get_error_code() );
+			$expired['expires_at'] = time() + DAY_IN_SECONDS;
+			update_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $preview['id'] ), $expired, false );
 			$started = Promokodiki_Admitad_Admin_Ajax::handle(
 				array( 'operation' => 'snapshot_apply_start', 'page' => 'admitad-history', 'snapshot_id' => $preview['id'], 'confirmed' => '1', '_ajax_nonce' => $nonce )
 			);
@@ -99,6 +105,9 @@ try {
 				$paused = get_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $preview['id'] ) );
 				$paused['expires_at'] = time() - 10;
 				update_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $preview['id'] ), $paused, false );
+				$resumed = $service->start_apply( $preview['id'] );
+				Promokodiki_Admitad_Test_Harness::assert_same( 'applying', $resumed['status'] );
+				Promokodiki_Admitad_Test_Harness::assert_true( $resumed['expires_at'] > time() );
 				$second = $service->apply_next_batch( $preview['id'] );
 			} finally {
 				remove_action( 'set_object_terms', $failure, 1 );

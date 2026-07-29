@@ -142,11 +142,12 @@ final class Promokodiki_Admitad_Reclassification_Service {
 
 	/** Begin or resume an owned apply operation. */
 	public function start_apply( string $snapshot_id ) {
-		$state = $this->authorized_state( $snapshot_id, array( 'previewed', 'applying' ), true );
+		$state = $this->authorized_state( $snapshot_id, array( 'previewed', 'applying' ) );
 		if ( is_wp_error( $state ) ) {
 			return $state;
 		}
 		if ( 'applying' === $state['status'] ) {
+			$this->heartbeat_snapshot( $snapshot_id, $state );
 			return $this->snapshot_progress( $snapshot_id );
 		}
 		return $this->start_snapshot_operation( $snapshot_id, $state, 'applying' );
@@ -201,11 +202,12 @@ final class Promokodiki_Admitad_Reclassification_Service {
 
 	/** Begin or resume rollback of an owned applied snapshot. */
 	public function start_rollback( string $snapshot_id ) {
-		$state = $this->authorized_state( $snapshot_id, array( 'applied', 'rolling_back' ), true );
+		$state = $this->authorized_state( $snapshot_id, array( 'applied', 'rolling_back' ) );
 		if ( is_wp_error( $state ) ) {
 			return $state;
 		}
 		if ( 'rolling_back' === $state['status'] ) {
+			$this->heartbeat_snapshot( $snapshot_id, $state );
 			return $this->snapshot_progress( $snapshot_id );
 		}
 		return $this->start_snapshot_operation( $snapshot_id, $state, 'rolling_back' );
@@ -384,20 +386,11 @@ final class Promokodiki_Admitad_Reclassification_Service {
 	}
 
 	/** Validate capability, ownership, expiry, and an allowed state. */
-	private function authorized_state( string $snapshot_id, array $statuses, bool $allow_expired = false ) {
+	private function authorized_state( string $snapshot_id, array $statuses ) {
 		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
 			return new WP_Error( 'forbidden', 'Недостаточно прав для управления снимком.' );
 		}
 		$snapshot = $this->get_snapshot( sanitize_text_field( $snapshot_id ) );
-		if ( ! $snapshot && $allow_expired && 1 === preg_match( '/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i', $snapshot_id ) ) {
-			$state = (array) get_option( $this->status_key( $snapshot_id ), array() );
-			if ( ! empty( $state['status'] ) ) {
-				$snapshot = array(
-					'status'   => sanitize_key( (string) $state['status'] ),
-					'owner_id' => (int) ( $state['owner_id'] ?? 0 ),
-				);
-			}
-		}
 		if ( ! $snapshot ) {
 			return new WP_Error( 'invalid_snapshot', 'Снимок недоступен.' );
 		}
