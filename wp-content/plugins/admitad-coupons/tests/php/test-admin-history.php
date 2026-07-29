@@ -43,6 +43,15 @@ try {
 		)
 	);
 	$user_ids[] = $admin_id;
+	$other_admin_id = wp_insert_user(
+		array(
+			'user_login' => 'admitad-history-other-' . $suffix,
+			'user_pass'  => wp_generate_password( 20 ),
+			'user_email' => wp_generate_password( 8, false ) . '@example.test',
+			'role'       => 'administrator',
+		)
+	);
+	$user_ids[] = $other_admin_id;
 	wp_set_current_user( $admin_id );
 
 	$post_id    = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'History preview' ) );
@@ -57,8 +66,8 @@ try {
 	update_post_meta( $locked_id, '_admitad_category_locked', 'yes' );
 
 	Promokodiki_Admitad_Test_Harness::run(
-		'stored preview is immutable, owned, expiring, and excludes locks',
-		static function () use ( $post_id, $locked_id, $old_id, $new_id, &$snapshot_ids ): void {
+		'stored preview is immutable, owner-protected, expiry-safe, and excludes locks',
+		static function () use ( $post_id, $locked_id, $old_id, $new_id, $admin_id, $other_admin_id, &$snapshot_ids ): void {
 			$classifier = static fn(): Promokodiki_Admitad_Classification_Result => new Promokodiki_Admitad_Classification_Result(
 				array( $new_id ),
 				$new_id,
@@ -86,7 +95,16 @@ try {
 			$state               = get_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $snapshot['id'] ) );
 			$state['expires_at'] = time() - 1;
 			update_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $snapshot['id'] ), $state, false );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'applying', $service->get_snapshot( $snapshot['id'] )['status'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'applying', $service->snapshot_progress( $snapshot['id'] )['status'] );
+			wp_set_current_user( $other_admin_id );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'foreign_snapshot', $service->snapshot_progress( $snapshot['id'] )->get_error_code() );
+			wp_set_current_user( $admin_id );
+
+			$state['status'] = 'previewed';
+			update_option( 'promokodiki_admitad_snapshot_' . sanitize_key( $snapshot['id'] ), $state, false );
 			Promokodiki_Admitad_Test_Harness::assert_same( null, $service->get_snapshot( $snapshot['id'] ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'invalid_snapshot', $service->snapshot_progress( $snapshot['id'] )->get_error_code() );
 		}
 	);
 
