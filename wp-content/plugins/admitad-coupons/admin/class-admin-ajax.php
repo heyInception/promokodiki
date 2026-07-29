@@ -93,7 +93,7 @@ final class Promokodiki_Admitad_Admin_Ajax {
 		if ( in_array( $request['operation'], array( 'review_list', 'review_resolve_coupon', 'review_archive' ), true ) ) {
 			try { return self::handle_review_operation( $request['operation'], $request, $raw_request ); } catch ( Throwable $error ) { self::log_failure( $request ); return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' ); }
 		}
-		if ( in_array( $request['operation'], array( 'history_list', 'history_snapshot', 'history_sample_review', 'preview_start', 'preview_step', 'preview_status' ), true ) ) {
+		if ( in_array( $request['operation'], array( 'history_list', 'history_snapshot', 'history_sample_review', 'preview_start', 'preview_step', 'preview_status', 'snapshot_apply_start', 'snapshot_apply_step', 'snapshot_rollback_start', 'snapshot_rollback_step', 'snapshot_status' ), true ) ) {
 			try { return self::handle_history_operation( $request['operation'], $request, $raw_request ); } catch ( Throwable $error ) { self::log_failure( $request ); return new WP_Error( 'server_error', 'Не удалось выполнить операцию. Повторите попытку.' ); }
 		}
 		if ( in_array( $request['operation'], array( 'overview_refresh', 'sync_refresh', 'sync_operation', 'settings_save', 'diagnostics_refresh', 'recovery_status', 'recovery_reference_start', 'recovery_migration_start', 'recovery_migration_step', 'recovery_migration_status' ), true ) ) {
@@ -163,6 +163,18 @@ final class Promokodiki_Admitad_Admin_Ajax {
 	/** Render history results only; recovery preview/apply/rollback remains on admin-post. */
 	private static function handle_history_operation( string $operation, array $request, array $raw_request ) {
 		if ( in_array( $operation, array( 'preview_start', 'preview_step', 'preview_status' ), true ) ) { if ( 'admitad-history' !== $request['page'] || ! current_user_can( 'manage_admitad_automation' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для предварительного просмотра.' ); } $service = new Promokodiki_Admitad_Reclassification_Service(); if ( 'preview_start' === $operation ) { $result = $service->start_preview( self::term_ids( $raw_request['post_ids'] ?? array() ) ); } elseif ( 'preview_step' === $operation ) { $result = $service->preview_next_batch( sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot_id' ) ) ); } else { $result = $service->preview_progress( sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot_id' ) ) ); } return is_wp_error( $result ) ? $result : array( 'message' => 'Готово.', 'progress' => $result ); }
+		if ( in_array( $operation, array( 'snapshot_apply_start', 'snapshot_apply_step', 'snapshot_rollback_start', 'snapshot_rollback_step', 'snapshot_status' ), true ) ) {
+			if ( 'admitad-history' !== $request['page'] || ! current_user_can( 'manage_admitad_automation' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для управления снимком.' ); }
+			$service = new Promokodiki_Admitad_Reclassification_Service();
+			$snapshot_id = sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot_id' ) );
+			if ( in_array( $operation, array( 'snapshot_apply_start', 'snapshot_rollback_start' ), true ) && '1' !== self::raw_scalar( $raw_request, 'confirmed' ) ) { return new WP_Error( 'confirmation_required', 'Требуется явное подтверждение операции.' ); }
+			if ( 'snapshot_apply_start' === $operation ) { $result = $service->start_apply( $snapshot_id ); }
+			elseif ( 'snapshot_apply_step' === $operation ) { $result = $service->apply_next_batch( $snapshot_id ); }
+			elseif ( 'snapshot_rollback_start' === $operation ) { $result = $service->start_rollback( $snapshot_id ); }
+			elseif ( 'snapshot_rollback_step' === $operation ) { $result = $service->rollback_next_batch( $snapshot_id ); }
+			else { $result = $service->snapshot_progress( $snapshot_id ); }
+			return is_wp_error( $result ) ? $result : array( 'message' => 'Готово.', 'progress' => $result );
+		}
 		if ( 'admitad-history' !== $request['page'] || ! current_user_can( 'review_admitad_mapping' ) ) { return new WP_Error( 'forbidden', 'Недостаточно прав для истории классификации.' ); }
 		if ( 'history_sample_review' === $operation && current_user_can( 'manage_admitad_automation' ) ) { $sample = sanitize_text_field( self::raw_scalar( $raw_request, 'sample_id' ) ); ( new Promokodiki_Admitad_Validation_Service() )->record_review( $sample, absint( self::raw_scalar( $raw_request, 'post_id' ) ), self::term_ids( $raw_request['expected_terms'] ?? array() ) ); }
 		if ( 'history_snapshot' === $operation ) { $snapshot = ( new Promokodiki_Admitad_Reclassification_Service() )->get_snapshot( sanitize_text_field( self::raw_scalar( $raw_request, 'snapshot' ) ) ); return array( 'message' => 'Готово.', 'html' => Promokodiki_Admitad_Admin_Fragments::render( 'history-snapshot', array( 'snapshot' => $snapshot ) ) ); }

@@ -199,6 +199,30 @@
 		return `${ url.pathname }${ url.search }${ url.hash }`;
 	}
 
+	function queueSnapshotContinuation( target, action, data ) {
+		const progress = data?.progress;
+		if ( action !== 'promokodiki_admitad_admin' || ! progress || typeof progress !== 'object' ) {
+			return;
+		}
+		const operation = {
+			previewing: 'preview_step',
+			applying: 'snapshot_apply_step',
+			rolling_back: 'snapshot_rollback_step',
+		}[ progress.status ];
+		const snapshotId = progress.snapshot_id || progress.id;
+		if ( ! operation || typeof snapshotId !== 'string' || ! snapshotId ) {
+			return;
+		}
+		window.setTimeout( () => {
+			const payload = new URLSearchParams( {
+				operation,
+				page: 'admitad-history',
+				snapshot_id: snapshotId,
+			} );
+			send( target, action, payload, null, 'replace' );
+		}, 0 );
+	}
+
 	async function send( target, action, payload, submitter, historyMode ) {
 		const table = tableFor( target );
 		const owner = table || target;
@@ -244,6 +268,7 @@
 			}
 			status = 'success';
 			dispatch( target, 'admitad:success', { action, payload, data } );
+			queueSnapshotContinuation( target, action, data );
 		} catch ( error ) {
 			if ( error.name === 'AbortError' || activeRequests.get( owner )?.generation !== generation ) {
 				status = 'aborted';

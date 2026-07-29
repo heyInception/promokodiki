@@ -89,7 +89,129 @@ final class Promokodiki_Admitad_Reclassification_Service {
 
 	/** Read durable preview progress without exposing implementation details. */
 	public function preview_progress( string $snapshot_id ) {
-		$state = (array) get_option( $this->status_key( $snapshot_id ), array() ); if ( empty( $state['status'] ) ) { return new WP_Error( 'invalid_snapshot', 'Снимок не найден.' ); } unset( $state['source_post_ids'] ); return $state;
+		$state = (array) get_option( $this->status_key( $snapshot_id ), array() ); if ( empty( $state['status'] ) ) { return new WP_Error( 'invalid_snapshot', 'Снимок не найден.' ); } unset( $state['source_post_ids'] ); $state['snapshot_id'] = sanitize_text_field( $snapshot_id ); return $state;
+	}
+
+	/** Begin or resume an owned apply operation. */
+	public function start_apply( string $snapshot_id ) {
+		$state = $this->authorized_state( $snapshot_id, array( 'previewed', 'applying' ) );
+		if ( is_wp_error( $state ) ) {
+			return $state;
+		}
+		if ( 'applying' === $state['status'] ) {
+			return $this->snapshot_progress( $snapshot_id );
+		}
+		return $this->start_snapshot_operation( $snapshot_id, $state, 'applying' );
+	}
+
+	/** Apply at most fifty immutable preview rows. */
+	public function apply_next_batch( string $snapshot_id ) {
+		$state = $this->authorized_state( $snapshot_id, array( 'applying' ) );
+		if ( is_wp_error( $state ) ) {
+			return $state;
+		}
+		$rows  = $this->history->snapshot_rows( $snapshot_id );
+		$batch = array_slice( $rows, (int) $state['cursor'], self::BATCH_SIZE );
+		foreach ( $batch as $row ) {
+			++$state['processed'];
+			$post_id = (int) $row['post_id'];
+			if ( 'promocode' !== get_post_type( $post_id ) || Promokodiki_Admitad_Editorial_Locks::category_locked( $post_id ) ) {
+				++$state['skipped'];
+				continue;
+			}
+			try {
+				$result = new Promokodiki_Admitad_Classification_Result(
+					array_map( 'intval', $row['result_terms'] ),
+					(int) $row['result_primary_term_id'],
+					(string) $row['confidence'],
+					(array) $row['explanation']
+				);
+				if ( $this->assignments->assign( $post_id, $result, 'preview_apply' ) ) {
+					++$state['changed'];
+				} else {
+					++$state['failed'];
+					$this->add_failure( $state, $post_id, 'apply_failed' );
+				}
+			} catch ( Throwable $error ) {
+				++$state['failed'];
+				$this->add_failure( $state, $post_id, 'apply_failed' );
+			}
+		}
+		$state['cursor'] += count( $batch );
+		$state['heartbeat'] = time();
+		if ( $state['cursor'] >= count( $rows ) ) {
+			$state['status'] = 'applied';
+			$state['expires_at'] = time() + ( DAY_IN_SECONDS * (int) Promokodiki_Admitad_Config::get( 'log_retention_days' ) );
+		}
+		update_option( $this->status_key( $snapshot_id ), $state, false );
+		return $this->snapshot_progress( $snapshot_id );
+	}
+
+	/** Begin or resume rollback of an owned applied snapshot. */
+	public function start_rollback( string $snapshot_id ) {
+		$state = $this->authorized_state( $snapshot_id, array( 'applied', 'rolling_back' ) );
+		if ( is_wp_error( $state ) ) {
+			return $state;
+		}
+		if ( 'rolling_back' === $state['status'] ) {
+			return $this->snapshot_progress( $snapshot_id );
+		}
+		return $this->start_snapshot_operation( $snapshot_id, $state, 'rolling_back' );
+	}
+
+	/** Restore at most fifty rows from immutable previous taxonomy fields. */
+	public function rollback_next_batch( string $snapshot_id ) {
+		$state = $this->authorized_state( $snapshot_id, array( 'rolling_back' ) );
+		if ( is_wp_error( $state ) ) {
+			return $state;
+		}
+		$rows  = $this->history->snapshot_rows( $snapshot_id );
+		$batch = array_slice( $rows, (int) $state['cursor'], self::BATCH_SIZE );
+		foreach ( $batch as $row ) {
+			++$state['processed'];
+			$post_id = (int) $row['post_id'];
+			if ( 'promocode' !== get_post_type( $post_id ) || Promokodiki_Admitad_Editorial_Locks::category_locked( $post_id ) ) {
+				++$state['skipped'];
+				continue;
+			}
+			try {
+				$assigned = Promokodiki_Admitad_Import_Context::run(
+					static fn() => wp_set_post_terms(
+						$post_id,
+						array_map( 'intval', $row['previous_terms'] ),
+						'promocode_category',
+						false
+					)
+				);
+				if ( is_wp_error( $assigned ) ) {
+					throw new RuntimeException( 'Unable to restore snapshot taxonomy.' );
+				}
+				update_post_meta( $post_id, '_admitad_primary_term_id', (int) $row['previous_primary_term_id'] );
+				++$state['changed'];
+			} catch ( Throwable $error ) {
+				++$state['failed'];
+				$this->add_failure( $state, $post_id, 'rollback_failed' );
+			}
+		}
+		$state['cursor'] += count( $batch );
+		$state['heartbeat'] = time();
+		if ( $state['cursor'] >= count( $rows ) ) {
+			$state['status'] = 'rolled_back';
+			$state['expires_at'] = time() + ( DAY_IN_SECONDS * (int) Promokodiki_Admitad_Config::get( 'log_retention_days' ) );
+		}
+		update_option( $this->status_key( $snapshot_id ), $state, false );
+		return $this->snapshot_progress( $snapshot_id );
+	}
+
+	/** Read sanitized durable apply or rollback progress. */
+	public function snapshot_progress( string $snapshot_id ) {
+		$state = (array) get_option( $this->status_key( $snapshot_id ), array() );
+		if ( empty( $state['status'] ) ) {
+			return new WP_Error( 'invalid_snapshot', 'Снимок не найден.' );
+		}
+		unset( $state['source_post_ids'] );
+		$state['snapshot_id'] = sanitize_text_field( $snapshot_id );
+		return $state;
 	}
 
 	/**
@@ -169,8 +291,8 @@ final class Promokodiki_Admitad_Reclassification_Service {
 	 * @param string $snapshot_id Snapshot ID.
 	 */
 	public function schedule_apply( string $snapshot_id ): void {
-		$snapshot = $this->get_snapshot( $snapshot_id );
-		if ( $snapshot && 'previewed' === $snapshot['status'] && ! wp_next_scheduled( 'promokodiki_admitad_apply_classification', array( $snapshot_id, 0 ) ) ) {
+		$state = $this->start_apply( $snapshot_id );
+		if ( ! is_wp_error( $state ) && 'applying' === $state['status'] && ! wp_next_scheduled( 'promokodiki_admitad_apply_classification', array( $snapshot_id, 0 ) ) ) {
 			wp_schedule_single_event( time() + 1, 'promokodiki_admitad_apply_classification', array( $snapshot_id, 0 ) );
 		}
 	}
@@ -182,19 +304,62 @@ final class Promokodiki_Admitad_Reclassification_Service {
 	 * @param int    $offset      Row offset.
 	 */
 	public static function handle_apply_batch( string $snapshot_id, int $offset ): void {
+		unset( $offset );
 		$service  = new self();
 		$snapshot = $service->get_snapshot( $snapshot_id );
-		if ( ! $snapshot || 'previewed' !== $snapshot['status'] ) {
+		if ( ! $snapshot || 'applying' !== $snapshot['status'] ) {
 			return;
 		}
-		$rows = array_slice( $snapshot['rows'], max( 0, $offset ), self::BATCH_SIZE );
-		$service->apply_rows( $rows );
-		$next = $offset + count( $rows );
-		if ( $next < count( $snapshot['rows'] ) ) {
-			wp_schedule_single_event( time() + 1, 'promokodiki_admitad_apply_classification', array( $snapshot_id, $next ) );
+		$previous_user = get_current_user_id();
+		wp_set_current_user( (int) $snapshot['owner_id'] );
+		try {
+			$progress = $service->apply_next_batch( $snapshot_id );
+		} finally {
+			wp_set_current_user( $previous_user );
+		}
+		if ( ! is_wp_error( $progress ) && 'applying' === $progress['status'] ) {
+			wp_schedule_single_event( time() + 1, 'promokodiki_admitad_apply_classification', array( $snapshot_id, (int) $progress['cursor'] ) );
+		}
+	}
+
+	/** Validate capability, ownership, expiry, and an allowed state. */
+	private function authorized_state( string $snapshot_id, array $statuses ) {
+		if ( ! current_user_can( 'manage_admitad_automation' ) ) {
+			return new WP_Error( 'forbidden', 'Недостаточно прав для управления снимком.' );
+		}
+		$snapshot = $this->get_snapshot( sanitize_text_field( $snapshot_id ) );
+		if ( ! $snapshot ) {
+			return new WP_Error( 'invalid_snapshot', 'Снимок недоступен.' );
+		}
+		if ( get_current_user_id() !== (int) $snapshot['owner_id'] ) {
+			return new WP_Error( 'foreign_snapshot', 'Снимок принадлежит другому пользователю.' );
+		}
+		if ( ! in_array( $snapshot['status'], $statuses, true ) ) {
+			return new WP_Error( 'invalid_snapshot_state', 'Снимок находится в неподходящем состоянии.' );
+		}
+		return (array) get_option( $this->status_key( $snapshot_id ), array() );
+	}
+
+	/** Initialize bounded operation counters while retaining immutable preview data. */
+	private function start_snapshot_operation( string $snapshot_id, array $state, string $status ): array {
+		$state['status'] = $status;
+		$state['cursor'] = 0;
+		$state['processed'] = 0;
+		$state['changed'] = 0;
+		$state['skipped'] = 0;
+		$state['failed'] = 0;
+		$state['failure_summaries'] = array();
+		$state['heartbeat'] = time();
+		update_option( $this->status_key( $snapshot_id ), $state, false );
+		return $this->snapshot_progress( $snapshot_id );
+	}
+
+	/** Store only stable path-free failure evidence. */
+	private function add_failure( array &$state, int $post_id, string $code ): void {
+		if ( count( (array) ( $state['failure_summaries'] ?? array() ) ) >= 20 ) {
 			return;
 		}
-		$service->set_status( $snapshot_id, 'applied' );
+		$state['failure_summaries'][] = array( 'post_id' => $post_id, 'code' => sanitize_key( $code ) );
 	}
 
 	/**

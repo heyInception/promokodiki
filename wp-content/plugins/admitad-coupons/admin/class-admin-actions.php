@@ -55,7 +55,7 @@ final class Promokodiki_Admitad_Admin_Actions {
 		}
 		$service  = new Promokodiki_Admitad_Reclassification_Service();
 		$snapshot = $service->get_snapshot( sanitize_text_field( $snapshot_id ) );
-		if ( ! $snapshot || 'previewed' !== $snapshot['status'] || get_current_user_id() !== $snapshot['owner_id'] ) {
+		if ( ! $snapshot || ! in_array( $snapshot['status'], array( 'previewed', 'applying' ), true ) || get_current_user_id() !== $snapshot['owner_id'] ) {
 			return new WP_Error( 'invalid_snapshot', 'Invalid, expired, or foreign classification snapshot.' );
 		}
 		$service->schedule_apply( $snapshot_id );
@@ -79,7 +79,16 @@ final class Promokodiki_Admitad_Admin_Actions {
 		if ( ! $snapshot || 'applied' !== $snapshot['status'] || get_current_user_id() !== $snapshot['owner_id'] ) {
 			return new WP_Error( 'invalid_snapshot', 'Only an owned, applied snapshot can be rolled back.' );
 		}
-		$service->rollback( $snapshot_id );
+		$started = $service->start_rollback( $snapshot_id );
+		if ( is_wp_error( $started ) ) {
+			return $started;
+		}
+		do {
+			$started = $service->rollback_next_batch( $snapshot_id );
+		} while ( ! is_wp_error( $started ) && 'rolling_back' === $started['status'] );
+		if ( is_wp_error( $started ) ) {
+			return $started;
+		}
 		return true;
 	}
 
