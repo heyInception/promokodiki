@@ -337,9 +337,11 @@ git commit -m "feat: render discounts ajax feed"
 - Modify: `wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-state.js`
 - Create: `wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-view.js`
 - Modify: `wp-content/plugins/promokodiki-ajax-filter/includes/class-plugin.php`
+- Modify: `wp-content/plugins/promokodiki-ajax-filter/templates/discounts-sort.php`
 - Modify: `wp-content/plugins/promokodiki-ajax-filter/assets/css/filter.css`
 - Modify: `wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-state.test.js`
 - Create: `wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-view.test.js`
+- Modify: `wp-content/plugins/promokodiki-ajax-filter/tests/php/test-renderer.php`
 
 **Interfaces:**
 - Consumes: `data-filter-sort` links and the root request lifecycle rendered in Task 4.
@@ -401,10 +403,13 @@ view.setSortLinksDisabled(links, false);
 assert.equal(links.every((link) => !('aria-disabled' in link.attributes)), true);
 ```
 
+Add a renderer behavior assertion that Discounts output contains one `[data-filter-form]` with a hidden `paf_sort` value matching the selected link. This is the compatibility boundary the existing client requires before it initializes sort and load-more behavior.
+
 - [ ] **Step 6: Run the view test and verify RED**
 
 ```powershell
 node --test wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-view.test.js
+studio wp --path "C:\Users\Inception\Studio\promokodiki" eval-file "C:\Users\Inception\Studio\promokodiki\.worktrees\discounts-ajax-sorting\wp-content\plugins\promokodiki-ajax-filter\tests\php\test-renderer.php" --skip-plugins=promokodiki-ajax-filter
 ```
 
 Expected: the module/functions do not exist.
@@ -421,7 +426,7 @@ function syncSortLinks(sort) {
 }
 ```
 
-On sort-link click, prevent navigation, derive normalized state from the link URL, reset page to one, and call the existing `request(1, false, 'push', state)`. Call `syncSortLinks()` after successful replace and after `popstate`. Keep cards untouched in `catch`, and rely on the existing retry closure and controller identity check.
+Wrap the Discounts sort navigation in a GET form carrying `data-filter-form` and a hidden `paf_sort` input initialized to the selected sort. On sort-link click, prevent navigation, derive normalized state from the link URL, reset page to one, and call the existing `request(1, false, 'push', state)`. Call `syncSortLinks()` after successful replace and after `popstate`. Keep cards untouched in `catch`, and rely on the existing retry closure and controller identity check.
 
 Extend `setLoading()` so every sort link receives `aria-disabled="true"` while loading and has it removed afterward; ignore clicks whose link is currently disabled.
 
@@ -431,12 +436,12 @@ Style the visible label, scrolling nav, active/focus/loading/disabled states, an
 
 - [ ] **Step 9: Run all focused JS tests; verify GREEN**
 
-Run Steps 3 and 6; expected: PASS.
+Run Steps 3 and 6; expected: both Node suites and the renderer suite PASS.
 
 - [ ] **Step 10: Commit client behavior and styles**
 
 ```powershell
-git add wp-content/plugins/promokodiki-ajax-filter/assets/js/filter.js wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-state.js wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-view.js wp-content/plugins/promokodiki-ajax-filter/includes/class-plugin.php wp-content/plugins/promokodiki-ajax-filter/assets/css/filter.css wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-state.test.js wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-view.test.js
+git add wp-content/plugins/promokodiki-ajax-filter/assets/js/filter.js wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-state.js wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-view.js wp-content/plugins/promokodiki-ajax-filter/includes/class-plugin.php wp-content/plugins/promokodiki-ajax-filter/templates/discounts-sort.php wp-content/plugins/promokodiki-ajax-filter/assets/css/filter.css wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-state.test.js wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-view.test.js wp-content/plugins/promokodiki-ajax-filter/tests/php/test-renderer.php
 git commit -m "feat: add accessible discounts sorting"
 ```
 
