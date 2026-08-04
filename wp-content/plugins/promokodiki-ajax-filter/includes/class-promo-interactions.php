@@ -10,7 +10,11 @@ final class Promokodiki_Filter_Promo_Interactions {
 			update_post_meta( $post_id, '_promocode_' . $reaction . 's', (int) get_post_meta( $post_id, '_promocode_' . $reaction . 's', true ) + 1 );
 			$wpdb->replace( $table, array( 'promocode_id'=>$post_id, 'visitor_hash'=>$key, 'reaction'=>$reaction, 'updated_at'=>current_time('mysql') ), array('%d','%s','%s','%s') );
 		}
-		return array( 'likes'=>(int)get_post_meta($post_id,'_promocode_likes',true), 'dislikes'=>(int)get_post_meta($post_id,'_promocode_dislikes',true), 'reaction'=>$reaction );
+		$likes    = max( 0, (int) get_post_meta( $post_id, '_promocode_likes', true ) );
+		$dislikes = max( 0, (int) get_post_meta( $post_id, '_promocode_dislikes', true ) );
+		$total    = $likes + $dislikes;
+		update_post_meta( $post_id, '_promocode_votes_total', $total );
+		return compact( 'likes', 'dislikes', 'total', 'reaction' );
 	}
 	public static function record_usage( int $post_id, string $visitor_id ): array|WP_Error {
 		$post = get_post( $post_id );
