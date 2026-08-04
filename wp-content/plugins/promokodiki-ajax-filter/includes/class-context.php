@@ -14,7 +14,7 @@ final class Promokodiki_Filter_Context {
 
 	public static function resolve( string $type, int $object_id = 0 ): array|WP_Error {
 		$type = sanitize_key( $type );
-		if ( ! in_array( $type, array( 'home', 'category', 'shop' ), true ) ) {
+		if ( ! in_array( $type, array( 'home', 'category', 'shop', 'discounts' ), true ) ) {
 			return new WP_Error( 'invalid_filter_context', __( 'Unknown filter context.', 'promokodiki-ajax-filter' ) );
 		}
 
@@ -24,7 +24,9 @@ final class Promokodiki_Filter_Context {
 			return $cached;
 		}
 
-		if ( 'category' === $type ) {
+		if ( 'discounts' === $type ) {
+			$context = self::discounts_context();
+		} elseif ( 'category' === $type ) {
 			$context = self::category_context( $object_id );
 		} elseif ( 'shop' === $type ) {
 			$context = self::shop_context( $object_id );
@@ -73,6 +75,18 @@ final class Promokodiki_Filter_Context {
 			'brand_taxonomy'       => 'shops_category',
 			'allowed_category_ids' => array_map( 'intval', wp_list_pluck( $categories, 'term_id' ) ),
 			'allowed_brand_ids'    => array_map( 'intval', wp_list_pluck( $brands, 'term_id' ) ),
+		);
+	}
+
+	private static function discounts_context(): array {
+		return array(
+			'type'                 => 'discounts',
+			'object_id'            => 0,
+			'category_options'     => array(),
+			'brand_options'        => array(),
+			'brand_taxonomy'       => 'shops_category',
+			'allowed_category_ids' => array(),
+			'allowed_brand_ids'    => array(),
 		);
 	}
 

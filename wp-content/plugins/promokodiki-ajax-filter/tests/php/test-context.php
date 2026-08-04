@@ -104,6 +104,20 @@ try {
 		}
 	);
 
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts context has no filter options or allowed terms',
+		static function (): void {
+			$context = Promokodiki_Filter_Context::resolve( 'discounts', 0 );
+
+			Promokodiki_Filter_Test_Harness::assert_same( 'discounts', $context['type'] );
+			Promokodiki_Filter_Test_Harness::assert_same( 0, $context['object_id'] );
+			Promokodiki_Filter_Test_Harness::assert_same( array(), $context['category_options'] );
+			Promokodiki_Filter_Test_Harness::assert_same( array(), $context['brand_options'] );
+			Promokodiki_Filter_Test_Harness::assert_same( array(), $context['allowed_category_ids'] );
+			Promokodiki_Filter_Test_Harness::assert_same( array(), $context['allowed_brand_ids'] );
+		}
+	);
+
 	Promokodiki_Filter_Test_Harness::finish();
 } finally {
 	foreach ( $post_ids as $post_id ) {

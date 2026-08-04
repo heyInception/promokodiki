@@ -29,6 +29,15 @@ final class Promokodiki_Filter_State {
 			$sort        = '';
 		}
 
+		if ( 'discounts' === $context_type ) {
+			$category_id = 0;
+			$brand_id    = 0;
+			$popular     = false;
+			$allowed     = array( 'popular', 'newest', 'discussed' );
+			$requested   = sanitize_key( (string) ( $request['paf_sort'] ?? 'popular' ) );
+			$sort        = in_array( $requested, $allowed, true ) ? $requested : 'popular';
+		}
+
 		return array(
 			'category_id' => $category_id,
 			'brand_id'    => $brand_id,

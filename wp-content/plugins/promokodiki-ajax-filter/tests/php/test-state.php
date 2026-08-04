@@ -92,4 +92,26 @@ Promokodiki_Filter_Test_Harness::run(
 	}
 );
 
+Promokodiki_Filter_Test_Harness::run(
+	'discounts state uses its fixed sort policy and clears filters',
+	static function (): void {
+		$settings  = Promokodiki_Filter_Settings::defaults();
+		$discounts = Promokodiki_Filter_State::from_request( array(), $settings, 'discounts' );
+		$invalid   = Promokodiki_Filter_State::from_request(
+			array(
+				'paf_sort'     => 'oldest',
+				'paf_category' => '9',
+				'paf_brand'    => '7',
+			),
+			$settings,
+			'discounts'
+		);
+
+		Promokodiki_Filter_Test_Harness::assert_same( 'popular', $discounts['sort'] );
+		Promokodiki_Filter_Test_Harness::assert_same( 'popular', $invalid['sort'] );
+		Promokodiki_Filter_Test_Harness::assert_same( 0, $invalid['category_id'] );
+		Promokodiki_Filter_Test_Harness::assert_same( 0, $invalid['brand_id'] );
+	}
+);
+
 Promokodiki_Filter_Test_Harness::finish();
