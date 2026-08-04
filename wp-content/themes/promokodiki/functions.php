@@ -154,7 +154,20 @@ function promokodiki_scripts()
 	wp_enqueue_script('jquery');
 	wp_enqueue_script('promokodiki-main', get_template_directory_uri() . '/js/main.js', array(), _S_VERSION, true);
 	wp_enqueue_script('promokodiki-custom', get_template_directory_uri() . '/js/customizer.js', array(), _S_VERSION, true);
+	wp_enqueue_script('promokodiki-navigation', get_template_directory_uri() . '/js/navigation.js', array(), _S_VERSION, true);
+	wp_enqueue_script('promokodiki-footer-ui', get_template_directory_uri() . '/js/footer-ui.js', array(), _S_VERSION, true);
 	wp_enqueue_script('promokodiki-promo-modal', get_template_directory_uri() . '/js/promocode-modal.js', array(), _S_VERSION, true);
+	if (is_search()) {
+		wp_enqueue_script('promokodiki-search-load-more', get_template_directory_uri() . '/js/search-load-more.js', array(), _S_VERSION, true);
+		wp_localize_script(
+			'promokodiki-search-load-more',
+			'PromokodikiSearchConfig',
+			array(
+				'ajaxUrl' => admin_url('admin-ajax.php'),
+				'nonce'   => wp_create_nonce('promokodiki_search'),
+			)
+		);
+	}
 
 	if (is_singular() && comments_open() && get_option('thread_comments')) {
 		wp_enqueue_script('comment-reply');

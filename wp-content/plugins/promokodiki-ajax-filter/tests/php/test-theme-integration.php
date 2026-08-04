@@ -8,6 +8,180 @@
 require_once dirname( __DIR__ ) . '/harness.php';
 
 $theme_dir = dirname( __DIR__, 4 ) . '/themes/promokodiki';
+
+if ( ! function_exists( 'promokodiki_scripts' ) ) {
+	$worktree_theme_root = static fn(): string => dirname( $theme_dir );
+	add_filter( 'theme_root', $worktree_theme_root );
+	require $theme_dir . '/functions.php';
+}
+
+Promokodiki_Filter_Test_Harness::run(
+	'theme footer renders required markup and delegates script output to WordPress',
+	static function () use ( $theme_dir ): void {
+		$original_query   = $GLOBALS['wp_query'] ?? null;
+		$original_scripts = $GLOBALS['wp_scripts'] ?? null;
+		$original_footer  = $GLOBALS['wp_filter']['wp_footer'] ?? null;
+		$marker           = '<!-- promokodiki-footer-hook-marker -->';
+		$print_marker     = static function () use ( $marker ): void {
+			echo $marker;
+		};
+
+		$GLOBALS['wp_query']   = new WP_Query();
+		$GLOBALS['wp_scripts'] = new WP_Scripts();
+		$GLOBALS['wp_filter']['wp_footer'] = new WP_Hook();
+		add_action( 'wp_footer', $print_marker, 999 );
+		ob_start();
+		try {
+			require $theme_dir . '/footer.php';
+			$footer = (string) ob_get_clean();
+		} finally {
+			remove_action( 'wp_footer', $print_marker, 999 );
+			$GLOBALS['wp_query']   = $original_query;
+			$GLOBALS['wp_scripts'] = $original_scripts;
+			if ( null === $original_footer ) {
+				unset( $GLOBALS['wp_filter']['wp_footer'] );
+			} else {
+				$GLOBALS['wp_filter']['wp_footer'] = $original_footer;
+			}
+			if ( ob_get_level() ) {
+				ob_end_clean();
+			}
+		}
+
+		Promokodiki_Filter_Test_Harness::assert_contains( $marker, $footer );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'id="promocodeModal"', $footer );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'footer__button_up', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( '<script', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'load_more_promocodes', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'load_more_search_results', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'DOMContentLoaded', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'window.openPromoModal', $footer );
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'theme enqueues global UI scripts and limits search pagination to search requests',
+	static function (): void {
+		$original_query   = $GLOBALS['wp_query'] ?? null;
+		$original_scripts = $GLOBALS['wp_scripts'] ?? null;
+
+		try {
+			$GLOBALS['wp_query']   = new WP_Query();
+			$GLOBALS['wp_scripts'] = new WP_Scripts();
+			promokodiki_scripts();
+			$non_search_scripts = wp_scripts();
+
+			foreach ( array( 'promokodiki-footer-ui', 'promokodiki-navigation', 'promokodiki-promo-modal' ) as $handle ) {
+				Promokodiki_Filter_Test_Harness::assert_true( $non_search_scripts->query( $handle, 'enqueued' ), $handle . ' was not enqueued globally' );
+			}
+			Promokodiki_Filter_Test_Harness::assert_true( ! $non_search_scripts->query( 'promokodiki-search-load-more', 'enqueued' ), 'search pagination was enqueued outside search' );
+
+			$GLOBALS['wp_query']            = new WP_Query();
+			$GLOBALS['wp_query']->is_search = true;
+			$GLOBALS['wp_scripts']          = new WP_Scripts();
+			promokodiki_scripts();
+			$search_scripts = wp_scripts();
+
+			Promokodiki_Filter_Test_Harness::assert_true( $search_scripts->query( 'promokodiki-search-load-more', 'enqueued' ), 'search pagination was not enqueued for search' );
+			$localized_data = (string) $search_scripts->get_data( 'promokodiki-search-load-more', 'data' );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'PromokodikiSearchConfig', $localized_data );
+			Promokodiki_Filter_Test_Harness::assert_contains( wp_create_nonce( 'promokodiki_search' ), $localized_data );
+		} finally {
+			$GLOBALS['wp_query']   = $original_query;
+			$GLOBALS['wp_scripts'] = $original_scripts;
+		}
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'search pagination rejects missing or invalid nonces before request processing',
+	static function (): void {
+		$original_post    = $_POST;
+		$original_request = $_REQUEST;
+		if ( ! defined( 'DOING_AJAX' ) ) {
+			define( 'DOING_AJAX', true );
+		}
+		$die_handler = static function (): callable {
+			return static function ( mixed $message = '', string $title = '', array $args = array() ): void {
+				throw new RuntimeException( 'wp_die:' . (string) $message );
+			};
+		};
+
+		add_filter( 'wp_die_handler', $die_handler );
+		add_filter( 'wp_die_ajax_handler', $die_handler );
+		try {
+			foreach ( array( null, 'invalid-nonce' ) as $nonce ) {
+				$_POST = array(
+					'page'         => 2,
+					'search_query' => array( 'must-not-be-processed' ),
+				);
+				if ( null !== $nonce ) {
+					$_POST['nonce'] = $nonce;
+				}
+				$_REQUEST = $_POST;
+
+				ob_start();
+				$exception = null;
+				try {
+					load_more_search_results();
+				} catch ( Throwable $throwable ) {
+					$exception = $throwable;
+				}
+				$output = (string) ob_get_clean();
+
+				Promokodiki_Filter_Test_Harness::assert_true( null !== $exception, 'Invalid nonce did not terminate the request' );
+				Promokodiki_Filter_Test_Harness::assert_same( 'wp_die:-1', $exception->getMessage() );
+				Promokodiki_Filter_Test_Harness::assert_same( '', $output, 'Invalid nonce produced result markup' );
+			}
+		} finally {
+			remove_filter( 'wp_die_handler', $die_handler );
+			remove_filter( 'wp_die_ajax_handler', $die_handler );
+			$_POST    = $original_post;
+			$_REQUEST = $original_request;
+			if ( ob_get_level() ) {
+				ob_end_clean();
+			}
+		}
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'search pagination accepts its nonce and reaches empty-query termination',
+	static function (): void {
+		$original_post    = $_POST;
+		$original_request = $_REQUEST;
+		$die_handler = static function (): callable {
+			return static function ( mixed $message = '', string $title = '', array $args = array() ): void {
+				throw new RuntimeException( 'wp_die:' . (string) $message );
+			};
+		};
+
+		add_filter( 'wp_die_handler', $die_handler );
+		add_filter( 'wp_die_ajax_handler', $die_handler );
+		try {
+			$_POST = array(
+				'nonce'        => wp_create_nonce( 'promokodiki_search' ),
+				'search_query' => '',
+			);
+			$_REQUEST = $_POST;
+			$exception = null;
+			try {
+				load_more_search_results();
+			} catch ( RuntimeException $runtime_exception ) {
+				$exception = $runtime_exception;
+			}
+
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $exception, 'Empty query did not reach normal termination' );
+			Promokodiki_Filter_Test_Harness::assert_same( 'wp_die:', $exception->getMessage() );
+		} finally {
+			remove_filter( 'wp_die_handler', $die_handler );
+			remove_filter( 'wp_die_ajax_handler', $die_handler );
+			$_POST    = $original_post;
+			$_REQUEST = $original_request;
+		}
+	}
+);
+
 $templates = array(
 	'home'     => $theme_dir . '/template-parts/partials/promocodes.php',
 	'category' => $theme_dir . '/taxonomy-promocode_category.php',
@@ -38,17 +212,6 @@ Promokodiki_Filter_Test_Harness::run(
 		Promokodiki_Filter_Test_Harness::assert_not_contains( 'wp_ajax_increment_promocode_count', $contents );
 		Promokodiki_Filter_Test_Harness::assert_not_contains( 'function load_more_promocodes', $contents );
 		Promokodiki_Filter_Test_Harness::assert_not_contains( 'wp_ajax_load_more_promocodes', $contents );
-	}
-);
-
-Promokodiki_Filter_Test_Harness::run(
-	'theme footer does not emit the retired load-more request',
-	static function () use ( $theme_dir ): void {
-		ob_start();
-		require $theme_dir . '/footer.php';
-		$footer = (string) ob_get_clean();
-
-		Promokodiki_Filter_Test_Harness::assert_not_contains( 'load_more_promocodes', $footer );
 	}
 );
 

@@ -4,6 +4,8 @@ add_action('wp_ajax_load_more_search_results', 'load_more_search_results');
 add_action('wp_ajax_nopriv_load_more_search_results', 'load_more_search_results');
 
 function load_more_search_results() {
+	check_ajax_referer( 'promokodiki_search', 'nonce' );
+
      $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
     $search_query = isset($_POST['search_query']) ? sanitize_text_field(trim($_POST['search_query'])) : '';
     
