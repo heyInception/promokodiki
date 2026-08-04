@@ -21,10 +21,23 @@ final class Promokodiki_Filter_Query_Service {
 		$offset = 1 === $page ? 0 : (int) $settings['initial_count'] + ( ( $page - 2 ) * (int) $settings['load_more_count'] );
 		$limit  = max( 1, min( 100, $limit ) );
 
+		$sort = sanitize_key( (string) ( $state['sort'] ?? 'newest' ) );
+		if ( 'discounts' === $context['type'] && 'popular' === $sort ) {
+			$weekly = self::run_weekly( $state, $settings, $page, $limit, $offset );
+			if ( 0 !== $weekly['total'] ) {
+				return $weekly;
+			}
+			return self::run_standard( $state, $context, $settings, $page, $limit, $offset );
+		}
+
 		if ( ! empty( $state['popular'] ) ) {
 			return self::run_weekly( $state, $settings, $page, $limit, $offset );
 		}
 
+		return self::run_standard( $state, $context, $settings, $page, $limit, $offset );
+	}
+
+	private static function run_standard( array $state, array $context, array $settings, int $page, int $limit, int $offset ): array {
 		$args = array(
 			'post_type'           => 'promocode',
 			'post_status'         => 'publish',
@@ -39,9 +52,12 @@ final class Promokodiki_Filter_Query_Service {
 			$args['tax_query'] = $tax_query;
 		}
 
-		$sort         = sanitize_key( (string) ( $state['sort'] ?? 'newest' ) );
 		$show_expired = ! empty( $settings['show_expired'] );
-		$filter       = self::clause_filter( $sort, $show_expired );
+		$filter       = self::clause_filter(
+			sanitize_key( (string) ( $state['sort'] ?? 'newest' ) ),
+			$show_expired,
+			'discounts' === $context['type']
+		);
 
 		add_filter( 'posts_clauses', $filter, 20, 2 );
 		try {
@@ -65,7 +81,7 @@ final class Promokodiki_Filter_Query_Service {
 	}
 
 	private static function run_weekly( array $state, array $settings, int $page, int $limit, int $offset ): array {
-		$days            = (int) $settings['popular_days'];
+		$days            = 'popular' === sanitize_key( (string) ( $state['sort'] ?? '' ) ) ? 7 : (int) $settings['popular_days'];
 		$include_expired = ! empty( $settings['show_expired'] );
 		$ranked_ids      = Promokodiki_Filter_Click_Stats::ranked_ids( $days, $limit + 1, $offset, $include_expired );
 		$has_more       = count( $ranked_ids ) > $limit;
@@ -147,8 +163,8 @@ final class Promokodiki_Filter_Query_Service {
 		);
 	}
 
-	private static function clause_filter( string $sort, bool $show_expired ): Closure {
-		return static function ( array $clauses ) use ( $sort, $show_expired ): array {
+	private static function clause_filter( string $sort, bool $show_expired, bool $active_only ): Closure {
+		return static function ( array $clauses ) use ( $sort, $show_expired, $active_only ): array {
 			global $wpdb;
 
 			$expiry = "(SELECT MAX(paf_expiry.meta_value) FROM {$wpdb->postmeta} paf_expiry
@@ -159,6 +175,14 @@ final class Promokodiki_Filter_Query_Service {
 
 			if ( ! $show_expired ) {
 				$clauses['where'] .= " AND ({$expiry} IS NULL OR {$expiry} = '' OR {$expiry} >= '{$today}')";
+			}
+			if ( $active_only ) {
+				$clauses['where'] .= " AND NOT EXISTS (
+					SELECT 1 FROM {$wpdb->postmeta} paf_activity
+					WHERE paf_activity.post_id = {$wpdb->posts}.ID
+					AND paf_activity.meta_key = '_promocode_is_active'
+					AND paf_activity.meta_value = 'no'
+				)";
 			}
 
 			$order = array();
@@ -176,6 +200,19 @@ final class Promokodiki_Filter_Query_Service {
 						WHERE paf_usage.post_id = {$wpdb->posts}.ID
 						AND paf_usage.meta_key = '_promocode_used_count')";
 					$order[] = "COALESCE({$usage}, 0) DESC";
+					$order[] = "{$wpdb->posts}.ID DESC";
+					break;
+				case 'discussed':
+					$votes = "COALESCE(
+						(SELECT MAX(paf_votes.meta_value + 0) FROM {$wpdb->postmeta} paf_votes
+						 WHERE paf_votes.post_id = {$wpdb->posts}.ID AND paf_votes.meta_key = '_promocode_votes_total'),
+						COALESCE((SELECT MAX(paf_likes.meta_value + 0) FROM {$wpdb->postmeta} paf_likes
+						 WHERE paf_likes.post_id = {$wpdb->posts}.ID AND paf_likes.meta_key = '_promocode_likes'), 0)
+						+ COALESCE((SELECT MAX(paf_dislikes.meta_value + 0) FROM {$wpdb->postmeta} paf_dislikes
+						 WHERE paf_dislikes.post_id = {$wpdb->posts}.ID AND paf_dislikes.meta_key = '_promocode_dislikes'), 0)
+					)";
+					$order[] = "{$votes} DESC";
+					$order[] = "{$wpdb->posts}.post_date DESC";
 					$order[] = "{$wpdb->posts}.ID DESC";
 					break;
 				case 'expiring':
