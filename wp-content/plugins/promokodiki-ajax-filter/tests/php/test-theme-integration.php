@@ -74,6 +74,13 @@ Promokodiki_Filter_Test_Harness::run(
 			foreach ( array( 'promokodiki-footer-ui', 'promokodiki-navigation', 'promokodiki-promo-modal' ) as $handle ) {
 				Promokodiki_Filter_Test_Harness::assert_true( $non_search_scripts->query( $handle, 'enqueued' ), $handle . ' was not enqueued globally' );
 			}
+			$main_style = wp_styles()->registered['promokodiki-main-style'] ?? null;
+			$navigation = $non_search_scripts->registered['promokodiki-navigation'] ?? null;
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $main_style, 'main stylesheet was not registered' );
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $navigation, 'navigation script was not registered' );
+			Promokodiki_Filter_Test_Harness::assert_same( _S_VERSION, $main_style->ver, 'main stylesheet cache key is not the theme version' );
+			Promokodiki_Filter_Test_Harness::assert_same( _S_VERSION, $navigation->ver, 'navigation cache key is not the theme version' );
+			Promokodiki_Filter_Test_Harness::assert_true( version_compare( _S_VERSION, '1.0.0', '>' ), 'theme cache key was not advanced for changed navigation assets' );
 			Promokodiki_Filter_Test_Harness::assert_true( ! $non_search_scripts->query( 'promokodiki-search-load-more', 'enqueued' ), 'search pagination was enqueued outside search' );
 
 			$GLOBALS['wp_query']            = new WP_Query();

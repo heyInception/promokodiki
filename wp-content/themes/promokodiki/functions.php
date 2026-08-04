@@ -10,7 +10,7 @@
 
 if (! defined('_S_VERSION')) {
 	// Replace the version number of the theme on each release.
-	define('_S_VERSION', '1.0.0');
+	define('_S_VERSION', '1.1.0');
 }
 
 /**
@@ -144,7 +144,7 @@ add_action('widgets_init', 'promokodiki_widgets_init');
 function promokodiki_scripts()
 {
 	wp_enqueue_style('promokodiki-main-vendor', get_stylesheet_directory_uri() . '/assets/css/vendor.css', true, '1.0', 'all');
-	wp_enqueue_style('promokodiki-main-style', get_stylesheet_directory_uri() . '/assets/css/main.css', true, '1.0', 'all');
+	wp_enqueue_style('promokodiki-main-style', get_stylesheet_directory_uri() . '/assets/css/main.css', true, _S_VERSION, 'all');
 	wp_enqueue_style('promokodiki-style', get_stylesheet_uri(), array(), _S_VERSION);
 	$overrides_path = get_stylesheet_directory() . '/assets/css/overrides.css';
 	if (file_exists($overrides_path)) {
