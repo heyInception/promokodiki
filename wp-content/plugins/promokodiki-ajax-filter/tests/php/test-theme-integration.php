@@ -98,8 +98,9 @@ if ( file_exists( $discounts_helper ) ) {
 	require_once $discounts_helper;
 }
 
-$discount_ids = array();
-$page_id      = 0;
+$discount_ids    = array();
+$page_id         = 0;
+$regular_page_id = 0;
 
 try {
 	$usage_values    = array( 10, 70, 20, 60, 30, 50, 40 );
@@ -207,12 +208,31 @@ try {
 		)
 	);
 	update_post_meta( $page_id, '_wp_page_template', 'page-discounts.php' );
+	$regular_page_id = wp_insert_post(
+		array(
+			'post_type'   => 'page',
+			'post_status' => 'publish',
+			'post_title'  => 'PAF canonical regular page',
+		)
+	);
 
 	Promokodiki_Filter_Test_Harness::run(
-		'discounts canonical strips the public GET sort parameter',
-		static function () use ( $page_id ): void {
-			$polluted = add_query_arg( 'paf_sort', 'newest', get_permalink( $page_id ) );
-			Promokodiki_Filter_Test_Harness::assert_same( get_permalink( $page_id ), apply_filters( 'wp_get_canonical_url', $polluted, $page_id ) );
+		'discounts canonical strips GET sort through core without changing other templates',
+		static function () use ( $page_id, $regular_page_id ): void {
+			$inject_sort = static fn( string $url, WP_Post $post ): string => add_query_arg( 'paf_sort', 'newest', $url );
+			add_filter( 'get_canonical_url', $inject_sort, 5, 2 );
+			try {
+				$discounts_url = wp_get_canonical_url( $page_id );
+				$regular_url   = wp_get_canonical_url( $regular_page_id );
+			} finally {
+				remove_filter( 'get_canonical_url', $inject_sort, 5 );
+			}
+
+			Promokodiki_Filter_Test_Harness::assert_same( get_permalink( $page_id ), $discounts_url );
+			Promokodiki_Filter_Test_Harness::assert_same(
+				add_query_arg( 'paf_sort', 'newest', get_permalink( $regular_page_id ) ),
+				$regular_url
+			);
 		}
 	);
 
@@ -243,6 +263,9 @@ try {
 
 	Promokodiki_Filter_Test_Harness::finish();
 } finally {
+	if ( $regular_page_id ) {
+		wp_delete_post( $regular_page_id, true );
+	}
 	if ( $page_id ) {
 		wp_delete_post( $page_id, true );
 	}

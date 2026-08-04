@@ -35,7 +35,7 @@ final class Promokodiki_Filter_Plugin {
 		add_action( 'wp_ajax_promokodiki_filter_results', array( 'Promokodiki_Filter_Ajax_Controller', 'results' ) );
 		add_action( 'wp_ajax_nopriv_promokodiki_filter_results', array( 'Promokodiki_Filter_Ajax_Controller', 'results' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
-		add_filter( 'wp_get_canonical_url', array( __CLASS__, 'canonical_url' ), 10, 2 );
+		add_filter( 'get_canonical_url', array( __CLASS__, 'canonical_url' ), 10, 2 );
 		add_filter( 'rocket_css_url', array( __CLASS__, 'normalize_wp_rocket_css_url' ), PHP_INT_MAX );
 		add_action( 'admin_init', array( 'Promokodiki_Filter_Settings', 'register' ) );
 		add_action( 'admin_menu', array( 'Promokodiki_Filter_Settings', 'add_menu' ) );
@@ -51,7 +51,8 @@ final class Promokodiki_Filter_Plugin {
 		);
 	}
 
-	public static function canonical_url( string $url, int $post_id ): string {
+	public static function canonical_url( string $url, WP_Post $post ): string {
+		$post_id = (int) $post->ID;
 		return 'page-discounts.php' === get_post_meta( $post_id, '_wp_page_template', true )
 			? get_permalink( $post_id )
 			: $url;
