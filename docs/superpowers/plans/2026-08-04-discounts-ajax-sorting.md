@@ -254,15 +254,11 @@ Assert Discounts HTML contains one `data-filter-results`, one `data-filter-more`
 
 Call `Promokodiki_Filter_Ajax_Controller::build_results_payload()` with a verified `discounts` context nonce and assert sanitized sort, six-card page one, correct page two, and `has_more` behavior.
 
-- [ ] **Step 3: Add failing theme integration and canonical assertions**
+- [ ] **Step 3: Add failing fallback and canonical behavior assertions**
 
-Assert the Discounts partial delegates to:
+Create seven active fallback fixtures, call `promokodiki_discounts_fallback_query('newest')`, and assert it returns exactly six newest posts while excluding inactive/expired posts and retaining an undated post. Repeat with hand-derived lifetime-usage and reaction totals to verify `popular` and `discussed` ordering.
 
-```php
-promokodiki_filter_render( array( 'context' => 'discounts' ) );
-```
-
-and still contains a fallback branch. Create a page using `_wp_page_template=page-discounts.php` and assert the canonical filter removes `paf_sort` by returning `get_permalink($post_id)`.
+Create a page using `_wp_page_template=page-discounts.php` and assert the canonical filter removes `paf_sort` by returning `get_permalink($post_id)`. Render the partial with the plugin loaded and assert its observable output has exactly one filter root and no duplicate tab panels.
 
 - [ ] **Step 4: Run renderer, AJAX, and theme tests; verify RED**
 
@@ -339,13 +335,15 @@ git commit -m "feat: render discounts ajax feed"
 **Files:**
 - Modify: `wp-content/plugins/promokodiki-ajax-filter/assets/js/filter.js`
 - Modify: `wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-state.js`
+- Create: `wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-view.js`
+- Modify: `wp-content/plugins/promokodiki-ajax-filter/includes/class-plugin.php`
 - Modify: `wp-content/plugins/promokodiki-ajax-filter/assets/css/filter.css`
 - Modify: `wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-state.test.js`
-- Modify: `wp-content/plugins/promokodiki-ajax-filter/tests/php/test-theme-integration.php`
+- Create: `wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-view.test.js`
 
 **Interfaces:**
 - Consumes: `data-filter-sort` links and the root request lifecycle rendered in Task 4.
-- Produces: intercepted AJAX sorting with replacement, URL history, stale-request cancellation, selected-link synchronization, retry, and responsive segmented controls.
+- Produces: `PromokodikiFilterView.syncSortLinks(links, sort)` and `setSortLinksDisabled(links, disabled)`, plus intercepted AJAX sorting with replacement, URL history, stale-request cancellation, selected-link synchronization, retry, and responsive segmented controls.
 
 - [ ] **Step 1: Read `test-driven-development/writing-good-tests.md` before editing tests**
 
@@ -387,30 +385,39 @@ function sortFromUrl(url, allowed, fallback) {
 
 Run Step 3; expected: PASS.
 
-- [ ] **Step 5: Add integration assertions before client changes**
+- [ ] **Step 5: Add failing DOM-state tests before client changes**
 
-In `test-theme-integration.php`, assert `filter.js` contains a delegated `[data-filter-sort]` handler, calls `request(1, false, 'push', ...)`, synchronizes `aria-current`, keeps `AbortController`, and does not clear results in the error path. Assert CSS contains `.discounts-sort`, `overflow-x: auto`, `:focus-visible`, `.is-loading`, and disabled states.
+Create small fake link objects implementing `dataset`, `setAttribute`, `removeAttribute`, and `classList.toggle`. Test the real `filter-view.js` functions:
 
-- [ ] **Step 6: Run integration test and verify RED**
+```js
+view.syncSortLinks(links, 'discussed');
+assert.equal(links[2].attributes['aria-current'], 'true');
+assert.equal(links[2].classes.has('tabs__nav-btn--active'), true);
+assert.equal('aria-current' in links[0].attributes, false);
+
+view.setSortLinksDisabled(links, true);
+assert.equal(links.every((link) => link.attributes['aria-disabled'] === 'true'), true);
+view.setSortLinksDisabled(links, false);
+assert.equal(links.every((link) => !('aria-disabled' in link.attributes)), true);
+```
+
+- [ ] **Step 6: Run the view test and verify RED**
 
 ```powershell
-studio wp eval-file wp-content/plugins/promokodiki-ajax-filter/tests/php/test-theme-integration.php
+node --test wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-view.test.js
 ```
+
+Expected: the module/functions do not exist.
 
 - [ ] **Step 7: Extend the existing request lifecycle**
 
-Inside each filter root:
+Implement `filter-view.js` as a UMD module, enqueue it between `filter-state.js` and `filter.js`, and consume it from `filter.js`. Inside each filter root:
 
 ```js
 const sortLinks = Array.from(root.querySelectorAll('[data-filter-sort]'));
 
 function syncSortLinks(sort) {
-  sortLinks.forEach((link) => {
-    const selected = link.dataset.filterSort === sort;
-    if (selected) link.setAttribute('aria-current', 'true');
-    else link.removeAttribute('aria-current');
-    link.classList.toggle('tabs__nav-btn--active', selected);
-  });
+  viewApi.syncSortLinks(sortLinks, sort);
 }
 ```
 
@@ -422,14 +429,14 @@ Extend `setLoading()` so every sort link receives `aria-disabled="true"` while l
 
 Style the visible label, scrolling nav, active/focus/loading/disabled states, and load-more button in plugin CSS. Do not alter card layout or the user's `style.css` change.
 
-- [ ] **Step 9: Run JS and integration tests; verify GREEN**
+- [ ] **Step 9: Run all focused JS tests; verify GREEN**
 
 Run Steps 3 and 6; expected: PASS.
 
 - [ ] **Step 10: Commit client behavior and styles**
 
 ```powershell
-git add wp-content/plugins/promokodiki-ajax-filter/assets/js/filter.js wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-state.js wp-content/plugins/promokodiki-ajax-filter/assets/css/filter.css wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-state.test.js wp-content/plugins/promokodiki-ajax-filter/tests/php/test-theme-integration.php
+git add wp-content/plugins/promokodiki-ajax-filter/assets/js/filter.js wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-state.js wp-content/plugins/promokodiki-ajax-filter/assets/js/filter-view.js wp-content/plugins/promokodiki-ajax-filter/includes/class-plugin.php wp-content/plugins/promokodiki-ajax-filter/assets/css/filter.css wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-state.test.js wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-view.test.js
 git commit -m "feat: add accessible discounts sorting"
 ```
 
@@ -451,9 +458,11 @@ git commit -m "feat: add accessible discounts sorting"
 
 - [ ] **Step 1: Add failing Footer cleanup tests**
 
-Render/read `footer.php` and assert it contains `wp_footer()`, `id="promocodeModal"`, and `.footer__button_up`, but contains none of `<script`, `load_more_promocodes`, `load_more_search_results`, `DOMContentLoaded`, or `openPromoModal` implementation code.
+Attach a test callback to the `wp_footer` hook that prints a unique marker, render `footer.php`, and assert the output contains that marker, `id="promocodeModal"`, and `.footer__button_up`, but contains none of `<script`, `load_more_promocodes`, `load_more_search_results`, `DOMContentLoaded`, or an inline `openPromoModal` implementation.
 
-Assert `functions.php` conditionally enqueues `search-load-more.js` only for `is_search()`, enqueues `footer-ui.js` and `navigation.js`, and retains `promocode-modal.js`. Assert `inc/ajax-search.php` verifies the localized `promokodiki_search` nonce before reading request data.
+Set the global query to search/non-search states, call `promokodiki_scripts()`, and inspect `wp_scripts()` to assert `search-load-more.js` is enqueued only for search while `footer-ui.js`, `navigation.js`, and `promocode-modal.js` remain enqueued globally.
+
+Install a temporary `wp_die_handler` that throws a test exception, call `load_more_search_results()` with a missing/invalid nonce, and assert execution dies before any result markup is produced. Then create a valid `promokodiki_search` nonce and assert the valid request reaches the normal empty-query termination path.
 
 - [ ] **Step 2: Run the integration test and verify RED**
 
