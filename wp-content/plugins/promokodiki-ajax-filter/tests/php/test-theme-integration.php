@@ -42,6 +42,17 @@ Promokodiki_Filter_Test_Harness::run(
 );
 
 Promokodiki_Filter_Test_Harness::run(
+	'theme footer does not emit the retired load-more request',
+	static function () use ( $theme_dir ): void {
+		ob_start();
+		require $theme_dir . '/footer.php';
+		$footer = (string) ob_get_clean();
+
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'load_more_promocodes', $footer );
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
 	'theme modal script leaves click tracking to the plugin',
 	static function () use ( $theme_dir ): void {
 		$contents = file_get_contents( $theme_dir . '/js/promocodes-ajax.js' );

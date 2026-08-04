@@ -138,7 +138,7 @@
       }
     );
   });
-  <?php if (!is_page('discounts') && !is_search()): ?>
+  <?php if (!function_exists('promokodiki_filter_render') && !is_page('discounts') && !is_search()): ?>
     document.addEventListener('DOMContentLoaded', function() {
       let isLoading = false;
       let page = 1;
