@@ -17,6 +17,10 @@ final class Promokodiki_Filter_Renderer {
 		}
 
 		$settings = Promokodiki_Filter_Settings::get();
+		if ( 'discounts' === $type ) {
+			$settings['initial_count']   = 6;
+			$settings['load_more_count'] = 6;
+		}
 		$request  = is_array( $_GET ) ? wp_unslash( $_GET ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$state    = Promokodiki_Filter_State::from_request( $request, $settings, $type );
 		$options  = Promokodiki_Filter_Option_Service::build( $context, $state );
@@ -32,13 +36,16 @@ final class Promokodiki_Filter_Renderer {
 			return self::error_markup( $result->get_error_message() );
 		}
 
-		$form_action   = self::form_action( $type, $object_id );
 		$context_token = wp_create_nonce( 'promokodiki_filter_context_' . $type . '_' . $object_id );
 		$cards_html    = self::render_cards( $result['posts'] );
 		if ( '' === $cards_html ) {
 			$message    = ! empty( $state['popular'] ) ? $settings['weekly_empty_label'] : $settings['empty_label'];
 			$cards_html = '<p class="no-promocodes">' . esc_html( $message ) . '</p>';
 		}
+		if ( 'discounts' === $type ) {
+			return self::render_discounts( $state, $result, $settings, $context_token, $cards_html );
+		}
+		$form_action = self::form_action( $type, $object_id );
 
 		ob_start();
 		?>
@@ -106,6 +113,37 @@ final class Promokodiki_Filter_Renderer {
 		$taxonomy = 'shop' === $type ? 'shops_category' : 'promocode_category';
 		$link     = get_term_link( $object_id, $taxonomy );
 		return is_wp_error( $link ) ? home_url( '/' ) : $link;
+	}
+
+	private static function render_discounts( array $state, array $result, array $settings, string $context_token, string $cards_html ): string {
+		ob_start();
+		?>
+		<div
+			class="promokodiki-filter promokodiki-filter--discounts"
+			data-promokodiki-filter
+			data-context="discounts"
+			data-object-id="0"
+			data-context-token="<?php echo esc_attr( $context_token ); ?>"
+		>
+			<?php require PROMOKODIKI_FILTER_DIR . 'templates/discounts-sort.php'; ?>
+			<div class="promokodiki-filter__loader" data-filter-loader aria-hidden="true" hidden>
+				<span class="screen-reader-text"><?php esc_html_e( 'Загрузка…', 'promokodiki-ajax-filter' ); ?></span>
+			</div>
+			<div class="promocodes__items" data-filter-results aria-live="polite" aria-busy="false">
+				<?php echo $cards_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Card template escapes fields. ?>
+			</div>
+			<button
+				type="button"
+				class="promokodiki-filter__more"
+				data-filter-more
+				<?php echo $result['has_more'] ? '' : 'hidden'; ?>
+			>
+				<?php echo esc_html( $settings['load_more_label'] ); ?>
+			</button>
+			<div class="promokodiki-filter__status" data-filter-status role="status" aria-live="polite"></div>
+		</div>
+		<?php
+		return (string) ob_get_clean();
 	}
 
 	private static function error_markup( string $message ): string {

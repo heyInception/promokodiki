@@ -44,7 +44,69 @@ try {
 	$post_ids[] = $multi_post_id;
 	wp_set_post_terms( $multi_post_id, array( $multi_shop_id, $multi_brand_id ), 'shops_category' );
 	update_post_meta( $multi_post_id, '_promocode_expiry_date', wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ) );
+
+	$discount_ids = array();
+	for ( $index = 0; $index < 7; $index++ ) {
+		$discount_id = wp_insert_post(
+			array(
+				'post_type'   => 'promocode',
+				'post_status' => 'publish',
+				'post_title'  => 'PAF renderer discount ' . $index,
+				'post_date'   => wp_date( 'Y-m-d H:i:s', time() - ( $index * MINUTE_IN_SECONDS ) ),
+			)
+		);
+		$post_ids[]    = $discount_id;
+		$discount_ids[] = $discount_id;
+		update_post_meta( $discount_id, '_promocode_expiry_date', wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ) );
+	}
 	Promokodiki_Filter_Context::flush_cache();
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts renderer exposes one six-card feed and GET sort links',
+		static function () use ( $discount_ids ): void {
+			$restrict_query = static function ( WP_Query $query ) use ( $discount_ids ): void {
+				if ( 'promocode' === $query->get( 'post_type' ) ) {
+					$query->set( 'post__in', $discount_ids );
+				}
+			};
+			$original_get = $_GET;
+			$_GET         = array( 'paf_sort' => 'newest' );
+			add_action( 'pre_get_posts', $restrict_query );
+			try {
+				$html = Promokodiki_Filter_Renderer::render( 'discounts', 0 );
+			} finally {
+				remove_action( 'pre_get_posts', $restrict_query );
+				$_GET = $original_get;
+			}
+
+			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'data-filter-results' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'data-filter-more' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( 3, substr_count( $html, 'data-filter-sort' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( 6, substr_count( $html, 'class="promocodes__item ' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'aria-current="true"' ) );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'Сортировать:', $html );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'paf_sort=popular', $html );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'paf_sort=newest', $html );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'paf_sort=discussed', $html );
+		}
+	);
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts renderer defaults to the popular GET sort',
+		static function (): void {
+			$original_get = $_GET;
+			$_GET         = array();
+			try {
+				$html = Promokodiki_Filter_Renderer::render( 'discounts', 0 );
+			} finally {
+				$_GET = $original_get;
+			}
+
+			Promokodiki_Filter_Test_Harness::assert_true(
+				1 === preg_match( '/href="[^"]*paf_sort=popular[^"]*"[^>]*aria-current="true"/', $html )
+			);
+		}
+	);
 
 	Promokodiki_Filter_Test_Harness::run(
 		'home renderer exposes category brand and weekly controls',

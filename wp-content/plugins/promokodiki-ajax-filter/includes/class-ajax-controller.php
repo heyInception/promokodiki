@@ -36,6 +36,10 @@ final class Promokodiki_Filter_Ajax_Controller {
 		}
 
 		$settings = Promokodiki_Filter_Settings::get();
+		if ( 'discounts' === $type ) {
+			$settings['initial_count']   = 6;
+			$settings['load_more_count'] = 6;
+		}
 		$state    = Promokodiki_Filter_State::from_request( $request, $settings, $type );
 		$options  = Promokodiki_Filter_Option_Service::build( $context, $state );
 		if ( is_wp_error( $options ) ) {
