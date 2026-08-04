@@ -98,5 +98,10 @@
     });
   }
 
-  return { normalizeState, stateToSearchParams, fromSearchParams, prepareResultsPayload };
+  function sortFromUrl(url, allowed, fallback) {
+    const requested = new URL(url).searchParams.get('paf_sort') || fallback;
+    return allowed.includes(requested) ? requested : fallback;
+  }
+
+  return { normalizeState, stateToSearchParams, fromSearchParams, sortFromUrl, prepareResultsPayload };
 }));

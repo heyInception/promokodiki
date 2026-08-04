@@ -82,8 +82,15 @@ try {
 			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'data-filter-results' ) );
 			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'data-filter-more' ) );
 			Promokodiki_Filter_Test_Harness::assert_same( 3, substr_count( $html, 'data-filter-sort' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'data-filter-form' ) );
 			Promokodiki_Filter_Test_Harness::assert_same( 6, substr_count( $html, 'class="promocodes__item ' ) );
 			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'aria-current="true"' ) );
+			Promokodiki_Filter_Test_Harness::assert_true(
+				1 === preg_match( '/<input(?=[^>]*type="hidden")(?=[^>]*name="paf_sort")(?=[^>]*value="newest")[^>]*>/', $html )
+			);
+			Promokodiki_Filter_Test_Harness::assert_true(
+				1 === preg_match( '/href="[^"]*paf_sort=newest[^"]*"[^>]*aria-current="true"/', $html )
+			);
 			Promokodiki_Filter_Test_Harness::assert_contains( 'Сортировать:', $html );
 			Promokodiki_Filter_Test_Harness::assert_contains( 'paf_sort=popular', $html );
 			Promokodiki_Filter_Test_Harness::assert_contains( 'paf_sort=newest', $html );

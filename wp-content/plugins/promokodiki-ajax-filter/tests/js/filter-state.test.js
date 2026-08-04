@@ -37,6 +37,19 @@ test('URL state parser restores filter controls', () => {
   );
 });
 
+test('sort URL parser accepts allowed values and rejects invalid values', () => {
+  const allowed = ['popular', 'newest', 'discussed'];
+
+  assert.equal(
+    state.sortFromUrl('https://example.test/discounts/?paf_sort=discussed', allowed, 'popular'),
+    'discussed'
+  );
+  assert.equal(
+    state.sortFromUrl('https://example.test/discounts/?paf_sort=oldest', allowed, 'popular'),
+    'popular'
+  );
+});
+
 test('zero category and brand identifiers are omitted from query strings', () => {
   assert.deepEqual(
     state.normalizeState({ category: '0', brand: 0, sort: 'newest', popular: false, page: 1 }),

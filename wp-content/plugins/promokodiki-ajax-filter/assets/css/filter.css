@@ -40,6 +40,36 @@
   cursor: pointer;
 }
 
+.promokodiki-filter__more {
+  display: block;
+  min-height: 44px;
+  margin: 24px auto 0;
+  padding: 10px 24px;
+  border: 1px solid #fe3388;
+  border-radius: 999px;
+  background: #fe3388;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  transition: background-color 160ms ease, border-color 160ms ease, opacity 160ms ease;
+}
+
+.promokodiki-filter__more:hover:not(:disabled) {
+  border-color: #e3156c;
+  background: #e3156c;
+}
+
+.promokodiki-filter__more:focus-visible,
+.promokodiki-filter--discounts [data-filter-sort]:focus-visible {
+  outline: 3px solid rgba(254, 51, 136, 0.35);
+  outline-offset: 3px;
+}
+
+.promokodiki-filter__more:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .promokodiki-filter__more[hidden] {
   display: none;
 }
@@ -57,7 +87,76 @@
   cursor: pointer;
 }
 
+.promokodiki-filter--discounts .promokodiki-filter__sort-form {
+  margin: 0 0 20px;
+}
+
+.promokodiki-filter--discounts .promocodes__sort {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.promokodiki-filter--discounts .promocodes__sort-label {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
+.promokodiki-filter--discounts .promocodes__sort-links {
+  display: flex;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px;
+  overflow-x: auto;
+  border: 1px solid #eee;
+  border-radius: 999px;
+  background: #fff;
+  scrollbar-width: thin;
+  scrollbar-color: #fe3388 transparent;
+}
+
+.promokodiki-filter--discounts [data-filter-sort] {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 36px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  color: inherit;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background-color 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.promokodiki-filter--discounts [data-filter-sort]:hover:not([aria-disabled="true"]),
+.promokodiki-filter--discounts [data-filter-sort]:focus-visible:not([aria-disabled="true"]) {
+  background: #fff0f6;
+  color: #d90d63;
+}
+
+.promokodiki-filter--discounts [data-filter-sort][aria-current="true"],
+.promokodiki-filter--discounts .tabs__nav-btn--active {
+  background: #fe3388;
+  color: #fff;
+}
+
+.promokodiki-filter--discounts [data-filter-sort][aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 @media (max-width: 767px) {
+  .promokodiki-filter--discounts .promocodes__sort {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .promokodiki-filter--discounts .promocodes__sort-links {
+    box-sizing: border-box;
+    width: 100%;
+  }
+
   .promokodiki-filter .promocodes__filters {
     flex-flow: row nowrap;
     gap: 20px;

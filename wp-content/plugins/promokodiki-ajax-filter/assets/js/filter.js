@@ -3,8 +3,9 @@
 
   const config = window.PromokodikiFilterConfig;
   const stateApi = window.PromokodikiFilterState;
+  const viewApi = window.PromokodikiFilterView;
   const roots = Array.from(document.querySelectorAll('[data-promokodiki-filter]'));
-  if (!config || !stateApi || roots.length === 0) return;
+  if (!config || !stateApi || !viewApi || roots.length === 0) return;
 
   function value(form, name) {
     const field = form.elements.namedItem(name);
@@ -88,7 +89,10 @@
     const more = root.querySelector('[data-filter-more]');
     const status = root.querySelector('[data-filter-status]');
     const loader = root.querySelector('[data-filter-loader]');
+    const sortLinks = Array.from(root.querySelectorAll('[data-filter-sort]'));
     if (!form || !results || !more || !status || !loader) return;
+
+    const allowedSorts = sortLinks.map((link) => link.dataset.filterSort);
 
     const category = form.elements.namedItem('paf_category');
     const brand = form.elements.namedItem('paf_brand');
@@ -99,6 +103,10 @@
     let controller = null;
     let retry = null;
 
+    function syncSortLinks(sort) {
+      viewApi.syncSortLinks(sortLinks, sort);
+    }
+
     function setLoading(loading) {
       root.classList.toggle('is-loading', loading);
       results.setAttribute('aria-busy', loading ? 'true' : 'false');
@@ -106,6 +114,7 @@
       loader.setAttribute('aria-hidden', loading ? 'false' : 'true');
       Array.from(form.elements).forEach((element) => { element.disabled = loading; });
       more.disabled = loading;
+      viewApi.setSortLinksDisabled(sortLinks, loading);
       if (loading) status.textContent = config.loadingLabel;
     }
 
@@ -169,6 +178,7 @@
           replaceSelectOptions(categoryUpdate);
           replaceSelectOptions(brandUpdate);
           applyState(form, data.state);
+          syncSortLinks(data.state.sort);
           updateUrl(data.state, historyMode);
         }
         page = data.page;
@@ -196,12 +206,31 @@
       request(1, false, 'push');
     });
 
+    sortLinks.forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (link.getAttribute('aria-disabled') === 'true') return;
+
+        const state = readState(form);
+        state.sort = stateApi.sortFromUrl(link.href, allowedSorts, 'popular');
+        state.page = 1;
+        request(1, false, 'push', state);
+      });
+    });
+
     more.addEventListener('click', () => request(page + 1, true, 'none'));
 
     window.addEventListener('popstate', () => {
       const state = stateApi.fromSearchParams(new URL(window.location.href).searchParams);
+      if (sortLinks.length > 0) {
+        state.sort = stateApi.sortFromUrl(window.location.href, allowedSorts, 'popular');
+      }
+      applyState(form, state);
+      syncSortLinks(state.sort);
       request(1, false, 'replace', state);
     });
+
+    syncSortLinks(readState(form).sort);
   });
 
   document.addEventListener('click', (event) => {

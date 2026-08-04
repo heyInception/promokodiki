@@ -90,9 +90,16 @@ final class Promokodiki_Filter_Plugin {
 			true
 		);
 		wp_enqueue_script(
+			'promokodiki-filter-view',
+			PROMOKODIKI_FILTER_URL . 'assets/js/filter-view.js',
+			array( 'promokodiki-filter-state' ),
+			PROMOKODIKI_FILTER_VERSION,
+			true
+		);
+		wp_enqueue_script(
 			'promokodiki-ajax-filter',
 			PROMOKODIKI_FILTER_URL . 'assets/js/filter.js',
-			array( 'promokodiki-filter-state' ),
+			array( 'promokodiki-filter-state', 'promokodiki-filter-view' ),
 			PROMOKODIKI_FILTER_VERSION,
 			true
 		);
