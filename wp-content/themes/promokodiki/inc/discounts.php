@@ -9,14 +9,53 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-function promokodiki_discounts_fallback_query( string $sort ): WP_Query {
+/**
+ * Build the plugin-off Discounts query.
+ *
+ * @param string $sort Requested Discounts sort.
+ * @return WP_Query
+ */
+function promokodiki_discounts_fallback_query( $sort ) {
 	global $wpdb;
 
 	$allowed_sort = array( 'popular', 'newest', 'discussed' );
 	$sort         = sanitize_key( $sort );
 	$sort         = in_array( $sort, $allowed_sort, true ) ? $sort : 'popular';
+	$click_table  = $wpdb->prefix . 'promokodiki_click_stats';
+	$weekly_start = gmdate( 'Y-m-d', current_time( 'timestamp' ) - ( 6 * DAY_IN_SECONDS ) );
+	$use_weekly   = false;
 
-	$clauses_filter = static function ( array $clauses ) use ( $sort, $wpdb ): array {
+	if ( 'popular' === $sort ) {
+		// A retained plugin table is optional in fallback mode, so verify it before querying.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema discovery cannot use the object cache.
+		$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $click_table ) ) );
+		if ( $click_table === $table_exists ) {
+			$today = current_time( 'Y-m-d' );
+			$sql   = "SELECT COUNT(DISTINCT stats.promocode_id)
+				FROM {$click_table} stats
+				INNER JOIN {$wpdb->posts} p ON p.ID = stats.promocode_id
+				WHERE stats.click_date >= %s
+				AND p.post_type = 'promocode'
+				AND p.post_status = 'publish'
+				AND NOT EXISTS (
+					SELECT 1 FROM {$wpdb->postmeta} activity
+					WHERE activity.post_id = p.ID
+					AND activity.meta_key = '_promocode_is_active'
+					AND activity.meta_value = 'no'
+				)
+				AND NOT EXISTS (
+					SELECT 1 FROM {$wpdb->postmeta} expiry
+					WHERE expiry.post_id = p.ID
+					AND expiry.meta_key = '_promocode_expiry_date'
+					AND expiry.meta_value <> ''
+					AND expiry.meta_value < %s
+				)";
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The optional table identifier is verified above; all values use placeholders.
+			$use_weekly = 0 < (int) $wpdb->get_var( $wpdb->prepare( $sql, $weekly_start, $today ) );
+		}
+	}
+
+	$clauses_filter = static function ( $clauses ) use ( $sort, $wpdb, $click_table, $weekly_start, $use_weekly ) {
 		$expiry_expression = "(SELECT MAX(paf_expiry.meta_value) FROM {$wpdb->postmeta} paf_expiry
 			WHERE paf_expiry.post_id = {$wpdb->posts}.ID
 			AND paf_expiry.meta_key = '_promocode_expiry_date')";
@@ -50,7 +89,20 @@ function promokodiki_discounts_fallback_query( string $sort ): WP_Query {
 				break;
 			case 'popular':
 			default:
-				$order = "COALESCE({$usage_expression}, 0) DESC, {$wpdb->posts}.ID DESC";
+				if ( $use_weekly ) {
+					$weekly_start_sql = esc_sql( $weekly_start );
+					$weekly_expression = "(SELECT SUM(paf_weekly.clicks) FROM {$click_table} paf_weekly
+						WHERE paf_weekly.promocode_id = {$wpdb->posts}.ID
+						AND paf_weekly.click_date >= '{$weekly_start_sql}')";
+					$clauses['where'] .= " AND EXISTS (
+						SELECT 1 FROM {$click_table} paf_weekly_eligible
+						WHERE paf_weekly_eligible.promocode_id = {$wpdb->posts}.ID
+						AND paf_weekly_eligible.click_date >= '{$weekly_start_sql}'
+					)";
+					$order = "COALESCE({$weekly_expression}, 0) DESC, {$wpdb->posts}.ID DESC";
+				} else {
+					$order = "COALESCE({$usage_expression}, 0) DESC, {$wpdb->posts}.ID DESC";
+				}
 		}
 
 		$clauses['orderby'] = $order;

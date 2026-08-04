@@ -254,6 +254,32 @@ try {
 	);
 
 	Promokodiki_Filter_Test_Harness::run(
+		'discounts standard sorting ignores the global show expired setting',
+		static function () use ( $state, $settings, $discounts_context, $undated_id, $discount_expired_id, $inactive_id ): void {
+			$fixture_ids = array( $undated_id, $discount_expired_id, $inactive_id );
+			$restrict_to_fixtures = static function ( WP_Query $query ) use ( $fixture_ids ): void {
+				if ( 'promocode' === $query->get( 'post_type' ) ) {
+					$query->set( 'post__in', $fixture_ids );
+				}
+			};
+			add_action( 'pre_get_posts', $restrict_to_fixtures );
+			try {
+				$result = Promokodiki_Filter_Query_Service::run(
+					$state( array( 'sort' => 'newest' ) ),
+					$discounts_context,
+					array_merge( $settings, array( 'initial_count' => 6, 'load_more_count' => 6, 'show_expired' => true ) )
+				);
+			} finally {
+				remove_action( 'pre_get_posts', $restrict_to_fixtures );
+			}
+			$ids = wp_list_pluck( $result['posts'], 'ID' );
+			Promokodiki_Filter_Test_Harness::assert_true( in_array( $undated_id, $ids, true ) );
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $discount_expired_id, $ids, true ), 'Expired Discounts offer leaked into standard sorting' );
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $inactive_id, $ids, true ) );
+		}
+	);
+
+	Promokodiki_Filter_Test_Harness::run(
 		'discounts discussed ranks total reactions then date then ID',
 		static function () use ( $state, $settings, $discounts_context, $discussed_legacy_id, $discussed_total_id, $discussed_tie_recent_id, $discussed_tie_id_high, $discussed_tie_id_low ): void {
 			$result = Promokodiki_Filter_Query_Service::run(
@@ -283,6 +309,22 @@ try {
 
 	global $wpdb;
 	$table = $wpdb->prefix . 'promokodiki_click_stats';
+	$wpdb->insert( $table, array( 'promocode_id' => $discount_expired_id, 'click_date' => $today, 'clicks' => 1000 ), array( '%d', '%s', '%d' ) );
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts popular ignores an expired-only weekly window before lifetime fallback',
+		static function () use ( $state, $settings, $discounts_context, $fallback_high_id, $fallback_low_id, $discount_expired_id ): void {
+			$result = Promokodiki_Filter_Query_Service::run(
+				$state( array( 'sort' => 'popular' ) ),
+				$discounts_context,
+				array_merge( $settings, array( 'initial_count' => 6, 'load_more_count' => 6, 'show_expired' => true ) )
+			);
+			$ids = wp_list_pluck( $result['posts'], 'ID' );
+			Promokodiki_Filter_Test_Harness::assert_same( array( $fallback_high_id, $fallback_low_id ), array_slice( $ids, 0, 2 ) );
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $discount_expired_id, $ids, true ), 'Expired weekly click row suppressed the lifetime fallback' );
+		}
+	);
+
 	$wpdb->insert( $table, array( 'promocode_id' => $new_id, 'click_date' => $today, 'clicks' => 2 ), array( '%d', '%s', '%d' ) );
 	$wpdb->insert( $table, array( 'promocode_id' => $old_id, 'click_date' => wp_date( 'Y-m-d', current_time( 'timestamp' ) - ( 6 * DAY_IN_SECONDS ) ), 'clicks' => 5 ), array( '%d', '%s', '%d' ) );
 
@@ -302,14 +344,15 @@ try {
 	);
 
 	Promokodiki_Filter_Test_Harness::run(
-		'discounts popular uses tracked seven-day clicks when rankings exist',
-		static function () use ( $state, $settings, $discounts_context, $old_id, $new_id ): void {
+		'discounts popular ignores global expiry while using tracked seven-day clicks',
+		static function () use ( $state, $settings, $discounts_context, $old_id, $new_id, $discount_expired_id ): void {
 			$result = Promokodiki_Filter_Query_Service::run(
 				$state( array( 'sort' => 'popular' ) ),
 				$discounts_context,
-				array_merge( $settings, array( 'initial_count' => 6, 'load_more_count' => 6, 'popular_days' => 1 ) )
+				array_merge( $settings, array( 'initial_count' => 6, 'load_more_count' => 6, 'popular_days' => 1, 'show_expired' => true ) )
 			);
 			Promokodiki_Filter_Test_Harness::assert_same( array( $old_id, $new_id ), wp_list_pluck( $result['posts'], 'ID' ) );
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $discount_expired_id, wp_list_pluck( $result['posts'], 'ID' ), true ) );
 		}
 	);
 

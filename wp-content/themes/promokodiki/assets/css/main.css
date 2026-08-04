@@ -467,6 +467,37 @@ h6 {
   align-items: center;
   gap: 30px;
 }
+.header__nav .menu-toggle {
+  display: none;
+  width: 33px;
+  height: 23px;
+  padding: 0;
+  position: relative;
+}
+.header__nav .menu-toggle:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 4px;
+}
+.header__nav .menu-toggle__icon,
+.header__nav .menu-toggle__icon::before,
+.header__nav .menu-toggle__icon::after {
+  position: absolute;
+  left: 0;
+  width: 33px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--black);
+  content: "";
+}
+.header__nav .menu-toggle__icon {
+  top: 10px;
+}
+.header__nav .menu-toggle__icon::before {
+  top: -10px;
+}
+.header__nav .menu-toggle__icon::after {
+  top: 10px;
+}
 .header__nav ul {
   display: -webkit-box;
   display: -ms-flexbox;
@@ -484,7 +515,8 @@ h6 {
   position: relative;
   line-height: 54px;
 }
-.header__nav ul li:has(ul) a::after {
+.header__nav .menu-item-has-children > a::after,
+.header__nav .page_item_has_children > a::after {
   content: "";
   background-image: url("data:image/svg+xml,%3Csvg width='12' height='7' viewBox='0 0 12 7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0.747045 0.995C0.746871 0.888212 0.788874 0.792798 0.873053 0.708759L1.62673 0.141822C1.71091 0.0577819 1.81049 0.015669 1.92547 0.015484C2.04811 0.0152866 2.14782 0.0570788 2.22461 0.14086L5.36703 3.37623C5.74674 3.76718 6.36956 3.78209 6.76754 3.40978L10.1267 0.267197C10.2109 0.183158 10.3105 0.141045 10.4255 0.14086C10.5328 0.140687 10.6325 0.182479 10.7246 0.266235L11.2209 0.692108C11.3053 0.775876 11.3476 0.871155 11.3478 0.977942C11.348 1.09236 11.306 1.1954 11.2218 1.28707L6.35474 6.13466C6.27056 6.2187 6.17098 6.26082 6.056 6.261C5.94103 6.26119 5.84131 6.2194 5.75686 6.13563L0.87402 1.30372C0.789568 1.21995 0.747243 1.11704 0.747045 0.995Z' fill='%23333333' /%3E%3C/svg%3E");
   width: 12px;
@@ -495,7 +527,12 @@ h6 {
   transition: transform 0.3s;
   transition: transform 0.3s, -webkit-transform 0.3s;
 }
-.header__nav ul li:has(ul):hover a::after {
+.header__nav .menu-item-has-children:hover > a::after,
+.header__nav .menu-item-has-children:focus-within > a::after,
+.header__nav .menu-item-has-children.focus > a::after,
+.header__nav .page_item_has_children:hover > a::after,
+.header__nav .page_item_has_children:focus-within > a::after,
+.header__nav .page_item_has_children.focus > a::after {
   -webkit-transform: rotate(180deg);
   -ms-transform: rotate(180deg);
   transform: rotate(180deg);
@@ -548,6 +585,16 @@ h6 {
   -webkit-box-shadow: 0 0 23px 0 rgba(205, 200, 200, 0.25);
   box-shadow: 0 0 23px 0 rgba(205, 200, 200, 0.25);
   background: var(--white);
+}
+.header__nav .menu-item-has-children:hover > ul,
+.header__nav .menu-item-has-children:focus-within > ul,
+.header__nav .menu-item-has-children.focus > ul,
+.header__nav .page_item_has_children:hover > ul,
+.header__nav .page_item_has_children:focus-within > ul,
+.header__nav .page_item_has_children.focus > ul {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
 }
 .header__nav ul li > ul li {
   -webkit-column-break-inside: avoid;
@@ -3096,12 +3143,60 @@ h6 {
     row-gap: 5px;
   }
   .header__nav {
-    width: 33px;
-    height: 23px;
-    background: #000;
+    width: auto;
+    height: auto;
+    background: transparent;
+    position: relative;
+  }
+  .header__nav .menu-toggle {
+    display: block;
   }
   .header__nav .nav__list {
     display: none;
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 12px);
+    right: 0;
+    min-width: min(320px, calc(100vw - 30px));
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding: 12px;
+    border-radius: 14px;
+    background: var(--white);
+    -webkit-box-shadow: 0 0 23px 0 rgba(205, 200, 200, 0.25);
+    box-shadow: 0 0 23px 0 rgba(205, 200, 200, 0.25);
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -ms-flex-flow: column nowrap;
+    flex-flow: column nowrap;
+    -webkit-box-align: stretch;
+    -ms-flex-align: stretch;
+    align-items: stretch;
+    gap: 0;
+  }
+  .header__nav .main-navigation.toggled > .nav__list {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+  }
+  .header__nav ul > li {
+    line-height: 1.4;
+  }
+  .header__nav ul li a {
+    width: 100%;
+    min-height: 44px;
+    -webkit-box-pack: justify;
+    -ms-flex-pack: justify;
+    justify-content: space-between;
+  }
+  .header__nav ul li > ul {
+    position: static;
+    min-height: 0;
+    width: 100%;
+    margin-top: 4px;
+    padding: 12px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
   }
   .header__wrap {
     -webkit-box-flex: 1;

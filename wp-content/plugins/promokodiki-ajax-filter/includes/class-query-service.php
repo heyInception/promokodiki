@@ -15,6 +15,9 @@ final class Promokodiki_Filter_Query_Service {
 		if ( is_wp_error( $validation ) ) {
 			return $validation;
 		}
+		if ( 'discounts' === $context['type'] ) {
+			$settings['show_expired'] = false;
+		}
 
 		$page   = max( 1, (int) ( $state['page'] ?? 1 ) );
 		$limit  = 1 === $page ? (int) $settings['initial_count'] : (int) $settings['load_more_count'];

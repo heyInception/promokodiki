@@ -101,7 +101,8 @@
 
     let page = 1;
     let controller = null;
-    let retry = null;
+    let committedState = stateApi.normalizeState(readState(form));
+    let appendBlocked = false;
 
     function syncSortLinks(sort) {
       viewApi.syncSortLinks(sortLinks, sort);
@@ -113,12 +114,12 @@
       loader.hidden = !loading;
       loader.setAttribute('aria-hidden', loading ? 'false' : 'true');
       Array.from(form.elements).forEach((element) => { element.disabled = loading; });
-      more.disabled = loading;
+      more.disabled = loading || appendBlocked;
       viewApi.setSortLinksDisabled(sortLinks, loading);
       if (loading) status.textContent = config.loadingLabel;
     }
 
-    function showError(error) {
+    function showError(error, retryRequest) {
       status.textContent = '';
       const message = document.createElement('span');
       message.textContent = error.message || config.genericError;
@@ -126,7 +127,7 @@
       button.type = 'button';
       button.className = 'promokodiki-filter__retry';
       button.textContent = config.retryLabel;
-      button.addEventListener('click', () => { if (retry) retry(); });
+      button.addEventListener('click', retryRequest);
       status.replaceChildren(message, document.createTextNode(' '), button);
     }
 
@@ -147,7 +148,7 @@
       if (state.popular) body.set('paf_popular', '1');
       body.set('paf_page', String(requestedPage));
 
-      retry = () => request(requestedPage, append, historyMode, state);
+      const retryRequest = () => request(requestedPage, append, historyMode, state);
       setLoading(true);
       try {
         const response = await fetch(config.ajaxUrl, {
@@ -182,10 +183,19 @@
           updateUrl(data.state, historyMode);
         }
         page = data.page;
+        committedState = stateApi.normalizeState(data.state);
+        if (!append) appendBlocked = false;
         more.hidden = !data.hasMore;
         status.textContent = data.message;
       } catch (error) {
-        if (error.name !== 'AbortError') showError(error);
+        if (error.name !== 'AbortError' && controller === currentController) {
+          if (!append) {
+            applyState(form, committedState);
+            syncSortLinks(committedState.sort);
+            appendBlocked = true;
+          }
+          showError(error, retryRequest);
+        }
       } finally {
         if (controller === currentController) setLoading(false);
       }
@@ -218,7 +228,10 @@
       });
     });
 
-    more.addEventListener('click', () => request(page + 1, true, 'none'));
+    more.addEventListener('click', () => {
+      if (more.disabled) return;
+      request(page + 1, true, 'none', committedState);
+    });
 
     window.addEventListener('popstate', () => {
       const state = stateApi.fromSearchParams(new URL(window.location.href).searchParams);
