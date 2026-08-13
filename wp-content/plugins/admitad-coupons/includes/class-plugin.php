@@ -48,6 +48,7 @@ final class Promokodiki_Admitad_Plugin {
 			10,
 			3
 		);
+		add_action( 'promokodiki_admitad_logo_batch', array( 'Promokodiki_Admitad_Sync_Coordinator', 'handle_logo_batch' ), 10, 3 );
 	}
 
 	/**
@@ -79,6 +80,7 @@ final class Promokodiki_Admitad_Plugin {
 			'promokodiki_admitad_retention',
 			'promokodiki_admitad_coupon_batch',
 			'promokodiki_admitad_reference_batch',
+			'promokodiki_admitad_logo_batch',
 			'promokodiki_admitad_apply_classification',
 			'update_admitad_coupons_event',
 			'update_admitad_shop_coupons_event',

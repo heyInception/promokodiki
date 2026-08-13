@@ -474,6 +474,13 @@ Promokodiki_Admitad_Test_Harness::run(
 					array( 'Promokodiki_Admitad_Sync_Coordinator', 'handle_reference_batch' )
 				)
 			);
+			Promokodiki_Admitad_Test_Harness::assert_true(
+				false !== has_action(
+					'promokodiki_admitad_logo_batch',
+					array( 'Promokodiki_Admitad_Sync_Coordinator', 'handle_logo_batch' )
+				)
+			);
+			Promokodiki_Admitad_Test_Harness::assert_true( in_array( 'promokodiki_admitad_logo_batch', admitad_cron_hooks(), true ) );
 			$result = update_admitad_coupons_data();
 			if ( is_wp_error( $result ) ) {
 				throw new RuntimeException( 'Legacy facade failed: ' . $result->get_error_code() );

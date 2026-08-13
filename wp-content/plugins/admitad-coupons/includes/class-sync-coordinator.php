@@ -92,6 +92,11 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 		( new self() )->run_reference_batch( $run_id, $phase, $offset );
 	}
 
+	/** Handle one scheduled logo batch. */
+	public static function handle_logo_batch( int $run_id, int $offset, int $total ): void {
+		( new self() )->run_logo_batch( $run_id, $offset, $total );
+	}
+
 	/**
 	 * Start a coupon synchronization.
 	 *
@@ -188,14 +193,46 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 				'complete'    => false,
 			);
 		}
-		$this->runs->complete( $run_id, array( 'processed' => $next ) );
-		( new Promokodiki_Admitad_Notifier() )->record_success( 'reference' );
-		$this->release( 'reference', $run_id );
+		global $wpdb;
+		$profile_table = Promokodiki_Admitad_Schema::table( 'company_profile' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Count bounds the follow-up logo traversal.
+		$logo_total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$profile_table} WHERE image_url <> ''" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Validated table identifier.
+		$this->schedule( time() + 1, 'promokodiki_admitad_logo_batch', array( $run_id, 0, $logo_total ) );
 		return array(
 			'phase'       => 'campaigns',
 			'next_offset' => $next,
-			'complete'    => true,
+			'complete'    => false,
 		);
+	}
+
+	/**
+	 * Process one bounded page of stored campaign logos.
+	 *
+	 * @return array{next_offset:int,complete:bool}
+	 */
+	public function run_logo_batch( int $run_id, int $offset, int $total ): array {
+		global $wpdb;
+
+		$limit = (int) Promokodiki_Admitad_Config::get( 'batch_size' );
+		$table = Promokodiki_Admitad_Schema::table( 'company_profile' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded continuation reads snapshot IDs.
+		$ids = $wpdb->get_col( $wpdb->prepare( "SELECT campaign_id FROM {$table} WHERE image_url <> '' ORDER BY campaign_id ASC LIMIT %d OFFSET %d", $limit, max( 0, $offset ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Validated table identifier.
+		$service = new Promokodiki_Admitad_Managed_Logo_Service();
+		foreach ( $ids as $campaign_id ) {
+			$service->process_campaign( (int) $campaign_id );
+		}
+		$next     = $offset + count( $ids );
+		$complete = count( $ids ) < $limit || $next >= $total;
+		if ( $complete ) {
+			$this->runs->complete( $run_id, array( 'processed' => max( $total, $next ) ) );
+			update_option( 'promokodiki_admitad_shop_enrichment_complete', time(), false );
+			( new Promokodiki_Admitad_Notifier() )->record_success( 'reference' );
+			$this->release( 'reference', $run_id );
+		} else {
+			$this->runs->heartbeat( $run_id, $next, array( 'processed' => $next ) );
+			$this->schedule( time() + 1, 'promokodiki_admitad_logo_batch', array( $run_id, $next, $total ) );
+		}
+		return array( 'next_offset' => $next, 'complete' => $complete );
 	}
 
 	/**
