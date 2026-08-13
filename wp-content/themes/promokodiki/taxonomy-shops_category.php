@@ -20,6 +20,9 @@ $acf_context     = 'shops_category_' . $shop->term_id;
 $address         = promokodiki_shop_acf( 'address', $shop );
 $phone           = promokodiki_shop_acf( 'phone', $shop );
 $email           = promokodiki_shop_acf( 'email', $shop );
+$address         = $address ?: get_term_meta( $shop->term_id, 'shop_address', true );
+$phone           = $phone ?: get_term_meta( $shop->term_id, 'shop_phone', true );
+$email           = $email ?: get_term_meta( $shop->term_id, 'shop_email', true );
 
 $render_logo = static function ( array $shop_profile, string $size = 'medium' ): void {
 	if ( $shop_profile['logo_id'] ) {
@@ -123,7 +126,7 @@ $render_logo = static function ( array $shop_profile, string $size = 'medium' ):
 								<?php if ( $address ) : ?><address class="promocodes__shop-loc"><?php echo esc_html( $address ); ?></address><?php endif; ?>
 								<?php if ( $phone ) : ?><div class="promocodes__shop-tel"><a href="tel:<?php echo esc_attr( preg_replace( '/[^0-9+]/', '', (string) $phone ) ); ?>"><?php echo esc_html( $phone ); ?></a></div><?php endif; ?>
 								<?php if ( $email ) : ?><div class="promocodes__shop-mail"><a href="mailto:<?php echo esc_attr( antispambot( sanitize_email( $email ) ) ); ?>"><?php echo esc_html( antispambot( $email ) ); ?></a></div><?php endif; ?>
-								<?php if ( $profile['website'] ) : ?><div class="promocodes__shop-site"><a href="<?php echo esc_url( $profile['website'] ); ?>" target="_blank" rel="nofollow noopener noreferrer"><?php echo esc_html( wp_parse_url( $profile['website'], PHP_URL_HOST ) ?: $profile['website'] ); ?></a></div><?php endif; ?>
+								<?php if ( $profile['website'] ) : ?><div class="promocodes__shop-site"><a href="<?php echo esc_url( $profile['affiliate_url'] ); ?>" target="_blank" rel="nofollow sponsored noopener noreferrer"><?php echo esc_html( wp_parse_url( $profile['website'], PHP_URL_HOST ) ?: $profile['website'] ); ?></a></div><?php endif; ?>
 							</div>
 						<?php endif; ?>
 					</div>

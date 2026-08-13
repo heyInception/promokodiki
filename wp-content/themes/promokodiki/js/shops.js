@@ -5,6 +5,41 @@
 		return String(value || '').trim().toLocaleLowerCase('ru-RU');
 	}
 
+	function highlightParts(label, query) {
+		var original = String(label || '');
+		var normalizedQuery = normalize(query);
+		var index = normalizedQuery ? original.toLocaleLowerCase('ru-RU').indexOf(normalizedQuery) : -1;
+		if (index < 0) {
+			return [{ text: original, matched: false }];
+		}
+		return [
+			{ text: original.slice(0, index), matched: false },
+			{ text: original.slice(index, index + normalizedQuery.length), matched: true },
+			{ text: original.slice(index + normalizedQuery.length), matched: false }
+		].filter(function (part) { return part.text.length > 0; });
+	}
+
+	function renderHighlight(item, query, documentObject) {
+		var label = item.getAttribute('data-shop-label') || item.textContent || '';
+		if (!item.getAttribute('data-shop-label')) {
+			item.setAttribute('data-shop-label', label);
+		}
+		while (item.firstChild) {
+			item.removeChild(item.firstChild);
+		}
+		highlightParts(label, query).forEach(function (part) {
+			var node = documentObject.createTextNode(part.text);
+			if (!part.matched) {
+				item.appendChild(node);
+				return;
+			}
+			var mark = documentObject.createElement('mark');
+			mark.className = 'alphabetical__match';
+			mark.appendChild(node);
+			item.appendChild(mark);
+		});
+	}
+
 	function initShopSearch(documentObject) {
 		var input = documentObject.getElementById('shops-search-input');
 		var form = documentObject.getElementById('shops-search-form');
@@ -23,6 +58,9 @@
 			items.forEach(function (item) {
 				var matches = !query || normalize(item.getAttribute('data-shop-name')).indexOf(query) !== -1;
 				item.hidden = !matches;
+				if (matches && typeof documentObject.createTextNode === 'function') {
+					renderHighlight(item, query, documentObject);
+				}
 				visible += matches ? 1 : 0;
 			});
 			groups.forEach(function (group) {
@@ -43,7 +81,7 @@
 	}
 
 	if (typeof module !== 'undefined' && module.exports) {
-		module.exports = { initShopSearch: initShopSearch, normalize: normalize };
+		module.exports = { initShopSearch: initShopSearch, normalize: normalize, highlightParts: highlightParts };
 	}
 
 	if (typeof document !== 'undefined') {

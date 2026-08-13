@@ -320,6 +320,17 @@
 	} );
 
 	document.addEventListener( 'click', ( event ) => {
+		const copyButton = event.target.closest?.( '[data-admitad-copy-source]' );
+		if ( copyButton && copyButton.hasAttribute?.( 'data-admitad-copy-source' ) ) {
+			const source = document.querySelector( '[data-admitad-source-description]' );
+			const textarea = document.querySelector( '[name="_admitad_shop_manual_description"]' );
+			if ( source && textarea ) {
+				textarea.value = source.innerHTML;
+				if ( window.tinyMCE?.get( textarea.id ) ) window.tinyMCE.get( textarea.id ).setContent( source.innerHTML );
+				textarea.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+			}
+			return;
+		}
 		const link = event.target.closest?.( 'a[data-admitad-ajax]' );
 		if (
 			! link ||

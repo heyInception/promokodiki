@@ -19,25 +19,7 @@ final class Promokodiki_Admitad_Shop_Profile_Sync {
 	 * @param string $html Source campaign HTML.
 	 */
 	public static function sanitize_description( string $html ): string {
-		$allowed = array(
-			'p'      => array(),
-			'br'     => array(),
-			'h2'     => array(),
-			'h3'     => array(),
-			'h4'     => array(),
-			'ul'     => array(),
-			'ol'     => array(),
-			'li'     => array(),
-			'strong' => array(),
-			'em'     => array(),
-			'a'      => array(
-				'href'   => true,
-				'title'  => true,
-				'target' => true,
-				'rel'    => true,
-			),
-		);
-		return trim( wp_kses( $html, $allowed ) );
+		return Promokodiki_Admitad_Shop_Content_Service::sanitize( $html );
 	}
 
 	/**
@@ -127,6 +109,12 @@ final class Promokodiki_Admitad_Shop_Profile_Sync {
 				update_term_meta( $term_id, $key, $value );
 			}
 		}
+		if ( '' !== $description ) {
+			update_term_meta( $term_id, '_admitad_shop_source_description', $description );
+		}
+		Promokodiki_Admitad_Shop_Content_Service::fill_empty_contacts( $term_id, $campaign );
+		update_term_meta( $term_id, '_admitad_shop_synced_at', time() );
+		update_term_meta( $term_id, '_admitad_shop_audit', array( 'updated_at' => time(), 'user_id' => 0, 'source' => 'admitad' ) );
 
 		return array( 'updated' => 1, 'unlinked' => 0, 'term_id' => $term_id );
 	}

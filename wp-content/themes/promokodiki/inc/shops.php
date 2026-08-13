@@ -55,11 +55,17 @@ function promokodiki_shop_profile( WP_Term $term ): array {
 		$logo_id = absint( get_term_meta( $term->term_id, 'shops-category-image-id', true ) );
 	}
 
-	$full_description = $acf_description ?: get_term_meta( $term->term_id, '_admitad_shop_description', true );
+	$full_description = $acf_description ?: get_term_meta( $term->term_id, '_admitad_shop_manual_description', true );
+	$full_description = $full_description ?: get_term_meta( $term->term_id, '_admitad_shop_source_description', true );
+	$full_description = $full_description ?: get_term_meta( $term->term_id, '_admitad_shop_description', true );
 	$full_description = $full_description ?: $term->description;
 	$about            = $acf_about ?: get_term_meta( $term->term_id, '_admitad_shop_summary', true );
-	$website          = promokodiki_shop_acf( 'website', $term ) ?: get_term_meta( $term->term_id, '_admitad_shop_website', true );
-	$website          = $website ?: get_term_meta( $term->term_id, 'shop_website', true );
+	$website          = promokodiki_shop_acf( 'website', $term ) ?: get_term_meta( $term->term_id, 'shop_website', true );
+	$website          = $website ?: get_term_meta( $term->term_id, '_admitad_shop_website', true );
+	$affiliate_url    = class_exists( 'Promokodiki_Admitad_Deeplink_Service' )
+		? ( new Promokodiki_Admitad_Deeplink_Service() )->resolved_url( $term->term_id )
+		: ( get_term_meta( $term->term_id, '_admitad_shop_manual_affiliate_url', true ) ?: get_term_meta( $term->term_id, '_admitad_shop_deeplink', true ) );
+	$affiliate_url    = $affiliate_url ?: $website;
 
 	return array(
 		'name'             => $term->name,
@@ -67,6 +73,7 @@ function promokodiki_shop_profile( WP_Term $term ): array {
 		'about'            => (string) $about,
 		'rating'           => $rating,
 		'website'          => (string) $website,
+		'affiliate_url'    => (string) $affiliate_url,
 		'logo_id'          => $logo_id,
 		'logo_url'         => $logo_url,
 		'logo_alt'         => $term->name,

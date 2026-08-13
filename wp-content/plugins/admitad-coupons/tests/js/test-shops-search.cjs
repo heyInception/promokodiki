@@ -49,4 +49,8 @@ handlers.input();
 assert(group.hidden === true && empty.hidden === false, 'empty state should be shown');
 assert(shops.normalize(' ТЕСТ ') === 'тест', 'search normalization should trim and lowercase');
 
+const parts = shops.highlightParts('Shop Alpha', 'alpha');
+assert(parts.length === 2 && parts[1].text === 'Alpha' && parts[1].matched === true, 'matched substring should be isolated for highlighting');
+assert(shops.highlightParts('Shop Alpha', '').length === 1, 'clearing search should restore the original label');
+
 console.log('PASS shop catalogue client search');

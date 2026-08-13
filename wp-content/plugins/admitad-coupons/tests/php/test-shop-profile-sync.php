@@ -21,7 +21,9 @@ Promokodiki_Admitad_Test_Harness::run(
 
 		Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $clean, '<h2>О бренде</h2>' ) );
 		Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $clean, '<strong>одежды</strong>' ) );
-		Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $clean, 'href="https://example.test"' ) );
+		Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $clean, 'href="https://example.test"' ) );
+		Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $clean, 'РЅР° СЃР°Р№С‚Рµ' ) );
+		Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $clean, 'РћРїР°СЃРЅР°СЏ СЃСЃС‹Р»РєР°' ) );
 		foreach ( array( '<script', '<iframe', '<form', '<input', 'onclick', 'onmouseover', 'javascript:' ) as $unsafe ) {
 			Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $clean, $unsafe ), 'Unsafe fragment survived: ' . $unsafe );
 		}

@@ -163,6 +163,11 @@ body .wpc-filters-main-wrap li.wpc-term-item {
 .alphabetical__list-item:hover {
   color: #fe1477;
 }
+
+.alphabetical__list-item .alphabetical__match {
+	color: #fe1477;
+	background: transparent;
+}
 .promocodes__like.disabled {
   opacity: 0.5;
   cursor: not-allowed;
