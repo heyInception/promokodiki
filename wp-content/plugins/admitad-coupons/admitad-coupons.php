@@ -53,6 +53,7 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-duplicate-detector.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-coupon-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-import-pipeline.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reference-repository.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-content-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-profile-sync.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-managed-logo-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reconciler.php';
