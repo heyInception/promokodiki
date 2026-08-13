@@ -16,7 +16,7 @@ final class Promokodiki_Admitad_Schema {
 	/**
 	 * Current database schema version.
 	 */
-	public const VERSION = 4;
+	public const VERSION = 5;
 
 	/**
 	 * Allowed table suffixes.
@@ -85,6 +85,11 @@ final class Promokodiki_Admitad_Schema {
 				signal_weight smallint(5) unsigned NOT NULL DEFAULT 40,
 				status varchar(20) NOT NULL DEFAULT 'active',
 				category_snapshot longtext NOT NULL,
+				description longtext DEFAULT NULL,
+				raw_description longtext DEFAULT NULL,
+				rating decimal(3,2) DEFAULT NULL,
+				image_url varchar(2048) NOT NULL DEFAULT '',
+				site_url varchar(2048) NOT NULL DEFAULT '',
 				created_at datetime NOT NULL,
 				updated_at datetime NOT NULL,
 				PRIMARY KEY  (id),

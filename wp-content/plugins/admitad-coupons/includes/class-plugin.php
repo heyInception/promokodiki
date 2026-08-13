@@ -18,6 +18,7 @@ final class Promokodiki_Admitad_Plugin {
 	 */
 	public static function boot(): void {
 		add_action( 'init', array( self::class, 'register' ), 0 );
+		add_action( 'init', array( self::class, 'maybe_upgrade_schema' ), 1 );
 		add_action( 'init', array( self::class, 'schedule' ), 20 );
 		// phpcs:ignore WordPress.WP.CronInterval.ChangeDetected -- The administrator-configured interval is bounded by Promokodiki_Admitad_Config.
 		add_filter( 'cron_schedules', array( self::class, 'cron_schedules' ) );
@@ -54,6 +55,15 @@ final class Promokodiki_Admitad_Plugin {
 	 */
 	public static function register(): void {
 		admitad_register_content_types();
+	}
+
+	/**
+	 * Apply idempotent schema upgrades after plugin updates.
+	 */
+	public static function maybe_upgrade_schema(): void {
+		if ( (int) get_option( 'promokodiki_admitad_db_version', 0 ) < Promokodiki_Admitad_Schema::VERSION ) {
+			Promokodiki_Admitad_Schema::install();
+		}
 	}
 
 	/**

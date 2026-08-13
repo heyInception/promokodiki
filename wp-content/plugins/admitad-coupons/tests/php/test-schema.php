@@ -62,7 +62,14 @@ Promokodiki_Admitad_Test_Harness::run(
 				);
 			}
 
-			Promokodiki_Admitad_Test_Harness::assert_same( '4', (string) get_option( $version_key ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( '5', (string) get_option( $version_key ) );
+			$profile_columns = $wpdb->get_col( 'SHOW COLUMNS FROM ' . Promokodiki_Admitad_Schema::table( 'company_profile' ), 0 );
+			foreach ( array( 'description', 'raw_description', 'rating', 'image_url', 'site_url' ) as $column ) {
+				Promokodiki_Admitad_Test_Harness::assert_true(
+					in_array( $column, $profile_columns, true ),
+					'Missing company profile column: ' . $column
+				);
+			}
 			Promokodiki_Admitad_Test_Harness::assert_same(
 				$term_count,
 				count(

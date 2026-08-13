@@ -21,11 +21,15 @@ final class Promokodiki_Admitad_Campaign_Normalizer {
 	 */
 	public static function normalize( array $raw ): array {
 		$canonical                 = array(
-			'external_id'   => sanitize_text_field( (string) ( $raw['id'] ?? '' ) ),
-			'name'          => sanitize_text_field( (string) ( $raw['name'] ?? '' ) ),
-			'source_status' => sanitize_key( (string) ( $raw['status'] ?? '' ) ),
-			'site_url'      => esc_url_raw( (string) ( $raw['site_url'] ?? '' ) ),
-			'categories'    => self::categories( $raw['categories'] ?? array() ),
+			'external_id'    => sanitize_text_field( (string) ( $raw['id'] ?? '' ) ),
+			'name'           => sanitize_text_field( (string) ( $raw['name'] ?? '' ) ),
+			'source_status'  => sanitize_key( (string) ( $raw['status'] ?? '' ) ),
+			'description'    => trim( sanitize_textarea_field( (string) ( $raw['description'] ?? '' ) ) ),
+			'raw_description' => self::raw_description( $raw['raw_description'] ?? '' ),
+			'rating'         => self::rating( $raw['rating'] ?? null ),
+			'image_url'      => esc_url_raw( (string) ( $raw['image'] ?? '' ) ),
+			'site_url'       => esc_url_raw( (string) ( $raw['site_url'] ?? '' ) ),
+			'categories'     => self::categories( $raw['categories'] ?? array() ),
 		);
 		$canonical['payload_hash'] = hash(
 			'sha256',
@@ -33,6 +37,29 @@ final class Promokodiki_Admitad_Campaign_Normalizer {
 		);
 
 		return $canonical;
+	}
+
+	/**
+	 * Preserve bounded source HTML for the dedicated allowlist sanitizer.
+	 *
+	 * @param mixed $value Raw campaign description.
+	 */
+	private static function raw_description( $value ): string {
+		$value = wp_check_invalid_utf8( (string) $value );
+		return trim( substr( $value, 0, 200000 ) );
+	}
+
+	/**
+	 * Normalize the public Admitad rating.
+	 *
+	 * @param mixed $value Raw rating.
+	 */
+	private static function rating( $value ): ?float {
+		if ( ! is_numeric( $value ) ) {
+			return null;
+		}
+		$rating = (float) $value;
+		return is_finite( $rating ) && $rating > 0 && $rating <= 5 ? $rating : null;
 	}
 
 	/**

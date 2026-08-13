@@ -97,15 +97,26 @@ final class Promokodiki_Admitad_Reference_Repository {
 			$wpdb->query(
 				$wpdb->prepare(
 					"INSERT INTO {$table}
-					(campaign_id, display_name, default_term_id, signal_weight, status, category_snapshot, created_at, updated_at)
-					VALUES (%d, %s, 0, %d, %s, %s, %s, %s)
+					(campaign_id, display_name, default_term_id, signal_weight, status, category_snapshot, description, raw_description, rating, image_url, site_url, created_at, updated_at)
+					VALUES (%d, %s, 0, %d, %s, %s, %s, %s, NULLIF(%s, ''), %s, %s, %s, %s)
 					ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), status = VALUES(status),
-					category_snapshot = VALUES(category_snapshot), updated_at = VALUES(updated_at)",
+					category_snapshot = VALUES(category_snapshot),
+					description = CASE WHEN VALUES(description) <> '' THEN VALUES(description) ELSE description END,
+					raw_description = CASE WHEN VALUES(raw_description) <> '' THEN VALUES(raw_description) ELSE raw_description END,
+					rating = COALESCE(VALUES(rating), rating),
+					image_url = CASE WHEN VALUES(image_url) <> '' THEN VALUES(image_url) ELSE image_url END,
+					site_url = CASE WHEN VALUES(site_url) <> '' THEN VALUES(site_url) ELSE site_url END,
+					updated_at = VALUES(updated_at)",
 					$campaign_id,
 					sanitize_text_field( (string) ( $item['name'] ?? '' ) ),
 					(int) Promokodiki_Admitad_Config::get( 'weight_company' ),
 					'active' === ( $item['source_status'] ?? '' ) ? 'active' : 'inactive',
 					wp_json_encode( $item['categories'] ?? array(), JSON_UNESCAPED_UNICODE ),
+					(string) ( $item['description'] ?? '' ),
+					(string) ( $item['raw_description'] ?? '' ),
+					null === ( $item['rating'] ?? null ) ? '' : (string) (float) $item['rating'],
+					esc_url_raw( (string) ( $item['image_url'] ?? '' ) ),
+					esc_url_raw( (string) ( $item['site_url'] ?? '' ) ),
 					$now,
 					$now
 				)
@@ -114,5 +125,26 @@ final class Promokodiki_Admitad_Reference_Repository {
 			++$count;
 		}
 		return $count;
+	}
+
+	/**
+	 * Return one normalized campaign profile.
+	 *
+	 * @param int $campaign_id Admitad campaign ID.
+	 * @return array<string, mixed>|null
+	 */
+	public function campaign( int $campaign_id ): ?array {
+		global $wpdb;
+
+		if ( $campaign_id <= 0 ) {
+			return null;
+		}
+		$table = Promokodiki_Admitad_Schema::table( 'company_profile' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Campaign snapshots live in the plugin table.
+		$row = $wpdb->get_row(
+			$wpdb->prepare( "SELECT * FROM {$table} WHERE campaign_id = %d", $campaign_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Validated table identifier.
+			ARRAY_A
+		);
+		return is_array( $row ) ? $row : null;
 	}
 }
