@@ -249,7 +249,7 @@ function promocodes_likes_scripts()
 		'promocodes-likes',
 		get_template_directory_uri() . '/js/promocodes-like.js',
 		array('jquery'),
-		'1.0',
+		_S_VERSION,
 		true
 	);
 
@@ -260,6 +260,21 @@ function promocodes_likes_scripts()
 	));
 }
 add_action('wp_enqueue_scripts', 'promocodes_likes_scripts');
+
+/**
+ * Keep the reaction client out of WP Rocket's persistent minify cache.
+ *
+ * @param array $excluded_js Excluded JavaScript paths.
+ * @return array
+ */
+function promokodiki_exclude_reaction_script_from_rocket($excluded_js)
+{
+	$excluded_js   = is_array($excluded_js) ? $excluded_js : array();
+	$excluded_js[] = '/wp-content/themes/promokodiki/js/promocodes-like.js';
+
+	return array_values(array_unique($excluded_js));
+}
+add_filter('rocket_exclude_js', 'promokodiki_exclude_reaction_script_from_rocket');
 
 
 function cc_mime_types($mimes)

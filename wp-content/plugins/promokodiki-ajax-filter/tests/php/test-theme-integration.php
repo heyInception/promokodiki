@@ -69,11 +69,20 @@ Promokodiki_Filter_Test_Harness::run(
 			$GLOBALS['wp_query']   = new WP_Query();
 			$GLOBALS['wp_scripts'] = new WP_Scripts();
 			promokodiki_scripts();
+			promocodes_likes_scripts();
 			$non_search_scripts = wp_scripts();
 
 			foreach ( array( 'promokodiki-footer-ui', 'promokodiki-navigation', 'promokodiki-promo-modal' ) as $handle ) {
 				Promokodiki_Filter_Test_Harness::assert_true( $non_search_scripts->query( $handle, 'enqueued' ), $handle . ' was not enqueued globally' );
 			}
+			$reaction_script = $non_search_scripts->registered['promocodes-likes'] ?? null;
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $reaction_script, 'reaction script was not registered' );
+			Promokodiki_Filter_Test_Harness::assert_same( _S_VERSION, $reaction_script->ver, 'reaction script cache key is not the theme version' );
+			$rocket_exclusions = apply_filters( 'rocket_exclude_js', array() );
+			Promokodiki_Filter_Test_Harness::assert_true(
+				in_array( '/wp-content/themes/promokodiki/js/promocodes-like.js', $rocket_exclusions, true ),
+				'reaction script is not excluded from stale WP Rocket minification'
+			);
 			$main_style = wp_styles()->registered['promokodiki-main-style'] ?? null;
 			$navigation = $non_search_scripts->registered['promokodiki-navigation'] ?? null;
 			Promokodiki_Filter_Test_Harness::assert_true( null !== $main_style, 'main stylesheet was not registered' );
