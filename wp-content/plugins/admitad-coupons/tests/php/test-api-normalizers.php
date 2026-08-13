@@ -231,4 +231,50 @@ Promokodiki_Admitad_Test_Harness::run(
 	}
 );
 
+Promokodiki_Admitad_Test_Harness::run(
+	'deeplink request uses the configured website and shop page subid',
+	static function (): void {
+		$observed = '';
+		$filter   = static function ( $preempt, array $args, string $url ) use ( &$observed ) {
+			$observed = $url;
+			return promokodiki_admitad_test_http_response( 200, '[{"link":"https://ad.admitad.com/g/example/"}]' );
+		};
+
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			update_option( 'promokodiki_admitad_website_id', '2811611', false );
+			$client = new Promokodiki_Admitad_Api_Client( static fn(): string => 'token' );
+			$result = $client->deeplink( 7775, 'https://lacoste.ru/catalog/?sale=1', 'shop_page' );
+
+			Promokodiki_Admitad_Test_Harness::assert_same( 'https://ad.admitad.com/g/example/', $result['link'] );
+			Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $observed, '/deeplink/2811611/advcampaign/7775/' ) );
+			Promokodiki_Admitad_Test_Harness::assert_true( str_contains( rawurldecode( $observed ), 'ulp=https://lacoste.ru/catalog/?sale=1' ) );
+			Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $observed, 'subid=shop_page' ) );
+		} finally {
+			remove_filter( 'pre_http_request', $filter, 10 );
+			delete_option( 'promokodiki_admitad_website_id' );
+		}
+	}
+);
+
+Promokodiki_Admitad_Test_Harness::run(
+	'deeplink response must contain a valid URL',
+	static function (): void {
+		$filter = static fn() => promokodiki_admitad_test_http_response( 200, '[{"link":"javascript:alert(1)"}]' );
+
+		add_filter( 'pre_http_request', $filter );
+		try {
+			update_option( 'promokodiki_admitad_website_id', '2811611', false );
+			$client = new Promokodiki_Admitad_Api_Client( static fn(): string => 'token' );
+			$error  = $client->deeplink( 7775, 'https://lacoste.ru/' );
+
+			Promokodiki_Admitad_Test_Harness::assert_true( is_wp_error( $error ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'admitad_schema_error', $error->get_error_code() );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+			delete_option( 'promokodiki_admitad_website_id' );
+		}
+	}
+);
+
 Promokodiki_Admitad_Test_Harness::finish();

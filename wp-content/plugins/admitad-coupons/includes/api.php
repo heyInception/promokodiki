@@ -38,7 +38,7 @@ function get_admitad_token( $force_refresh = false ) {
 			'body' => array(
 				'grant_type' => 'client_credentials',
 				'client_id'  => $client_id,
-				'scope'      => 'advcampaigns websites coupons coupons_for_website public_data advcampaigns_for_website',
+				'scope'      => 'advcampaigns websites coupons coupons_for_website public_data advcampaigns_for_website deeplink_generator',
 			),
 			'timeout'   => 20,
 			'sslverify' => true,
