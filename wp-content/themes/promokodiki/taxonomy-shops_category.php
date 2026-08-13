@@ -1,376 +1,154 @@
 <?php
-
 /**
- * Шаблон страницы категории магазинов (taxonomy-shops_category.php)
+ * Shop taxonomy archive.
+ *
+ * @package promokodiki
  */
+
 get_header();
 
-// Получаем текущую категорию
-?>
-<?php
-$current_category = get_queried_object();
-$expiry_date = get_post_meta(get_the_ID(), '_promocode_expiry_date', true);
-if ($current_category instanceof WP_Term && $current_category->taxonomy === 'shops_category') {
-    $image_id = get_term_meta($current_category->term_id, 'shops-category-image-id', true);
-
-    // Проверяем, что изображение существует
-    if ($image_id && ($image_url = wp_get_attachment_image_url($image_id, 'medium'))) {
-        $image_alt = get_post_meta($image_id, '_wp_attachment_image_alt', true) ?: $current_category->name;
-?>
-        <div class="container">
-            <div class="main__title">
-                <h1><?php echo esc_html($current_category->name); ?></h1>
-                <?php
-                $image_uri = get_post_meta(get_the_ID(), 'image_url', true);
-                if ($image_uri) {
-                ?>
-                    <div class="category-image-wrapper">
-                        <?php echo '<img src="' . esc_url($image_uri) . '" alt="' . esc_attr(get_the_title()) . '" class="category-image">'; ?>
-                    </div>
-                <?php } ?>
-            </div>
-        </div>
-    <?php
-    } else {
-        // Выводим заглушку, если изображения нет
-    ?>
-        <div class="container">
-            <div class="main__title">
-                <h1><?php echo esc_html($current_category->name); ?></h1>
-                <?php
-                $image_uri = get_post_meta(get_the_ID(), 'image_url', true);
-                if ($image_uri) {
-                ?>
-                    <div class="category-image-wrapper">
-                        <?php echo '<img src="' . esc_url($image_uri) . '" alt="' . esc_attr(get_the_title()) . '" class="category-image">'; ?>
-                    </div>
-                <?php } ?>
-            </div>
-        </div>
-<?php
-    }
+$shop = get_queried_object();
+if ( ! $shop instanceof WP_Term || 'shops_category' !== $shop->taxonomy ) {
+	get_footer();
+	return;
 }
+
+$profile         = promokodiki_shop_profile( $shop );
+$active_shop_ids = promokodiki_shop_active_term_ids();
+$has_offers      = in_array( $shop->term_id, $active_shop_ids, true );
+$acf_context     = 'shops_category_' . $shop->term_id;
+$address         = promokodiki_shop_acf( 'address', $shop );
+$phone           = promokodiki_shop_acf( 'phone', $shop );
+$email           = promokodiki_shop_acf( 'email', $shop );
+
+$render_logo = static function ( array $shop_profile, string $size = 'medium' ): void {
+	if ( $shop_profile['logo_id'] ) {
+		echo wp_get_attachment_image( $shop_profile['logo_id'], $size, false, array( 'alt' => $shop_profile['logo_alt'], 'loading' => 'lazy' ) );
+	} elseif ( $shop_profile['logo_url'] ) {
+		printf( '<img src="%s" alt="%s" loading="lazy">', esc_url( $shop_profile['logo_url'] ), esc_attr( $shop_profile['logo_alt'] ) );
+	}
+};
 ?>
+
+<div class="container">
+	<div class="main__title">
+		<h1><?php echo esc_html( $shop->name ); ?></h1>
+		<?php if ( $profile['logo_id'] || $profile['logo_url'] ) : ?>
+			<div class="category-image-wrapper"><?php $render_logo( $profile ); ?></div>
+		<?php endif; ?>
+	</div>
+</div>
+
 <section class="promocodes">
-    <div class="container">
-        <div class="promocodes__row">
-            <div class="promocodes__column">
-                <?php if (function_exists('promokodiki_filter_render')) : ?>
-                    <?php
-                    promokodiki_filter_render(array(
-                        'context' => 'shop',
-                        'object_id' => get_queried_object_id(),
-                    ));
-                    ?>
-                <?php else : ?>
-                <div class="promocodes__filters">
-                    <div class="promocodes__filters-wrap">
-                        <p><?php esc_html_e('Активируйте Promokodiki AJAX Filter.', 'promokodiki'); ?></p>
-                    </div>
+	<div class="container">
+		<div class="promocodes__row">
+			<div class="promocodes__column">
+				<?php if ( $has_offers && function_exists( 'promokodiki_filter_render' ) ) : ?>
+					<?php promokodiki_filter_render( array( 'context' => 'shop', 'object_id' => $shop->term_id ) ); ?>
+				<?php elseif ( $has_offers ) : ?>
+					<div class="promocodes__items">
+						<?php
+						$fallback = new WP_Query(
+							array(
+								'post_type'      => 'promocode',
+								'post_status'    => 'publish',
+								'posts_per_page' => 6,
+								'tax_query'      => array( array( 'taxonomy' => 'shops_category', 'field' => 'term_id', 'terms' => $shop->term_id ) ),
+								'meta_query'     => array(
+									'relation' => 'AND',
+									array( 'relation' => 'OR', array( 'key' => '_promocode_is_active', 'compare' => 'NOT EXISTS' ), array( 'key' => '_promocode_is_active', 'value' => 'no', 'compare' => '!=' ) ),
+									array( 'relation' => 'OR', array( 'key' => '_promocode_expiry_date', 'compare' => 'NOT EXISTS' ), array( 'key' => '_promocode_expiry_date', 'value' => '' ), array( 'key' => '_promocode_expiry_date', 'value' => current_time( 'Y-m-d' ), 'compare' => '>=', 'type' => 'DATE' ) ),
+								),
+							)
+						);
+						while ( $fallback->have_posts() ) {
+							$fallback->the_post();
+							get_template_part( 'template-parts/promocode-card' );
+						}
+						wp_reset_postdata();
+						?>
+					</div>
+				<?php else : ?>
+					<div class="promocodes__empty"><p><?php esc_html_e( 'Сейчас у этого магазина нет активных предложений.', 'promokodiki' ); ?></p></div>
+				<?php endif; ?>
 
-                    <div class="promocodes__sort">
-                    </div>
-                </div>
+				<?php if ( trim( wp_strip_all_tags( $profile['full_description'] ) ) ) : ?>
+					<div class="promocodes__desc"><?php echo wp_kses_post( $profile['full_description'] ); ?></div>
+				<?php endif; ?>
 
-                <div class="promocodes__items">
-                    <?php
-                    $paged = max(1, get_query_var('paged'));
-                    $current_term = get_queried_object();
+				<?php if ( function_exists( 'have_rows' ) && have_rows( 'sekczii', $acf_context ) ) : ?>
+					<?php while ( have_rows( 'sekczii', $acf_context ) ) : the_row(); ?>
+						<?php
+						$partials = array(
+							'pervyj_ekran'  => 'banner',
+							'top_promokodov' => 'top',
+							'new'            => 'new',
+							'promokody'      => 'promocodes',
+							'faq'            => 'faq',
+							'seo'            => 'seo',
+						);
+						$layout = get_row_layout();
+						if ( isset( $partials[ $layout ] ) ) {
+							get_template_part( 'template-parts/partials/' . $partials[ $layout ] );
+						}
+						?>
+					<?php endwhile; ?>
+				<?php endif; ?>
+			</div>
 
-                    // Определяем параметры запроса
-                    $args = array(
-                        'posts_per_page' => 6,
-                        'paged' => $paged,
-                    );
+			<aside class="promocodes__aside">
+				<?php if ( $profile['logo_id'] || $profile['logo_url'] || $profile['rating'] || $profile['about'] || $address || $phone || $email || $profile['website'] ) : ?>
+					<div class="promocodes__shop">
+						<?php if ( $profile['logo_id'] || $profile['logo_url'] || $profile['rating'] ) : ?>
+							<div class="promocodes__shop-wrap">
+								<?php if ( $profile['logo_id'] || $profile['logo_url'] ) : ?><div class="promocodes__shop-logo"><?php $render_logo( $profile ); ?></div><?php endif; ?>
+								<?php if ( $profile['rating'] ) : ?>
+									<div class="promocodes__shop-stars" aria-label="<?php echo esc_attr( sprintf( 'Рейтинг: %s из 5', number_format_i18n( $profile['rating'], 1 ) ) ); ?>">
+										<?php for ( $star = 1; $star <= 5; $star++ ) : ?>
+											<svg width="19" height="19" viewBox="0 0 19 19" aria-hidden="true"><use href="#<?php echo esc_attr( $star <= round( $profile['rating'] ) ? 'star' : 'not-star' ); ?>" /></svg>
+										<?php endfor; ?>
+										<span class="screen-reader-text"><?php echo esc_html( number_format_i18n( $profile['rating'], 1 ) ); ?></span>
+									</div>
+								<?php endif; ?>
+							</div>
+						<?php endif; ?>
 
-                    if (is_tax('shops_category')) {
-                        $args['post_type'] = 'promocode';
-                        $args['tax_query'] = array(
-                            array(
-                                'taxonomy' => 'shops_category',
-                                'field' => 'term_id',
-                                'terms' => $current_term->term_id,
-                            )
-                        );
-                    } elseif (is_tax('promocode_category')) {
-                        $args['post_type'] = 'promocode';
-                        $args['tax_query'] = array(
-                            array(
-                                'taxonomy' => 'promocode_category',
-                                'field' => 'term_id',
-                                'terms' => $current_term->term_id,
-                            )
-                        );
-                    }
+						<?php if ( $profile['about'] ) : ?>
+							<div class="promocodes__shop-title"><?php esc_html_e( 'О магазине', 'promokodiki' ); ?></div>
+							<div class="promocodes__shop-text"><?php echo wp_kses_post( wpautop( $profile['about'] ) ); ?></div>
+						<?php endif; ?>
 
-                    $query = new WP_Query($args);
+						<?php if ( $address || $phone || $email || $profile['website'] ) : ?>
+							<div class="promocodes__shop-data">
+								<?php if ( $address ) : ?><address class="promocodes__shop-loc"><?php echo esc_html( $address ); ?></address><?php endif; ?>
+								<?php if ( $phone ) : ?><div class="promocodes__shop-tel"><a href="tel:<?php echo esc_attr( preg_replace( '/[^0-9+]/', '', (string) $phone ) ); ?>"><?php echo esc_html( $phone ); ?></a></div><?php endif; ?>
+								<?php if ( $email ) : ?><div class="promocodes__shop-mail"><a href="mailto:<?php echo esc_attr( antispambot( sanitize_email( $email ) ) ); ?>"><?php echo esc_html( antispambot( $email ) ); ?></a></div><?php endif; ?>
+								<?php if ( $profile['website'] ) : ?><div class="promocodes__shop-site"><a href="<?php echo esc_url( $profile['website'] ); ?>" target="_blank" rel="nofollow noopener noreferrer"><?php echo esc_html( wp_parse_url( $profile['website'], PHP_URL_HOST ) ?: $profile['website'] ); ?></a></div><?php endif; ?>
+							</div>
+						<?php endif; ?>
+					</div>
+				<?php endif; ?>
 
-                    if ($query->have_posts()) : ?>
-                        <?php while ($query->have_posts()) : $query->the_post(); ?>
-                            <?php get_template_part('template-parts/promocode-card'); ?>
-                        <?php endwhile; ?>
-                        <?php wp_reset_postdata(); ?>
-                    <?php else : ?>
-                    <?php endif; ?>
-                </div>
-                <?php endif; ?>
-                <div class="promocodes__desc">
-                    <?php echo category_description(); ?>
-                </div>
-               <?php if (have_rows('sekczii', $current_category )): ?>
-                    <?php while (have_rows('sekczii', $current_category )) : the_row(); ?>
-                        <?php if (get_row_layout() == 'pervyj_ekran') : ?>
-                            <?php get_template_part('template-parts/partials/banner'); ?>
-                        <?php elseif (get_row_layout() == 'top_promokodov') : ?>
-                            <?php get_template_part('template-parts/partials/top'); ?>
-                        <?php elseif (get_row_layout() == 'new') : ?>
-                            <?php get_template_part('template-parts/partials/new'); ?>
-                        <?php elseif (get_row_layout() == 'promokody') : ?>
-                            <?php get_template_part('template-parts/partials/promocodes'); ?>
-                        <?php elseif (get_row_layout() == 'faq') : ?>
-                            <?php get_template_part('template-parts/partials/faq'); ?>
-                        <?php elseif (get_row_layout() == 'seo') : ?>
-                            <?php get_template_part('template-parts/partials/seo'); ?>
-                        <?php endif; ?>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <?php // No layouts found 
-                    ?>
-                <?php endif; ?>
-            </div>
-
-            <aside class="promocodes__aside">
-                <?php
-                $taxonomy_prefix = 'shops_category';
-                $term_id = get_queried_object_id();
-                $term_id_prefixed = $taxonomy_prefix . '_' . $term_id;
-                ?>
-                <?php
-                $shop_rating = get_field('rating', $term_id_prefixed) ?: 0; // ACF поле для рейтинга (число от 1 до 5)
-                $about_shop = get_field('about_shop', $term_id_prefixed); // ACF поле "О магазине"
-                $address = get_field('address', $term_id_prefixed); // ACF поле адреса
-                $phone = get_field('phone', $term_id_prefixed); // ACF поле телефона
-                $email = get_field('email', $term_id_prefixed); // ACF поле email
-                $website = get_field('website', $term_id_prefixed); // ACF поле сайта
-                ?>
-                <?php $izobrazhenie_magazina = get_field('izobrazhenie_magazina', $term_id_prefixed); ?>
-                <div class="promocodes__shop">
-                    <div class="promocodes__shop-wrap">
-                        <div class="promocodes__shop-logo">
-                            <?php
-                            $image_uri = get_post_meta(get_the_ID(), 'image_url', true);
-                            if ($image_uri) {
-                            ?>
-                                <?php echo '<img src="' . esc_url($image_uri) . '" alt="' . esc_attr(get_the_title()) . '" class="category-image">'; ?>
-                            <?php } ?>
-                        </div>
-                        <div class="promocodes__shop-stars">
-                            <?php
-                            // Генерируем случайный рейтинг от 4.0 до 5.0
-                            $shop_rating = round(rand(45, 50) / 10, 1); // Пример: 4.2, 4.7, 5.0
-
-                            // Проверяем и приводим рейтинг к числу (на всякий случай)
-                            $rating = is_numeric($shop_rating) ? (float)$shop_rating : 0;
-                            $full_stars = floor($rating);
-                            $has_half_star = ($rating - $full_stars) >= 0.5;
-
-                            // Выводим звёзды
-                            for ($i = 1; $i <= 5; $i++):
-                                if ($i <= $full_stars): ?>
-                                    <svg width="19" height="19" viewBox="0 0 19 19">
-                                        <use xlink:href="#star" />
-                                    </svg>
-                                <?php elseif ($i == $full_stars + 1 && $has_half_star): ?>
-                                    <svg width="19" height="19" viewBox="0 0 19 19">
-                                        <use xlink:href="#half-star" />
-                                        <defs>
-                                            <linearGradient id="paint0_linear_532_1985" x1="0.3125" y1="9.59949" x2="19.0403" y2="9.59949" gradientUnits="userSpaceOnUse">
-                                                <stop stop-color="#FFB11A" />
-                                                <stop offset="0.5" stop-color="#FFB11A" />
-                                                <stop offset="0.509615" stop-color="#D9D9D9" />
-                                                <stop offset="1" stop-color="#D9D9D9" />
-                                            </linearGradient>
-                                        </defs>
-                                    </svg>
-                                <?php else: ?>
-                                    <svg width="19" height="19" viewBox="0 0 19 19">
-                                        <use xlink:href="#not-star" />
-                                    </svg>
-                            <?php endif;
-                            endfor; ?>
-                        </div>
-                    </div>
-
-                    <div class="promocodes__shop-title">О магазине</div>
-                    <div class="promocodes__shop-text">
-                        <?php echo wpautop($about_shop); ?>
-                    </div>
-
-                    <button class="promocodes__shop-view btn-reset">Подробнее</button>
-
-                    <div class="promocodes__shop-data">
-                        <?php if ($address) : ?>
-                            <address class="promocodes__shop-loc">
-                                <svg width="18" height="21" viewBox="0 0 18 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <use xlink:href="#svgloc" />
-                                </svg>
-                                <?php echo esc_html($address); ?>
-                            </address>
-                        <?php endif; ?>
-
-                        <?php if ($phone) : ?>
-                            <div class="promocodes__shop-tel">
-                                <svg width="18" height="19" viewBox="0 0 18 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <use xlink:href="#svgtel" />
-                                </svg>
-                                <a href="tel:<?php echo esc_attr(preg_replace('/[^0-9+]/', '', $phone)); ?>"><?php echo esc_html($phone); ?></a>
-                            </div>
-                        <?php endif; ?>
-
-                        <?php if ($email) : ?>
-                            <div class="promocodes__shop-mail">
-                                <svg width="20" height="17" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <use xlink:href="#svgmail" />
-                                </svg>
-                                <a href="mailto:<?php echo esc_attr($email); ?>"><?php echo esc_html($email); ?></a>
-                            </div>
-                        <?php endif; ?>
-
-                        <?php if ($website) : ?>
-                            <div class="promocodes__shop-site">
-                                <svg width="18" height="19" viewBox="0 0 18 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <use xlink:href="#svgsite" />
-                                </svg>
-
-                                <a href="<?php echo esc_url($website); ?>" target="_blank" rel="nofollow noopener"><?php echo esc_html($website); ?></a>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="promocodes__shop-pay">
-                        <span>Способы оплаты</span>
-                        <div class="promocodes__shop-imgs">
-                            <img src="<?php echo get_template_directory_uri(); ?>/img/shop-pay-1.png" alt="">
-                            <img src="<?php echo get_template_directory_uri(); ?>/img/shop-pay-2.png" alt="">
-                            <img src="<?php echo get_template_directory_uri(); ?>/img/shop-pay-3.png" alt="">
-                            <img src="<?php echo get_template_directory_uri(); ?>/img/shop-pay-4.png" alt="">
-                            <img src="<?php echo get_template_directory_uri(); ?>/img/shop-pay-5.png" alt="">
-                        </div>
-                    </div>
-                </div>
-                <div class="promocodes__store">
-                    <div class="promocodes__store-wrap">
-                        <div class="promocodes__store-title">Промокоды магазинов</div>
-                        <a href="<?php echo esc_url(home_url('/shops/')); ?>" class="promocodes__store-link">
-                            Все
-                        </a>
-                    </div>
-                    <div class="promocodes__store-items">
-                        <div class="promocodes__store-items">
-                            <div class="promocodes__store-items">
-                                <?php
-                                // Получаем 8 самых популярных категорий магазинов
-                                $popular_stores = get_terms(array(
-                                    'taxonomy' => 'shops_category',
-                                    'orderby' => 'count',
-                                    'order' => 'DESC',
-                                    'number' => 8,
-                                    'hide_empty' => true, // Показывать только категории с постами
-                                ));
-
-                                if (!empty($popular_stores) && !is_wp_error($popular_stores)) {
-                                    foreach ($popular_stores as $store) {
-                                        // Получаем один пост из этой категории
-                                        $posts = get_posts(array(
-                                            'post_type' => 'promocode',
-                                            'tax_query' => array(
-                                                array(
-                                                    'taxonomy' => 'shops_category',
-                                                    'field' => 'term_id',
-                                                    'terms' => $store->term_id,
-                                                )
-                                            ),
-                                            'posts_per_page' => 1,
-                                            'orderby' => 'date',
-                                            'order' => 'DESC'
-                                        ));
-
-                                        if (!empty($posts)) {
-                                            $post = $posts[0];
-                                            $image_uri = get_post_meta($post->ID, 'image_url', true);
-
-                                            if ($image_uri) {
-                                                echo '<div class="promocodes__imgs">';
-                                                echo '<a href="' . get_term_link($store) . '">';
-                                                echo '<img src="' . esc_url($image_uri) . '" alt="' . esc_attr($store->name) . '">';
-                                                echo '</a>';
-                                                echo '</div>';
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    echo '<p>Нет популярных магазинов</p>';
-                                }
-                                ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="promocodes__teams">
-                    <div class="promocodes__teams-title">Последние промокоды</div>
-                    <div class="promocodes__teams-items">
-                        <?php
-                        $recent_promocodes = new WP_Query(array(
-                            'post_type' => 'promocode',
-                            'posts_per_page' => 4,
-                            'orderby' => 'date',
-                            'order' => 'DESC'
-                        ));
-
-                        if ($recent_promocodes->have_posts()) :
-                            while ($recent_promocodes->have_posts()) : $recent_promocodes->the_post();
-                                $expiry_date = get_post_meta(get_the_ID(), '_promocode_expiry_date', true);
-                                $image_uri = get_post_meta(get_the_ID(), 'image_url', true);
-                                $terms = get_the_terms(get_the_ID(), 'shops_category');
-                                $term_name = !empty($terms) ? $terms[0]->name : '';
-                        ?>
-                                <div class="promocodes__teams-item">
-                                    <div class="promocodes__teams-wrap">
-                                        <div class="promocodes__author">
-                                            <img src="<?php echo esc_url($image_uri); ?>"
-                                                alt="<?php echo esc_html($term_name); ?>">
-                                            <span><?php echo esc_html($term_name); ?></span>
-                                        </div>
-                                        <?php if (!$expiry_date) : ?>
-                                            <div class="promocodes__teams-date">Бессрочно</div>
-                                        <?php else : ?>
-                                            <div class="promocodes__teams-date">до <?php echo date('d.m.Y', strtotime($expiry_date)); ?></div>
-                                        <?php endif; ?>
-                                    </div>
-                                    <a href="<?php the_permalink(); ?>" class="promocodes__teams-head"><?php the_title(); ?></a>
-                                </div>
-                            <?php endwhile; ?>
-                        <?php else : ?>
-                            <p>Нет доступных промокодов</p>
-                        <?php endif;
-                        wp_reset_postdata(); ?>
-                    </div>
-                    <a href="<?php echo esc_url(home_url('/shops/')); ?>" class="promocodes__teams-link">
-                        Смотреть все предложения
-                        <svg width="7" height="11" viewBox="0 0 7 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M0.994756 10.7327C0.887968 10.7329 0.792554 10.6909 0.708514 10.6067L0.141578 9.853C0.0575377 9.76882 0.0154248 9.66924 0.0152398 9.55427C0.0150424 9.43163 0.0568346 9.33191 0.140615 9.25513L3.37599 6.11271C3.76693 5.733 3.78185 5.11018 3.40953 4.7122L0.266953 1.353C0.182913 1.26882 0.1408 1.16924 0.140615 1.05427C0.140443 0.946957 0.182235 0.847244 0.265991 0.755127L0.691863 0.258856C0.775632 0.174404 0.87091 0.132091 0.977697 0.131918C1.09211 0.131732 1.19515 0.173723 1.28682 0.257889L6.13442 5.125C6.21846 5.20918 6.26057 5.30876 6.26076 5.42373C6.26094 5.53871 6.21915 5.63842 6.13538 5.72288L1.30347 10.6057C1.2197 10.6902 1.1168 10.7325 0.994756 10.7327Z" fill="#FE3388" />
-                        </svg>
-                    </a>
-                </div>
-            </aside>
-        </div>
-    </div>
+				<?php
+				$related_ids = array_values( array_diff( $active_shop_ids, array( $shop->term_id ) ) );
+				$related     = $related_ids ? get_terms( array( 'taxonomy' => 'shops_category', 'include' => $related_ids, 'hide_empty' => false, 'orderby' => 'count', 'order' => 'DESC', 'number' => 8 ) ) : array();
+				$related     = is_wp_error( $related ) ? array() : $related;
+				?>
+				<?php if ( $related ) : ?>
+					<div class="promocodes__store">
+						<div class="promocodes__store-wrap"><div class="promocodes__store-title"><?php esc_html_e( 'Другие магазины', 'promokodiki' ); ?></div><a href="<?php echo esc_url( home_url( '/shops/' ) ); ?>" class="promocodes__store-link"><?php esc_html_e( 'Все', 'promokodiki' ); ?></a></div>
+						<div class="promocodes__store-items">
+							<?php foreach ( $related as $related_shop ) : $related_profile = promokodiki_shop_profile( $related_shop ); ?>
+								<a href="<?php echo esc_url( get_term_link( $related_shop ) ); ?>" class="promocodes__imgs" aria-label="<?php echo esc_attr( $related_shop->name ); ?>">
+									<?php if ( $related_profile['logo_id'] || $related_profile['logo_url'] ) { $render_logo( $related_profile, 'thumbnail' ); } else { echo '<span>' . esc_html( mb_substr( $related_shop->name, 0, 1, 'UTF-8' ) ) . '</span>'; } ?>
+								</a>
+							<?php endforeach; ?>
+						</div>
+					</div>
+				<?php endif; ?>
+			</aside>
+		</div>
+	</div>
 </section>
 
-<?php
-// Скрипты для работы страницы
-wp_enqueue_script('clipboard-js', 'https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js', array(), '2.0.8', true);
-wp_enqueue_script('select2-js', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), '4.0.13', true);
-wp_enqueue_style('select2-css', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css');
-
-get_footer();
+<?php get_footer(); ?>

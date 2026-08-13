@@ -42,8 +42,12 @@ final class Promokodiki_Admitad_Admin_Actions {
 	public function shop_enrichment_start( string $nonce ) {
 		$allowed = $this->validate_shop_enrichment( $nonce );
 		if ( is_wp_error( $allowed ) ) { return $allowed; }
-		update_option( 'promokodiki_admitad_shop_enrichment_requested', time(), false );
-		return ( new Promokodiki_Admitad_Sync_Coordinator() )->start_reference_sync();
+		$result = ( new Promokodiki_Admitad_Sync_Coordinator() )->start_reference_sync();
+		if ( ! is_wp_error( $result ) ) {
+			update_option( 'promokodiki_admitad_shop_enrichment_requested', time(), false );
+		}
+
+		return $result;
 	}
 
 	/** Execute cleanup only when its server-recomputed preview is unchanged. */

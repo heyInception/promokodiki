@@ -26,7 +26,7 @@ final class Promokodiki_Admitad_Managed_Logo_Service {
 	 * @param callable|null $importer   Optional verified-file importer.
 	 */
 	public function __construct( ?callable $downloader = null, ?callable $importer = null ) {
-		$this->downloader = $downloader ?? static fn( string $url ) => download_url( $url, 30 );
+		$this->downloader = $downloader ?? array( $this, 'bounded_download' );
 		$this->importer   = $importer;
 	}
 
@@ -123,28 +123,70 @@ final class Promokodiki_Admitad_Managed_Logo_Service {
 	 * @return array{attachment_ids:array<int,int>,bytes:int}
 	 */
 	public function cleanup_preview(): array {
-		$ids = get_posts(
-			array(
-				'post_type'      => 'attachment',
-				'post_status'    => 'inherit',
-				'fields'         => 'ids',
-				'posts_per_page' => 500,
-				'meta_key'       => '_admitad_managed_logo', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Ownership lookup is bounded.
-				'meta_value'     => 'yes', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Ownership lookup is bounded.
-			)
-		);
 		$orphans = array();
 		$bytes   = 0;
-		foreach ( $ids as $id ) {
-			if ( $this->is_referenced( (int) $id ) ) {
-				continue;
+		$page    = 1;
+		do {
+			$batch = get_posts(
+				array(
+					'post_type'      => 'attachment',
+					'post_status'    => 'inherit',
+					'fields'         => 'ids',
+					'posts_per_page' => 500,
+					'paged'          => $page,
+					'orderby'        => 'ID',
+					'order'          => 'ASC',
+					'no_found_rows'  => true,
+					'meta_key'       => '_admitad_managed_logo', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Ownership lookup is paginated.
+					'meta_value'     => 'yes', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Ownership lookup is paginated.
+				)
+			);
+			foreach ( $batch as $id ) {
+				if ( $this->is_referenced( (int) $id ) ) {
+					continue;
+				}
+				$orphans[] = (int) $id;
+				$file      = get_attached_file( (int) $id );
+				$bytes    += is_string( $file ) && file_exists( $file ) ? (int) filesize( $file ) : 0;
+				if ( 500 === count( $orphans ) ) {
+					break 2;
+				}
 			}
-			$orphans[] = (int) $id;
-			$file      = get_attached_file( (int) $id );
-			$bytes    += is_string( $file ) && file_exists( $file ) ? (int) filesize( $file ) : 0;
-		}
+			++$page;
+		} while ( 500 === count( $batch ) );
 		sort( $orphans, SORT_NUMERIC );
 		return array( 'attachment_ids' => $orphans, 'bytes' => $bytes );
+	}
+
+	/**
+	 * Stream a remote file and stop after the configured byte ceiling.
+	 *
+	 * @return string|WP_Error
+	 */
+	private function bounded_download( string $url ) {
+		$temp_file = wp_tempnam( $url );
+		if ( ! $temp_file ) {
+			return new WP_Error( 'logo_temp_file', 'Could not create a temporary logo file.' );
+		}
+
+		$response = wp_safe_remote_get(
+			$url,
+			array(
+				'timeout'             => 30,
+				'redirection'         => 3,
+				'stream'              => true,
+				'filename'            => $temp_file,
+				'limit_response_size' => self::MAX_BYTES + 1,
+			)
+		);
+		$status   = is_wp_error( $response ) ? 0 : wp_remote_retrieve_response_code( $response );
+		$size     = is_file( $temp_file ) ? (int) filesize( $temp_file ) : 0;
+		if ( is_wp_error( $response ) || $status < 200 || $status >= 300 || $size <= 0 || $size > self::MAX_BYTES ) {
+			wp_delete_file( $temp_file );
+			return is_wp_error( $response ) ? $response : new WP_Error( 'logo_download', 'Logo download failed or exceeded the size limit.' );
+		}
+
+		return $temp_file;
 	}
 
 	/**

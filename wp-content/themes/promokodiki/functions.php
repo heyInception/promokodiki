@@ -203,6 +203,7 @@ require get_template_directory() . '/inc/layout.php';
 require get_template_directory() . '/inc/top.php';
 require get_template_directory() . '/inc/ajax-search.php';
 require_once get_template_directory() . '/inc/discounts.php';
+require_once get_template_directory() . '/inc/shops.php';
 
 /**
  * Load Jetpack compatibility file.

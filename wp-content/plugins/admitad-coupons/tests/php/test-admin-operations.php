@@ -48,7 +48,7 @@ try {
 
 			$snapshot = Promokodiki_Admitad_Diagnostics::snapshot();
 			$json     = wp_json_encode( $snapshot );
-			Promokodiki_Admitad_Test_Harness::assert_same( '4', (string) $snapshot['schema_version'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( '5', (string) $snapshot['schema_version'] );
 			Promokodiki_Admitad_Test_Harness::assert_true( isset( $snapshot['cron']['coupon_sync'] ) );
 			Promokodiki_Admitad_Test_Harness::assert_true( isset( $snapshot['locks']['coupon'] ) );
 			Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $json, 'diagnostic-secret' ) );
@@ -120,6 +120,17 @@ try {
 				Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $html, 'diagnostic-token' ) );
 				Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $html, 'delete=' ) );
 			}
+		}
+	);
+
+	Promokodiki_Admitad_Test_Harness::run(
+		'sync forms retain the allowlisted AJAX operation contract',
+		static function (): void {
+			ob_start();
+			( new Promokodiki_Admitad_Sync_Page() )->render();
+			$html = (string) ob_get_clean();
+			Promokodiki_Admitad_Test_Harness::assert_true( 4 === substr_count( $html, 'data-admitad-operation="sync_operation"' ) );
+			Promokodiki_Admitad_Test_Harness::assert_true( 4 === substr_count( $html, 'name="run_operation"' ) );
 		}
 	);
 } finally {

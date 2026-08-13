@@ -7,13 +7,83 @@
 
 require_once dirname( __DIR__ ) . '/harness.php';
 
+if ( ! taxonomy_exists( 'shops_category' ) ) {
+	register_taxonomy( 'shops_category', 'promocode', array( 'public' => true ) );
+}
+if ( ! post_type_exists( 'promocode' ) ) {
+	register_post_type( 'promocode', array( 'public' => true ) );
+}
+
 $theme_dir = dirname( __DIR__, 4 ) . '/themes/promokodiki';
+if ( file_exists( $theme_dir . '/inc/shops.php' ) ) { require_once $theme_dir . '/inc/shops.php'; }
 
 if ( ! function_exists( 'promokodiki_scripts' ) ) {
 	$worktree_theme_root = static fn(): string => dirname( $theme_dir );
+	$worktree_theme      = static fn(): string => 'promokodiki';
 	add_filter( 'theme_root', $worktree_theme_root );
+	add_filter( 'template', $worktree_theme );
+	add_filter( 'stylesheet', $worktree_theme );
 	require $theme_dir . '/functions.php';
+	remove_filter( 'stylesheet', $worktree_theme );
+	remove_filter( 'template', $worktree_theme );
+	remove_filter( 'theme_root', $worktree_theme_root );
 }
+
+Promokodiki_Filter_Test_Harness::run(
+	'shop profile resolves Admitad data without requiring ACF',
+	static function (): void {
+		$term = wp_insert_term( 'Shop profile ' . wp_generate_uuid4(), 'shops_category', array( 'description' => 'Taxonomy fallback' ) );
+		$term_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+		update_term_meta( $term_id, '_admitad_shop_description', '<p>API description</p>' );
+		update_term_meta( $term_id, '_admitad_shop_summary', 'API summary' );
+		update_term_meta( $term_id, '_admitad_shop_rating', '4.6' );
+		try {
+			$profile = promokodiki_shop_profile( get_term( $term_id, 'shops_category' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( '<p>API description</p>', $profile['full_description'] );
+			Promokodiki_Filter_Test_Harness::assert_same( 'API summary', $profile['about'] );
+			Promokodiki_Filter_Test_Harness::assert_same( 4.6, $profile['rating'] );
+			Promokodiki_Filter_Test_Harness::assert_true( promokodiki_shop_matches_search( get_term( $term_id ), 'PROFILE' ) );
+		} finally { wp_delete_term( $term_id, 'shops_category' ); }
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'shop assets target the real catalogue page template',
+	static function () use ( $theme_dir ): void {
+		$source = (string) file_get_contents( $theme_dir . '/inc/shops.php' );
+		Promokodiki_Filter_Test_Harness::assert_true( str_contains( $source, "is_page_template( 'page-shops.php' )" ) );
+		Promokodiki_Filter_Test_Harness::assert_true( ! str_contains( $source, "is_page_template( 'archive-shops.php' )" ) );
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'shop catalogue includes only terms with active unexpired offers',
+	static function (): void {
+		$active_term  = wp_insert_term( 'Active shop ' . wp_generate_uuid4(), 'shops_category' );
+		$expired_term = wp_insert_term( 'Expired shop ' . wp_generate_uuid4(), 'shops_category' );
+		$active_id    = (int) $active_term['term_id'];
+		$expired_id   = (int) $expired_term['term_id'];
+		$active_post  = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Active offer' ) );
+		$expired_post = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Expired offer' ) );
+		wp_set_post_terms( $active_post, array( $active_id ), 'shops_category' );
+		wp_set_post_terms( $expired_post, array( $expired_id ), 'shops_category' );
+		update_post_meta( $expired_post, '_promocode_expiry_date', '2000-01-01' );
+		try {
+			$ids = promokodiki_shop_active_term_ids( true );
+			Promokodiki_Filter_Test_Harness::assert_true( in_array( $active_id, $ids, true ) );
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $expired_id, $ids, true ) );
+			set_transient( 'promokodiki_active_shop_ids_v1', array( 999 ), HOUR_IN_SECONDS );
+			update_post_meta( $active_post, '_promocode_is_active', 'no' );
+			Promokodiki_Filter_Test_Harness::assert_same( false, get_transient( 'promokodiki_active_shop_ids_v1' ) );
+		} finally {
+			wp_delete_post( $active_post, true );
+			wp_delete_post( $expired_post, true );
+			wp_delete_term( $active_id, 'shops_category' );
+			wp_delete_term( $expired_id, 'shops_category' );
+			promokodiki_shop_flush_active_cache();
+		}
+	}
+);
 
 Promokodiki_Filter_Test_Harness::run(
 	'theme footer renders required markup and delegates script output to WordPress',
