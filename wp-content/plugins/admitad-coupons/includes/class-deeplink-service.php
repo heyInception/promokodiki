@@ -65,11 +65,23 @@ final class Promokodiki_Admitad_Deeplink_Service {
 	}
 
 	public function resolved_url( int $term_id ): string {
-		foreach ( array( 'shop_affiliate_url', '_admitad_shop_deeplink' ) as $key ) {
+		foreach ( array( '_admitad_shop_manual_affiliate_url', 'shop_affiliate_url', '_admitad_shop_deeplink' ) as $key ) {
 			$url = esc_url_raw( (string) get_term_meta( $term_id, $key, true ), array( 'http', 'https' ) );
 			if ( '' !== $url ) { return $url; }
 		}
 		return $this->direct_url( $term_id );
+	}
+
+	public function preview_term( int $term_id ): string {
+		$campaign_id = absint( get_term_meta( $term_id, 'admitad_campaign_id', true ) );
+		$site_url    = $this->direct_url( $term_id );
+		$website_id  = (string) Promokodiki_Admitad_Config::get( 'website_id' );
+		if ( $campaign_id < 1 || '' === $site_url || '' === $website_id ) { return 'invalid'; }
+		$status = (string) get_term_meta( $term_id, '_admitad_shop_deeplink_status', true );
+		if ( 'unsupported' === $status ) { return 'unsupported'; }
+		$current = (string) get_term_meta( $term_id, '_admitad_shop_deeplink', true );
+		if ( '' === $current ) { return 'create'; }
+		return hash_equals( (string) get_term_meta( $term_id, '_admitad_shop_deeplink_fingerprint', true ), self::fingerprint( $website_id, $campaign_id, $site_url ) ) ? 'unchanged' : 'update';
 	}
 
 	private function direct_url( int $term_id ): string {

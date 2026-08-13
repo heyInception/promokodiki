@@ -18,6 +18,17 @@ Promokodiki_Admitad_Test_Harness::run(
 );
 
 Promokodiki_Admitad_Test_Harness::run(
+	'shop content removes partner-facing service sections',
+	static function (): void {
+		$clean = Promokodiki_Admitad_Shop_Content_Service::sanitize( '<h2>О магазине</h2><p>Описание для покупателя.</p><h3>Условия для веб-мастеров</h3><p>Запрещённый трафик и служебные правила.</p><h2>Доставка</h2><p>По всей России.</p>' );
+		Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $clean, 'Описание для покупателя' ) );
+		Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $clean, 'веб-мастеров' ) );
+		Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $clean, 'служебные правила' ) );
+		Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $clean, 'По всей России' ) );
+	}
+);
+
+Promokodiki_Admitad_Test_Harness::run(
 	'contacts accept one unambiguous phone and email but never infer an address',
 	static function (): void {
 		$contacts = Promokodiki_Admitad_Shop_Content_Service::extract_contacts( '<p>Телефон: +7 (495) 123-45-67. Email: help@example.test. Адрес: Москва.</p>' );

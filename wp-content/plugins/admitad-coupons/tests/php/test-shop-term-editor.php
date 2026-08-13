@@ -37,6 +37,7 @@ Promokodiki_Admitad_Test_Harness::run(
 		$term_id = (int) $term['term_id'];
 		$editor = wp_insert_user( array( 'user_login' => 'shop-term-editor-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'editor' ) );
 		$admin = wp_insert_user( array( 'user_login' => 'shop-term-save-admin-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'administrator' ) );
+		( new Promokodiki_Admitad_Reference_Repository() )->sync_campaigns( array( array( 'external_id' => 12345, 'name' => 'Editor Campaign', 'categories' => array(), 'source_status' => 'active', 'description' => '', 'raw_description' => '', 'rating' => null, 'image_url' => '', 'site_url' => 'https://shop.example.test/' ) ) );
 		$payload = array(
 			'admitad_campaign_id' => '12345',
 			'_admitad_shop_manual_description' => '<p>Текст <a href="https://bad.test">ссылка</a></p>',

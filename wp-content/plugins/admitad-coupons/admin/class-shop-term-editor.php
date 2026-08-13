@@ -23,8 +23,12 @@ final class Promokodiki_Admitad_Shop_Term_Editor {
 		self::input_row( 'shop_phone', 'Телефон', (string) get_term_meta( $term->term_id, 'shop_phone', true ) );
 		self::input_row( 'shop_email', 'Почта магазина', (string) get_term_meta( $term->term_id, 'shop_email', true ), 'email' );
 		self::input_row( 'shop_website', 'Сайт', (string) get_term_meta( $term->term_id, 'shop_website', true ), 'url' );
+		$hints = (array) get_term_meta( $term->term_id, '_admitad_shop_contact_hints', true );
+		if ( ! empty( $hints['phones'] ) || ! empty( $hints['emails'] ) ) {
+			echo '<tr><th>' . esc_html__( 'Кандидаты из Admitad', 'promokodiki-admitad' ) . '</th><td><p class="description">' . esc_html( implode( ', ', array_merge( (array) ( $hints['phones'] ?? array() ), (array) ( $hints['emails'] ?? array() ) ) ) ) . '</p></td></tr>';
+		}
 		self::input_row( '_admitad_shop_manual_affiliate_url', 'Ручная партнёрская ссылка', (string) get_term_meta( $term->term_id, '_admitad_shop_manual_affiliate_url', true ), 'url' );
-		echo '<tr class="form-field"><th>' . esc_html__( 'Deeplink Admitad', 'promokodiki-admitad' ) . '</th><td><code>' . esc_html( (string) get_term_meta( $term->term_id, '_admitad_shop_deeplink', true ) ) . '</code> <button type="submit" class="button" name="_admitad_shop_regenerate_deeplink" value="1">' . esc_html__( 'Перегенерировать', 'promokodiki-admitad' ) . '</button></td></tr>';
+		echo '<tr class="form-field"><th>' . esc_html__( 'Deeplink Admitad', 'promokodiki-admitad' ) . '</th><td><code>' . esc_html( (string) get_term_meta( $term->term_id, '_admitad_shop_deeplink', true ) ) . '</code><p class="description">' . esc_html__( 'Статус:', 'promokodiki-admitad' ) . ' ' . esc_html( (string) get_term_meta( $term->term_id, '_admitad_shop_deeplink_status', true ) ) . '</p><button type="submit" class="button" name="_admitad_shop_regenerate_deeplink" value="1">' . esc_html__( 'Перегенерировать', 'promokodiki-admitad' ) . '</button></td></tr>';
 	}
 
 	private static function input_row( string $name, string $label, string $value, string $type = 'text' ): void {
@@ -36,7 +40,10 @@ final class Promokodiki_Admitad_Shop_Term_Editor {
 	public static function save( int $term_id, array $data ): void {
 		if ( ! current_user_can( 'manage_admitad_automation' ) || ! wp_verify_nonce( sanitize_text_field( (string) ( $data['_admitad_shop_editor_nonce'] ?? '' ) ), 'promokodiki_admitad_shop_editor' ) ) { return; }
 		$campaign_id = absint( $data['admitad_campaign_id'] ?? 0 );
-		if ( $campaign_id > 0 ) { update_term_meta( $term_id, 'admitad_campaign_id', (string) $campaign_id ); }
+		$old_campaign_id = absint( get_term_meta( $term_id, 'admitad_campaign_id', true ) );
+		if ( $campaign_id > 0 && $campaign_id !== $old_campaign_id ) {
+			( new Promokodiki_Admitad_Shop_Link_Audit() )->assign( $term_id, $campaign_id, get_current_user_id() );
+		}
 		if ( ! empty( $data['_admitad_shop_reset_description'] ) ) { delete_term_meta( $term_id, '_admitad_shop_manual_description' ); }
 		elseif ( array_key_exists( '_admitad_shop_manual_description', $data ) ) { update_term_meta( $term_id, '_admitad_shop_manual_description', Promokodiki_Admitad_Shop_Content_Service::sanitize( (string) $data['_admitad_shop_manual_description'] ) ); }
 		$fields = array( 'shop_address' => 'text', 'shop_phone' => 'text', 'shop_email' => 'email', 'shop_website' => 'url', '_admitad_shop_manual_affiliate_url' => 'url' );
@@ -46,5 +53,6 @@ final class Promokodiki_Admitad_Shop_Term_Editor {
 			'' === $value ? delete_term_meta( $term_id, $key ) : update_term_meta( $term_id, $key, $value );
 		}
 		update_term_meta( $term_id, '_admitad_shop_manual_audit', array( 'updated_at' => time(), 'user_id' => get_current_user_id(), 'source' => 'manual' ) );
+		if ( ! empty( $data['_admitad_shop_regenerate_deeplink'] ) ) { ( new Promokodiki_Admitad_Deeplink_Queue() )->enqueue( $term_id ); }
 	}
 }

@@ -41,6 +41,7 @@ final class Promokodiki_Admitad_Shop_Link_Audit {
 		if ( 1 !== $result['updated'] ) { delete_term_meta( $term_id, 'admitad_campaign_id' ); return new WP_Error( 'shop_enrichment_failed', 'Shop enrichment failed.' ); }
 		update_term_meta( $term_id, '_admitad_shop_manual_audit', array( 'updated_at' => time(), 'user_id' => $user_id, 'source' => 'manual' ) );
 		update_term_meta( $term_id, '_admitad_shop_background_queued', time() );
+		( new Promokodiki_Admitad_Deeplink_Queue() )->enqueue( $term_id );
 		return true;
 	}
 }

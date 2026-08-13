@@ -21,7 +21,7 @@ Promokodiki_Admitad_Test_Harness::run(
 			Promokodiki_Admitad_Test_Harness::assert_same( 'created', $service->process_term( $id )['result'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'https://ad.admitad.com/g/automatic/', $service->resolved_url( $id ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'unchanged', $service->process_term( $id )['result'] );
-			update_term_meta( $id, 'shop_affiliate_url', 'https://manual.example.test/affiliate/' );
+			update_term_meta( $id, '_admitad_shop_manual_affiliate_url', 'https://manual.example.test/affiliate/' );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'https://manual.example.test/affiliate/', $service->resolved_url( $id ) );
 		} finally {
 			wp_delete_term( $id, 'shops_category' );
@@ -56,6 +56,25 @@ Promokodiki_Admitad_Test_Harness::run(
 			wp_delete_term( $id, 'shops_category' );
 			delete_option( 'promokodiki_admitad_website_id' );
 		}
+	}
+);
+
+Promokodiki_Admitad_Test_Harness::run(
+	'deeplink queue is deduplicated and processes a bounded batch',
+	static function (): void {
+		$processed = array();
+		$worker    = new Promokodiki_Admitad_Deeplink_Queue(
+			static function ( int $term_id ) use ( &$processed ): void { $processed[] = $term_id; }
+		);
+		delete_option( 'promokodiki_admitad_deeplink_queue' );
+		$worker->enqueue( 91 ); $worker->enqueue( 92 ); $worker->enqueue( 91 );
+		Promokodiki_Admitad_Test_Harness::assert_same( 2, $worker->pending_count() );
+		$worker->run_batch( 1 );
+		Promokodiki_Admitad_Test_Harness::assert_same( array( 91 ), $processed );
+		Promokodiki_Admitad_Test_Harness::assert_same( 1, $worker->pending_count() );
+		$worker->run_batch( 20 );
+		Promokodiki_Admitad_Test_Harness::assert_same( array( 91, 92 ), $processed );
+		delete_option( 'promokodiki_admitad_deeplink_queue' );
 	}
 );
 

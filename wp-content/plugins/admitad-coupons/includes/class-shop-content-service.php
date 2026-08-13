@@ -11,6 +11,15 @@ final class Promokodiki_Admitad_Shop_Content_Service {
 	/** Sanitize customer-facing HTML and remove links with their labels. */
 	public static function sanitize( string $html ): string {
 		$html = preg_replace( '#<(script|style|iframe|form|button|select|textarea|picture|svg)\b[^>]*>.*?</\1>#isu', '', $html );
+		$html = preg_replace_callback(
+			'#<(h[2-4])\b[^>]*>(.*?)</\1>(.*?)(?=<h[2-4]\b|$)#isu',
+			static function ( array $match ): string {
+				$title = mb_strtolower( wp_strip_all_tags( $match[2] ), 'UTF-8' );
+				$is_partner_section = (bool) preg_match( '/веб[\s-]*мастер|партн[её]р|запрещ[её]нн?ый\s+трафик|правила\s+программы/u', $title );
+				return $is_partner_section ? '' : $match[0];
+			},
+			(string) $html
+		);
 		$html = preg_replace( '#<a\b[^>]*>.*?</a>#isu', '', (string) $html );
 		$html = preg_replace( '#<(?:img|input|object|embed|video|audio|source)\b[^>]*\/?>#isu', '', (string) $html );
 		$allowed = array(

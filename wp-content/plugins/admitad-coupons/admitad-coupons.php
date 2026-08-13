@@ -57,6 +57,7 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-content-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-profile-sync.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-link-audit.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-deeplink-service.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-deeplink-queue.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-managed-logo-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reconciler.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-visibility.php';
