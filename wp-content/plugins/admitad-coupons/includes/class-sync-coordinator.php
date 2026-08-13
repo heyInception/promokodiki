@@ -163,7 +163,12 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 		if ( 'categories' === $phase ) {
 			$this->references->sync_coupon_categories( $items );
 		} else {
-			$this->references->sync_campaigns( array_map( array( 'Promokodiki_Admitad_Campaign_Normalizer', 'normalize' ), $items ) );
+			$campaigns = array_map( array( 'Promokodiki_Admitad_Campaign_Normalizer', 'normalize' ), $items );
+			$this->references->sync_campaigns( $campaigns );
+			$shop_profiles = new Promokodiki_Admitad_Shop_Profile_Sync();
+			foreach ( $campaigns as $campaign ) {
+				$shop_profiles->sync_campaign( $campaign );
+			}
 		}
 		$next = $offset + count( $items );
 		if ( count( $items ) >= $limit ) {
