@@ -55,6 +55,7 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-import-pipeline.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reference-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-content-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-profile-sync.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-link-audit.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-managed-logo-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reconciler.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-visibility.php';
@@ -84,6 +85,7 @@ require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-company-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-rule-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-review-page.php';
 require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-history-page.php';
+require_once ADMITAD_PLUGIN_DIR . 'admin/pages/class-unlinked-shops-page.php';
 
 /** Remove scheduled jobs without deleting imported content. */
 function admitad_coupons_deactivate() {

@@ -45,11 +45,12 @@ try {
 	$user_ids = array( $administrator_id, $editor_id );
 
 	Promokodiki_Admitad_Test_Harness::run(
-		'nine admin sections expose explicit administrator and reviewer capabilities',
+		'ten admin sections expose explicit administrator and reviewer capabilities',
 		static function (): void {
 			$capabilities = Promokodiki_Admitad_Admin_Menu::section_capabilities();
-			Promokodiki_Admitad_Test_Harness::assert_same( 9, count( $capabilities ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 10, count( $capabilities ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'manage_admitad_automation', $capabilities['admitad-settings'] );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'manage_admitad_automation', $capabilities['admitad-unlinked-shops'] );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'review_admitad_mapping', $capabilities['admitad-review'] );
 			Promokodiki_Admitad_Test_Harness::assert_true(
 				false !== has_action( 'admin_post_promokodiki_admitad_save_settings', array( 'Promokodiki_Admitad_Admin_Actions', 'handle_save_settings' ) )

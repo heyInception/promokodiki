@@ -36,6 +36,7 @@ final class Promokodiki_Admitad_Admin_Menu {
 			'admitad-history'      => 'review_admitad_mapping',
 			'admitad-settings'     => 'manage_admitad_automation',
 			'admitad-diagnostics'  => 'manage_admitad_automation',
+			'admitad-unlinked-shops' => 'manage_admitad_automation',
 		);
 	}
 
@@ -53,6 +54,7 @@ final class Promokodiki_Admitad_Admin_Menu {
 			'admitad-history'      => __( 'История и откат', 'promokodiki-admitad' ),
 			'admitad-settings'     => __( 'Настройки', 'promokodiki-admitad' ),
 			'admitad-diagnostics'  => __( 'Диагностика', 'promokodiki-admitad' ),
+			'admitad-unlinked-shops' => __( 'Магазины без связи', 'promokodiki-admitad' ),
 		);
 		foreach ( self::section_capabilities() as $slug => $capability ) {
 			add_submenu_page(
@@ -84,6 +86,7 @@ final class Promokodiki_Admitad_Admin_Menu {
 			'admitad-review'       => Promokodiki_Admitad_Review_Page::class,
 			'admitad-history'      => Promokodiki_Admitad_History_Page::class,
 			'admitad-diagnostics'  => Promokodiki_Admitad_Diagnostics_Page::class,
+			'admitad-unlinked-shops' => Promokodiki_Admitad_Unlinked_Shops_Page::class,
 		);
 		if ( isset( $pages[ $page ] ) ) {
 			self::render_page( new $pages[ $page ]() );
