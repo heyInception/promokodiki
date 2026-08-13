@@ -23,6 +23,65 @@ final class Promokodiki_Admitad_Admin_Actions {
 		add_action( 'admin_post_promokodiki_admitad_operation', array( self::class, 'handle_operation' ) );
 		add_action( 'admin_post_promokodiki_admitad_mapping_action', array( self::class, 'handle_mapping_action' ) );
 		add_action( 'admin_post_promokodiki_admitad_history_action', array( self::class, 'handle_history_action' ) );
+		add_action( 'admin_post_promokodiki_admitad_shop_enrichment', array( self::class, 'handle_shop_enrichment' ) );
+	}
+
+	/** Return preview totals for shop enrichment and cleanup. */
+	public function shop_enrichment_preview( string $nonce ) {
+		$allowed = $this->validate_shop_enrichment( $nonce );
+		if ( is_wp_error( $allowed ) ) { return $allowed; }
+		$logos   = ( new Promokodiki_Admitad_Managed_Logo_Service() )->preview();
+		$cleanup = ( new Promokodiki_Admitad_Managed_Logo_Service() )->cleanup_preview();
+		$token   = hash( 'sha256', wp_json_encode( $cleanup['attachment_ids'] ) );
+		$data    = array( 'logos' => $logos, 'cleanup' => $cleanup, 'token' => $token );
+		set_transient( 'promokodiki_admitad_shop_preview_' . get_current_user_id(), $data, HOUR_IN_SECONDS );
+		return $data;
+	}
+
+	/** Start the first explicit backfill through the existing resumable sync. */
+	public function shop_enrichment_start( string $nonce ) {
+		$allowed = $this->validate_shop_enrichment( $nonce );
+		if ( is_wp_error( $allowed ) ) { return $allowed; }
+		update_option( 'promokodiki_admitad_shop_enrichment_requested', time(), false );
+		return ( new Promokodiki_Admitad_Sync_Coordinator() )->start_reference_sync();
+	}
+
+	/** Execute cleanup only when its server-recomputed preview is unchanged. */
+	public function logo_cleanup_execute( array $ids, string $token, string $nonce ) {
+		$allowed = $this->validate_shop_enrichment( $nonce );
+		if ( is_wp_error( $allowed ) ) { return $allowed; }
+		$service = new Promokodiki_Admitad_Managed_Logo_Service();
+		$current = $service->cleanup_preview();
+		$expected = hash( 'sha256', wp_json_encode( $current['attachment_ids'] ) );
+		$ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
+		sort( $ids, SORT_NUMERIC );
+		if ( ! hash_equals( $expected, sanitize_text_field( $token ) ) || $ids !== $current['attachment_ids'] ) {
+			return new WP_Error( 'stale_cleanup_preview', 'Cleanup preview has changed.' );
+		}
+		return $service->cleanup( $ids );
+	}
+
+	/** Validate the dedicated administrator request. */
+	private function validate_shop_enrichment( string $nonce ) {
+		if ( ! current_user_can( 'manage_admitad_automation' ) ) { return new WP_Error( 'forbidden', 'You cannot manage shop enrichment.' ); }
+		return wp_verify_nonce( $nonce, 'promokodiki_admitad_shop_enrichment' ) ? true : new WP_Error( 'invalid_nonce', 'Invalid shop enrichment nonce.' );
+	}
+
+	/** Handle shop preview, start, and cleanup forms. */
+	public static function handle_shop_enrichment(): void {
+		$actions = new self();
+		$nonce   = sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ?? '' ) );
+		$intent  = sanitize_key( wp_unslash( $_POST['intent'] ?? '' ) );
+		if ( 'preview' === $intent ) {
+			$result = $actions->shop_enrichment_preview( $nonce );
+		} elseif ( 'start' === $intent ) {
+			$result = $actions->shop_enrichment_start( $nonce );
+		} elseif ( 'cleanup' === $intent ) {
+			$result = $actions->logo_cleanup_execute( (array) wp_unslash( $_POST['attachment_ids'] ?? array() ), sanitize_text_field( wp_unslash( $_POST['preview_token'] ?? '' ) ), $nonce );
+		} else {
+			$result = new WP_Error( 'invalid_operation', 'Unknown shop enrichment operation.' );
+		}
+		self::redirect_or_die( $result, 'admitad-sync' );
 	}
 
 	/**

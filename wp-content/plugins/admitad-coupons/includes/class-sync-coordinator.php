@@ -193,6 +193,12 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 				'complete'    => false,
 			);
 		}
+		if ( ! get_option( 'promokodiki_admitad_shop_enrichment_complete' ) && ! get_option( 'promokodiki_admitad_shop_enrichment_requested' ) ) {
+			$this->runs->complete( $run_id, array( 'processed' => $next ) );
+			( new Promokodiki_Admitad_Notifier() )->record_success( 'reference' );
+			$this->release( 'reference', $run_id );
+			return array( 'phase' => 'campaigns', 'next_offset' => $next, 'complete' => true );
+		}
 		global $wpdb;
 		$profile_table = Promokodiki_Admitad_Schema::table( 'company_profile' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Count bounds the follow-up logo traversal.
@@ -226,6 +232,7 @@ final class Promokodiki_Admitad_Sync_Coordinator {
 		if ( $complete ) {
 			$this->runs->complete( $run_id, array( 'processed' => max( $total, $next ) ) );
 			update_option( 'promokodiki_admitad_shop_enrichment_complete', time(), false );
+			delete_option( 'promokodiki_admitad_shop_enrichment_requested' );
 			( new Promokodiki_Admitad_Notifier() )->record_success( 'reference' );
 			$this->release( 'reference', $run_id );
 		} else {
