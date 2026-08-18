@@ -272,6 +272,48 @@
   }
 }
 
+.about-page { margin: 50px 0; }
+.about-page__hero, .about-page__section, .about-page__cta { max-width: 1080px; margin-right: auto; margin-left: auto; }
+.about-page__hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 390px); align-items: center; gap: 42px; padding: 42px; border-radius: 24px; background: #ffe9f2; }
+.about-page__hero h1, .about-page__section h2, .about-page__cta h2, .about-page__card h3 { margin: 0; color: var(--black); font-family: var(--second-family); }
+.about-page__hero h1 { font-size: 48px; }
+.about-page__introduction { margin-top: 16px; color: var(--dark-grey); font: 400 18px/1.5 var(--font-family); }
+.about-page__introduction > :first-child { margin-top: 0; }
+.about-page__introduction > :last-child { margin-bottom: 0; }
+.about-page__hero-image { display: block; width: 100%; max-height: 300px; border-radius: 18px; object-fit: cover; }
+.about-page__stats, .about-page__cards { margin: 0; padding: 0; list-style: none; }
+.about-page__stats { display: grid; grid-template-columns: repeat(3, 1fr); max-width: 1000px; gap: 16px; margin: 24px auto 56px; }
+.about-page__stat, .about-page__card { border-radius: 20px; background: var(--white); }
+.about-page__stat { padding: 24px; }
+.about-page__stat-value { display: block; color: #fe3388; font: 500 28px/1.2 var(--second-family); }
+.about-page__stat-label { display: block; margin-top: 8px; color: var(--dark-grey); font: 400 14px/1.4 var(--font-family); }
+.about-page__section { margin-top: 56px; }
+.about-page__section h2, .about-page__cta h2 { font-size: 32px; }
+.about-page__cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 24px; }
+.about-page__card { padding: 28px; }
+.about-page__card h3 { margin-top: 12px; font-size: 20px; }
+.about-page__card p, .about-page__cta p { margin: 12px 0 0; color: var(--dark-grey); font: 400 15px/1.5 var(--font-family); }
+.about-page__step-number { color: #fe3388; font: 500 16px var(--second-family); }
+.about-page__cta { margin-top: 56px; padding: 36px; border-radius: 24px; background: var(--black); }
+.about-page__cta h2 { color: var(--white); }
+.about-page__cta p { color: var(--grey); }
+.about-page__cta-link { display: inline-flex; margin-top: 22px; padding: 13px 20px; border-radius: 999px; background: #fe3388; color: var(--white); font: 600 14px var(--font-family); }
+.about-page__cta-link:hover, .about-page__cta-link:focus { color: var(--white); }
+@media (max-width: 767px) {
+  .about-page { margin: 30px 0; }
+  .about-page__hero { display: block; padding: 24px 18px; border-radius: 16px; }
+  .about-page__hero h1 { font-size: 30px; }
+  .about-page__introduction { font-size: 15px; }
+  .about-page__hero-image { margin-top: 24px; max-height: 220px; border-radius: 12px; }
+  .about-page__stats, .about-page__cards { grid-template-columns: 1fr; }
+  .about-page__stats { margin: 16px 0 38px; gap: 12px; }
+  .about-page__stat, .about-page__card { border-radius: 14px; padding: 20px 16px; }
+  .about-page__section { margin-top: 38px; }
+  .about-page__section h2, .about-page__cta h2 { font-size: 24px; }
+  .about-page__cards { margin-top: 16px; gap: 12px; }
+  .about-page__cta { margin-top: 38px; padding: 24px 18px; border-radius: 16px; }
+}
+
 .teams-page {
   margin: 50px 0;
 }
