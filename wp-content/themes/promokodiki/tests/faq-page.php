@@ -5,6 +5,52 @@
  * Run: php tests/faq-page.php
  */
 
+if ( ! function_exists( 'add_action' ) ) {
+	function add_action( $hook_name, $callback ) {}
+}
+
+if ( ! function_exists( '__' ) ) {
+	function __( $text, $domain = null ) {
+		return $text;
+	}
+}
+
+if ( ! function_exists( 'esc_html' ) ) {
+	function esc_html( $text ) {
+		return $text;
+	}
+}
+
+if ( ! function_exists( 'esc_attr' ) ) {
+	function esc_attr( $text ) {
+		return $text;
+	}
+}
+
+if ( ! function_exists( 'esc_attr_e' ) ) {
+	function esc_attr_e( $text, $domain = null ) {
+		echo $text;
+	}
+}
+
+if ( ! function_exists( 'esc_url' ) ) {
+	function esc_url( $url ) {
+		return $url;
+	}
+}
+
+if ( ! function_exists( 'wp_kses_post' ) ) {
+	function wp_kses_post( $content ) {
+		return $content;
+	}
+}
+
+if ( ! function_exists( 'home_url' ) ) {
+	function home_url( $path = '' ) {
+		return $path;
+	}
+}
+
 require_once dirname( __DIR__ ) . '/inc/faq-page.php';
 
 function faq_page_assert_contains( $needle, $haystack, $message ) {
