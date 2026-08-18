@@ -157,6 +157,9 @@ function promokodiki_scripts()
 	wp_enqueue_script('promokodiki-navigation', get_template_directory_uri() . '/js/navigation.js', array(), _S_VERSION, true);
 	wp_enqueue_script('promokodiki-footer-ui', get_template_directory_uri() . '/js/footer-ui.js', array(), _S_VERSION, true);
 	wp_enqueue_script('promokodiki-promo-modal', get_template_directory_uri() . '/js/promocode-modal.js', array(), _S_VERSION, true);
+	if ( is_page_template( 'page-faq.php' ) ) {
+		wp_enqueue_script( 'promokodiki-faq-page', get_template_directory_uri() . '/js/faq-page.js', array(), _S_VERSION, true );
+	}
 	if (is_search()) {
 		wp_enqueue_script('promokodiki-search-load-more', get_template_directory_uri() . '/js/search-load-more.js', array(), _S_VERSION, true);
 		wp_localize_script(
@@ -204,6 +207,7 @@ require get_template_directory() . '/inc/top.php';
 require get_template_directory() . '/inc/ajax-search.php';
 require_once get_template_directory() . '/inc/discounts.php';
 require_once get_template_directory() . '/inc/shops.php';
+require_once get_template_directory() . '/inc/faq-page.php';
 
 /**
  * Load Jetpack compatibility file.
