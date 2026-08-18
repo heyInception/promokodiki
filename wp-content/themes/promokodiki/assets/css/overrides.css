@@ -271,3 +271,139 @@
     font-size: 14px;
   }
 }
+
+.teams-page {
+  margin: 50px 0;
+}
+
+.teams-page__header,
+.teams-page__sections {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.teams-page__header {
+  margin-bottom: 36px;
+}
+
+.teams-page__header h1,
+.teams-page__section h2 {
+  margin: 0;
+  color: var(--black);
+  font-family: var(--second-family);
+}
+
+.teams-page__header h1 {
+  font-size: 42px;
+}
+
+.teams-page__introduction,
+.teams-page__description {
+  color: var(--dark-grey);
+  font: 400 16px/1.5 var(--font-family);
+}
+
+.teams-page__introduction {
+  margin-top: 16px;
+}
+
+.teams-page__introduction > :first-child,
+.teams-page__description > :first-child {
+  margin-top: 0;
+}
+
+.teams-page__introduction > :last-child,
+.teams-page__description > :last-child {
+  margin-bottom: 0;
+}
+
+.teams-page__sections {
+  display: grid;
+  gap: 32px;
+}
+
+.teams-page__section {
+  border-radius: 20px;
+  padding: 28px 32px;
+  background: var(--white);
+}
+
+.teams-page__section h2 {
+  font-size: 26px;
+}
+
+.teams-page__description {
+  margin-top: 12px;
+}
+
+.teams-page__members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.teams-page__member,
+.teams-page__member-link,
+.teams-page__member img {
+  width: 88px;
+  height: 88px;
+}
+
+.teams-page__member-link {
+  display: block;
+  border-radius: 50%;
+}
+
+.teams-page__member-link:focus-visible {
+  outline: 3px solid #fe3388;
+  outline-offset: 3px;
+}
+
+.teams-page__member img {
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+@media (max-width: 767px) {
+  .teams-page {
+    margin: 30px 0;
+  }
+
+  .teams-page__header {
+    margin-bottom: 24px;
+  }
+
+  .teams-page__header h1 {
+    font-size: 28px;
+  }
+
+  .teams-page__section {
+    border-radius: 14px;
+    padding: 20px 16px;
+  }
+
+  .teams-page__section h2 {
+    font-size: 21px;
+  }
+
+  .teams-page__introduction,
+  .teams-page__description {
+    font-size: 14px;
+  }
+
+  .teams-page__members {
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .teams-page__member,
+  .teams-page__member-link,
+  .teams-page__member img {
+    width: 64px;
+    height: 64px;
+  }
+}
