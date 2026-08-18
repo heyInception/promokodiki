@@ -208,6 +208,7 @@ require get_template_directory() . '/inc/ajax-search.php';
 require_once get_template_directory() . '/inc/discounts.php';
 require_once get_template_directory() . '/inc/shops.php';
 require_once get_template_directory() . '/inc/faq-page.php';
+require_once get_template_directory() . '/inc/teams-page.php';
 
 /**
  * Load Jetpack compatibility file.
