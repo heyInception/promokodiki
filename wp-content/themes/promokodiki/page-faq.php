@@ -17,18 +17,13 @@ get_header();
 ?>
 
 <main id="primary" class="site-main">
-	<?php if (have_rows('sekczii')): ?>
-		<?php while (have_rows('sekczii')) : the_row(); ?>
-			<?php if (get_row_layout() == 'faq') : ?>
-				<?php get_template_part('template-parts/partials/faq'); ?>
-			<?php elseif (get_row_layout() == 'seo') : ?>
-				<?php get_template_part('template-parts/partials/seo'); ?>
-			<?php endif; ?>
-		<?php endwhile; ?>
-	<?php else: ?>
-		<?php // No layouts found 
-		?>
-	<?php endif; ?>
+	<?php
+	$post_id = get_the_ID();
+	echo promokodiki_render_faq_page(
+		promokodiki_get_faq_page_sections( $post_id ),
+		promokodiki_get_faq_page_data( $post_id )
+	);
+	?>
 </main><!-- #main -->
 
 <?php
