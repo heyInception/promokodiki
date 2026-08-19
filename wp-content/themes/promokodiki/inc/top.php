@@ -1,111 +1,123 @@
 <?php
-// Функция для получения популярных промокодов с кешированием
-function get_popular_promocodes()
+/**
+ * Build one server-owned Telegram-style snapshot per three-hour window.
+ *
+ * @param int|null $now   WordPress timestamp, primarily injectable for tests.
+ * @param bool     $force Rebuild the current window without accepting client input.
+ * @return array{ids: int[], next_update: int}
+ */
+function promokodiki_top_snapshot(?int $now = null, bool $force = false): array
 {
-    $cache_key = 'popular_promocodes_data';
-    $last_update_key = 'popular_promocodes_last_update';
+    $now = $now ?? current_time('timestamp');
+    $window_seconds = 3 * HOUR_IN_SECONDS;
+    $window_start = intdiv($now, $window_seconds) * $window_seconds;
+    $next_update = $window_start + $window_seconds;
+    $cache = get_option('promokodiki_top_snapshot_v2', array());
 
-    $last_update = get_option($last_update_key, 0);
-    $current_time = current_time('timestamp');
-    $cache_duration = 3 * HOUR_IN_SECONDS; // 3 часа
-
-    // Проверяем, нужно ли обновить кеш
-    if (($current_time - $last_update) >= $cache_duration) {
-        // Обновляем данные
-        $promocodes = fetch_fresh_promocodes();
-        update_option($cache_key, $promocodes);
-        update_option($last_update_key, $current_time);
-    } else {
-        // Берем из кеша
-        $promocodes = get_option($cache_key, array());
-
-        // Если кеш пуст, обновляем принудительно
-        if (empty($promocodes)) {
-            $promocodes = fetch_fresh_promocodes();
-            update_option($cache_key, $promocodes);
-            update_option($last_update_key, $current_time);
-        }
+    if (! $force && isset($cache['window'], $cache['ids']) && (int) $cache['window'] === $window_start) {
+        return array('ids' => array_map('absint', (array) $cache['ids']), 'next_update' => $next_update);
     }
 
-    return $promocodes;
-}
-
-// Функция для получения свежих промокодов
-function fetch_fresh_promocodes()
-{
-    // Получаем количество из настроек или используем значение по умолчанию
-    $posts_per_page = get_option('popular_promocodes_count', 4); // По умолчанию 5
-
-    $args = array(
+    $count = max(1, min(20, (int) get_option('popular_promocodes_count', 4)));
+    $query = new WP_Query(array(
         'post_type' => 'promocode',
-        'posts_per_page' => intval($posts_per_page), // Используем динамическое значение
-        'meta_key' => '_promocode_used_count',
-        'orderby' => 'meta_value_num',
-        'order' => 'ASC',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'fields' => 'ids',
+        'no_found_rows' => true,
         'meta_query' => array(
+            'relation' => 'AND',
+            array('key' => '_promocode_is_active', 'value' => 'yes', 'compare' => '='),
             array(
-                'key' => '_promocode_expiry_date',
-                'value' => date('Y-m-d'),
-                'compare' => '>=',
-                'type' => 'DATE'
+                'relation' => 'OR',
+                array('key' => '_promocode_expiry_date', 'compare' => 'NOT EXISTS'),
+                array('key' => '_promocode_expiry_date', 'value' => '', 'compare' => '='),
+                array('key' => '_promocode_expiry_date', 'value' => wp_date('Y-m-d', $now), 'compare' => '>=', 'type' => 'DATE'),
             ),
-            array(
-                'key' => '_promocode_is_active',
-                'value' => 'yes',
-                'compare' => '='
-            )
-        )
-    );
+        ),
+    ));
 
-    $query = new WP_Query($args);
-    $promocodes = array();
+    global $wpdb;
+    $click_table = $wpdb->prefix . 'promokodiki_click_stats';
+    $click_table_exists = $click_table === $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $click_table));
+    $ranked = array();
+    foreach ($query->posts as $post_id) {
+        $post_id = (int) $post_id;
+        $clicks = $click_table_exists ? (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(clicks),0) FROM {$click_table} WHERE promocode_id=%d AND click_date >= %s",
+            $post_id,
+            wp_date('Y-m-d', $now - (7 * DAY_IN_SECONDS))
+        )) : 0;
+        $likes = max(0, (int) get_post_meta($post_id, '_promocode_likes', true));
+        $dislikes = max(0, (int) get_post_meta($post_id, '_promocode_dislikes', true));
+        $age_hours = max(0, (int) floor(($now - (int) get_post_time('U', true, $post_id)) / HOUR_IN_SECONDS));
+        $fresh = $age_hours <= (7 * 24);
+        $code = (string) get_post_meta($post_id, '_promocode_code', true);
+        $has_code = '' !== trim($code) && false === strpos($code, 'НЕ НУЖЕН');
+        $score = ($has_code ? 1000 : 0) + ($clicks * 100) + (($likes + $dislikes) * 10) + max(0, 168 - $age_hours);
+        $jitter = (int) (hexdec(substr(hash('sha256', $window_start . ':' . $post_id), 0, 4)) % 101);
+        $ranked[] = compact('post_id', 'score', 'jitter', 'fresh', 'has_code');
+    }
 
-    if ($query->have_posts()) {
-        while ($query->have_posts()) {
-            $query->the_post();
-            $promocodes[] = get_the_ID();
+    usort($ranked, static function (array $left, array $right): int {
+        $left_weight = $left['score'] + $left['jitter'];
+        $right_weight = $right['score'] + $right['jitter'];
+        return $right_weight <=> $left_weight ?: $right['post_id'] <=> $left['post_id'];
+    });
+
+    $ids = array();
+    foreach ($ranked as $candidate) {
+        if ($candidate['fresh']) {
+            $ids[] = $candidate['post_id'];
+            break;
         }
-        wp_reset_postdata();
+    }
+    foreach ($ranked as $candidate) {
+        if (count($ids) >= $count) {
+            break;
+        }
+        if (! in_array($candidate['post_id'], $ids, true)) {
+            $ids[] = $candidate['post_id'];
+        }
     }
 
-    return $promocodes;
-}
-// Получаем время следующего обновления для таймера
-// Получаем время следующего обновления для таймера
-function get_next_update_time()
-{
-    $last_update = get_option('popular_promocodes_last_update', 0);
-
-    // Если нет последнего обновления, создаем
-    if ($last_update == 0) {
-        $last_update = current_time('timestamp');
-        update_option('popular_promocodes_last_update', $last_update);
+    $previous_ids = array_map('absint', (array) ($cache['ids'] ?? array()));
+    if ($ids === $previous_ids && count($ranked) > $count) {
+        foreach ($ranked as $candidate) {
+            if (! in_array($candidate['post_id'], $ids, true)) {
+                $ids[count($ids) - 1] = $candidate['post_id'];
+                break;
+            }
+        }
     }
 
-    $next_update = $last_update + (3 * HOUR_IN_SECONDS);
-    return $next_update;
+    update_option('promokodiki_top_snapshot_v2', array('window' => $window_start, 'ids' => $ids, 'previous_ids' => $previous_ids), false);
+    return array('ids' => $ids, 'next_update' => $next_update);
 }
 
-// Обновление промокодов (возвращаем также время)
-add_action('wp_ajax_refresh_popular_promocodes', 'refresh_popular_promocodes');
-add_action('wp_ajax_nopriv_refresh_popular_promocodes', 'refresh_popular_promocodes');
-
-function refresh_popular_promocodes()
+function get_popular_promocodes(): array
 {
-    // Обновляем кеш
-    $promocodes = fetch_fresh_promocodes();
-    update_option('popular_promocodes_data', $promocodes);
-    update_option('popular_promocodes_last_update', current_time('timestamp'));
+    return promokodiki_top_snapshot()['ids'];
+}
 
-    // Возвращаем HTML для обновления
+function get_next_update_time(): int
+{
+    return promokodiki_top_snapshot()['next_update'];
+}
+
+add_action('wp_ajax_promokodiki_top_snapshot', 'promokodiki_top_snapshot_ajax');
+add_action('wp_ajax_nopriv_promokodiki_top_snapshot', 'promokodiki_top_snapshot_ajax');
+
+function promokodiki_top_snapshot_ajax(): void
+{
+    check_ajax_referer('promokodiki_filter_frontend', 'nonce');
+    $snapshot = promokodiki_top_snapshot();
     ob_start();
-    display_promocodes_items($promocodes);
-    $html = ob_get_clean();
-
+    display_promocodes_items($snapshot['ids']);
     wp_send_json_success(array(
-        'html' => $html,
-        'next_update' => get_next_update_time(),
-        'server_time' => current_time('timestamp')
+        'html' => (string) ob_get_clean(),
+        'next_update' => $snapshot['next_update'],
+        'server_time' => current_time('timestamp'),
     ));
 }
 // Функция для отображения промокодов
@@ -127,6 +139,13 @@ function display_promocodes_items($promocode_ids)
         $campaign_name = get_post_meta($post_id, 'campaign_name', true);
         $is_popular = $used_count > 10;
         $is_new = (time() - get_post_time('U', true, $post_id)) < (7 * 24 * 60 * 60);
+		$has_coupon_code = ! empty($coupon_code) && false === strpos($coupon_code, 'НЕ НУЖЕН');
+		$expiry_label = $expiry_date ? wp_date('d.m.Y', strtotime($expiry_date)) : 'Бессрочно';
+		$visitor_id = isset($_COOKIE['promokodiki_visitor']) ? sanitize_text_field(wp_unslash($_COOKIE['promokodiki_visitor'])) : '';
+		$user_reaction = class_exists('Promokodiki_Filter_Promo_Interactions')
+			? Promokodiki_Filter_Promo_Interactions::reaction_for($post_id, $visitor_id)
+			: '';
+		$description = wp_strip_all_tags(get_the_excerpt($post_id));
 
         $is_expired = false;
         if (!empty($expiry_date)) {
@@ -137,7 +156,15 @@ function display_promocodes_items($promocode_ids)
         }
 ?>
 
-        <div class="top__item" data-post-id="<?php echo $post_id; ?>">
+        <div
+			class="top__item"
+			data-post-id="<?php echo esc_attr((string) $post_id); ?>"
+			data-store-url="<?php echo esc_url($coupon_link); ?>"
+			data-code="<?php echo esc_attr($has_coupon_code ? $coupon_code : ''); ?>"
+			data-expiry="<?php echo esc_attr($expiry_label); ?>"
+			data-expired="<?php echo $is_expired ? 'true' : 'false'; ?>"
+			data-description="<?php echo esc_attr($description); ?>"
+		>
             <?php if ($is_expired) : ?>
                 <div class="promocodes__badge promocodes__badge_new">Истекло</div>
             <?php elseif ($is_popular) : ?>
@@ -179,11 +206,11 @@ function display_promocodes_items($promocode_ids)
                 <div class="top__wrap">
                     <div class="top__quantity"><?php echo $used_count; ?> Применено</div>
                     <div class="top__likes">
-                        <div class="top__up" data-action="like" data-post-id="<?php echo $post_id; ?>">
-                            <?php echo $likes; ?>
+                        <div class="top__up promocodes__like promocodes__like_yes<?php echo 'like' === $user_reaction ? ' is-active' : ''; ?>" data-action="like" data-post-id="<?php echo esc_attr((string) $post_id); ?>">
+                            <span><?php echo esc_html((string) $likes); ?></span>
                         </div>
-                        <div class="top__down" data-action="dislike" data-post-id="<?php echo $post_id; ?>">
-                            <?php echo $dislikes; ?>
+                        <div class="top__down promocodes__like promocodes__like_no<?php echo 'dislike' === $user_reaction ? ' is-active' : ''; ?>" data-action="dislike" data-post-id="<?php echo esc_attr((string) $post_id); ?>">
+                            <span><?php echo esc_html((string) $dislikes); ?></span>
                         </div>
                     </div>
                 </div>
@@ -254,12 +281,14 @@ function display_promocodes_items($promocode_ids)
                     <?php endif; ?>
                 </div>
 
-                <?php if (!empty($coupon_code) && strpos($coupon_code, 'НЕ НУЖЕН') === false && !$is_expired) : ?>
-                    <div class="top__button btn-reset promocodes__view" data-post-id="<?php echo $post_id; ?>" data-coupon-code="<?php echo esc_attr($coupon_code); ?>">
+                <?php if ($is_expired) : ?>
+					<button class="top__button btn-reset" disabled>Промокод истёк</button>
+				<?php elseif ($has_coupon_code) : ?>
+                    <button class="top__button btn-reset promocodes__view" data-post-id="<?php echo esc_attr((string) $post_id); ?>">
                         Показать промокод
-                    </div>
+                    </button>
                 <?php elseif (!empty($coupon_link)) : ?>
-                    <a href="<?php echo esc_url($coupon_link); ?>" rel="nofollow" target="_blank" class="top__button top__button_link btn-reset promocodes__link ">
+                    <a href="<?php echo esc_url($coupon_link); ?>" rel="nofollow noopener" target="_blank" data-post-id="<?php echo esc_attr((string) $post_id); ?>" class="top__button top__button_link btn-reset promocodes__link">
                         Перейти в магазин
                     </a>
                 <?php endif; ?>
@@ -339,10 +368,5 @@ add_action('update_option_popular_promocodes_count', 'clear_popular_promocodes_c
 
 function clear_popular_promocodes_cache($old_value, $new_value, $option)
 {
-    delete_option('popular_promocodes_data');
-    delete_option('popular_promocodes_last_update');
-    // Обновляем сразу
-    $promocodes = fetch_fresh_promocodes();
-    update_option('popular_promocodes_data', $promocodes);
-    update_option('popular_promocodes_last_update', current_time('timestamp'));
+    delete_option('promokodiki_top_snapshot_v2');
 }

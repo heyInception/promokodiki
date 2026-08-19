@@ -1,6 +1,25 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 final class Promokodiki_Filter_Promo_Interactions {
+	public static function reaction_for( int $post_id, string $visitor_id ): string {
+		if ( $post_id <= 0 || '' === $visitor_id ) {
+			return '';
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'promokodiki_promo_votes';
+		$key   = hash( 'sha256', wp_salt( 'auth' ) . $visitor_id );
+		$value = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT reaction FROM {$table} WHERE promocode_id=%d AND visitor_hash=%s",
+				$post_id,
+				$key
+			)
+		);
+
+		return in_array( $value, array( 'like', 'dislike' ), true ) ? (string) $value : '';
+	}
+
 	public static function vote( int $post_id, string $visitor_id, string $reaction ): array|WP_Error {
 		if ( ! in_array( $reaction, array( 'like', 'dislike' ), true ) || 'promocode' !== get_post_type( $post_id ) ) { return new WP_Error( 'invalid_vote', 'Invalid vote.' ); }
 		global $wpdb; $table = $wpdb->prefix . 'promokodiki_promo_votes'; $key = hash( 'sha256', wp_salt( 'auth' ) . $visitor_id );

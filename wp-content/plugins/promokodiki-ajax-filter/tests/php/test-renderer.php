@@ -32,7 +32,10 @@ try {
 	);
 	$post_ids[] = $single_post_id;
 	wp_set_post_terms( $single_post_id, array( $single_shop_id ), 'shops_category' );
-	update_post_meta( $single_post_id, '_promocode_expiry_date', wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ) );
+	update_post_meta( $single_post_id, '_promocode_expiry_date', '2026-12-31' );
+	update_post_meta( $single_post_id, '_promocode_code', 'SAVE20' );
+	update_post_meta( $single_post_id, '_promocode_link', 'https://shop.example/offer' );
+	Promokodiki_Filter_Promo_Interactions::vote( $single_post_id, 'renderer-visitor', 'like' );
 
 	$multi_post_id = wp_insert_post(
 		array(
@@ -60,6 +63,37 @@ try {
 		update_post_meta( $discount_id, '_promocode_expiry_date', wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ) );
 	}
 	Promokodiki_Filter_Context::flush_cache();
+
+	Promokodiki_Filter_Test_Harness::run(
+		'card exposes the interaction data and restores the visitor reaction',
+		static function () use ( $single_post_id ): void {
+			global $post;
+			$original_cookie = $_COOKIE['promokodiki_visitor'] ?? null;
+			$post            = get_post( $single_post_id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$_COOKIE['promokodiki_visitor'] = 'renderer-visitor';
+			setup_postdata( $post );
+			ob_start();
+			try {
+				require dirname( __DIR__, 4 ) . '/themes/promokodiki/template-parts/promocode-card.php';
+				$html = (string) ob_get_clean();
+			} finally {
+				wp_reset_postdata();
+				if ( null === $original_cookie ) {
+					unset( $_COOKIE['promokodiki_visitor'] );
+				} else {
+					$_COOKIE['promokodiki_visitor'] = $original_cookie;
+				}
+				if ( ob_get_level() ) {
+					ob_end_clean();
+				}
+			}
+
+			Promokodiki_Filter_Test_Harness::assert_contains( 'data-store-url="https://shop.example/offer"', $html );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'data-code="SAVE20"', $html );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'data-expiry="31.12.2026"', $html );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'promocodes__like_yes is-active', $html );
+		}
+	);
 
 	Promokodiki_Filter_Test_Harness::run(
 		'discounts renderer exposes one six-card feed and GET sort links',

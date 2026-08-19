@@ -139,19 +139,18 @@ Promokodiki_Filter_Test_Harness::run(
 			$GLOBALS['wp_query']   = new WP_Query();
 			$GLOBALS['wp_scripts'] = new WP_Scripts();
 			promokodiki_scripts();
-			promocodes_likes_scripts();
 			$non_search_scripts = wp_scripts();
 
 			foreach ( array( 'promokodiki-footer-ui', 'promokodiki-navigation', 'promokodiki-promo-modal' ) as $handle ) {
 				Promokodiki_Filter_Test_Harness::assert_true( $non_search_scripts->query( $handle, 'enqueued' ), $handle . ' was not enqueued globally' );
 			}
-			$reaction_script = $non_search_scripts->registered['promocodes-likes'] ?? null;
-			Promokodiki_Filter_Test_Harness::assert_true( null !== $reaction_script, 'reaction script was not registered' );
-			Promokodiki_Filter_Test_Harness::assert_same( _S_VERSION, $reaction_script->ver, 'reaction script cache key is not the theme version' );
+			$interaction_script = $non_search_scripts->registered['promokodiki-promo-modal'] ?? null;
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $interaction_script, 'interaction script was not registered' );
+			Promokodiki_Filter_Test_Harness::assert_same( _S_VERSION, $interaction_script->ver, 'interaction script cache key is not the theme version' );
 			$rocket_exclusions = apply_filters( 'rocket_exclude_js', array() );
 			Promokodiki_Filter_Test_Harness::assert_true(
-				in_array( '/wp-content/themes/promokodiki/js/promocodes-like.js', $rocket_exclusions, true ),
-				'reaction script is not excluded from stale WP Rocket minification'
+				in_array( '/wp-content/themes/promokodiki/js/promocode-modal.js', $rocket_exclusions, true ),
+				'interaction script is not excluded from stale WP Rocket minification'
 			);
 			$main_style = wp_styles()->registered['promokodiki-main-style'] ?? null;
 			$navigation = $non_search_scripts->registered['promokodiki-navigation'] ?? null;
@@ -174,6 +173,28 @@ Promokodiki_Filter_Test_Harness::run(
 			Promokodiki_Filter_Test_Harness::assert_contains( wp_create_nonce( 'promokodiki_search' ), $localized_data );
 		} finally {
 			$GLOBALS['wp_query']   = $original_query;
+			$GLOBALS['wp_scripts'] = $original_scripts;
+		}
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'theme exposes one interaction client with the plugin nonce contract',
+	static function (): void {
+		$original_scripts = $GLOBALS['wp_scripts'] ?? null;
+		try {
+			$GLOBALS['wp_scripts'] = new WP_Scripts();
+			promokodiki_scripts();
+			$scripts = wp_scripts();
+			$modal   = $scripts->registered['promokodiki-promo-modal'] ?? null;
+
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $modal, 'Interaction client was not registered' );
+			$localized = (string) $scripts->get_data( 'promokodiki-promo-modal', 'data' );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'PromokodikiInteractions', $localized );
+			Promokodiki_Filter_Test_Harness::assert_contains( wp_create_nonce( 'promokodiki_filter_frontend' ), $localized );
+			Promokodiki_Filter_Test_Harness::assert_same( false, has_action( 'wp_enqueue_scripts', 'my_enqueue_scripts' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( false, has_action( 'wp_enqueue_scripts', 'promocodes_likes_scripts' ) );
+		} finally {
 			$GLOBALS['wp_scripts'] = $original_scripts;
 		}
 	}
@@ -388,9 +409,9 @@ Promokodiki_Filter_Test_Harness::run(
 Promokodiki_Filter_Test_Harness::run(
 	'theme modal script leaves click tracking to the plugin',
 	static function () use ( $theme_dir ): void {
-		$contents = file_get_contents( $theme_dir . '/js/promocodes-ajax.js' );
+		$contents = file_get_contents( $theme_dir . '/js/promocode-modal.js' );
 
-		Promokodiki_Filter_Test_Harness::assert_not_contains( 'increment_promocode_count', $contents );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'increment_promocode_used', $contents );
 		Promokodiki_Filter_Test_Harness::assert_contains( 'openPromoModal', $contents );
 	}
 );

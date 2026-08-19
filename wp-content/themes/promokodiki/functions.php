@@ -10,7 +10,7 @@
 
 if (! defined('_S_VERSION')) {
 	// Replace the version number of the theme on each release.
-	define('_S_VERSION', '1.1.0');
+	define('_S_VERSION', '1.2.0');
 }
 
 /**
@@ -157,6 +157,15 @@ function promokodiki_scripts()
 	wp_enqueue_script('promokodiki-navigation', get_template_directory_uri() . '/js/navigation.js', array(), _S_VERSION, true);
 	wp_enqueue_script('promokodiki-footer-ui', get_template_directory_uri() . '/js/footer-ui.js', array(), _S_VERSION, true);
 	wp_enqueue_script('promokodiki-promo-modal', get_template_directory_uri() . '/js/promocode-modal.js', array(), _S_VERSION, true);
+	wp_enqueue_script('promokodiki-top-promocodes', get_template_directory_uri() . '/js/top-promocodes.js', array('promokodiki-promo-modal'), _S_VERSION, true);
+	wp_localize_script(
+		'promokodiki-promo-modal',
+		'PromokodikiInteractions',
+		array(
+			'ajaxUrl' => admin_url('admin-ajax.php'),
+			'nonce'   => wp_create_nonce('promokodiki_filter_frontend'),
+		)
+	);
 	if ( is_page_template( 'page-faq.php' ) ) {
 		wp_enqueue_script( 'promokodiki-faq-page', get_template_directory_uri() . '/js/faq-page.js', array(), _S_VERSION, true );
 	}
@@ -238,55 +247,20 @@ function svg_upload_allow($mimes)
 
 	return $mimes;
 }
-// Обработчик AJAX для увеличения счетчика использований
-// Обработчик AJAX для увеличения счетчика использований
-
-function my_enqueue_scripts()
-{
-	wp_enqueue_script('promocodes-ajax', get_template_directory_uri() . '/js/promocodes-ajax.js', array('jquery'), null, true);
-	wp_localize_script('promocodes-ajax', 'my_ajax', array(
-		'url' => admin_url('admin-ajax.php'),
-		'nonce' => wp_create_nonce('promokodiki_frontend')
-	));
-}
-add_action('wp_enqueue_scripts', 'my_enqueue_scripts');
-
-
-//like dislike
-
-// Регистрация скриптов
-function promocodes_likes_scripts()
-{
-	wp_enqueue_script(
-		'promocodes-likes',
-		get_template_directory_uri() . '/js/promocodes-like.js',
-		array('jquery'),
-		_S_VERSION,
-		true
-	);
-
-	// In your enqueue function
-	wp_localize_script('promocodes-likes', 'promocodes_ajax', array(
-		'ajaxurl' => admin_url('admin-ajax.php'),
-		'nonce' => wp_create_nonce('promokodiki_filter_frontend')
-	));
-}
-add_action('wp_enqueue_scripts', 'promocodes_likes_scripts');
-
 /**
- * Keep the reaction client out of WP Rocket's persistent minify cache.
+ * Keep the interaction client out of WP Rocket's persistent minify cache.
  *
  * @param array $excluded_js Excluded JavaScript paths.
  * @return array
  */
-function promokodiki_exclude_reaction_script_from_rocket($excluded_js)
+function promokodiki_exclude_interaction_script_from_rocket($excluded_js)
 {
 	$excluded_js   = is_array($excluded_js) ? $excluded_js : array();
-	$excluded_js[] = '/wp-content/themes/promokodiki/js/promocodes-like.js';
+	$excluded_js[] = '/wp-content/themes/promokodiki/js/promocode-modal.js';
 
 	return array_values(array_unique($excluded_js));
 }
-add_filter('rocket_exclude_js', 'promokodiki_exclude_reaction_script_from_rocket');
+add_filter('rocket_exclude_js', 'promokodiki_exclude_interaction_script_from_rocket');
 
 
 function cc_mime_types($mimes)
@@ -296,20 +270,6 @@ function cc_mime_types($mimes)
 }
 
 add_filter('upload_mimes', 'cc_mime_types');
-
-
-
-// Добавляем обработчик AJAX
-// Добавляем переменную ajaxurl для фронтенда
-add_action('wp_head', 'add_ajaxurl');
-function add_ajaxurl()
-{
-	echo '<script type="text/javascript">
-        var ajaxurl = "' . esc_url(admin_url('admin-ajax.php')) . '";
-        var promokodikiAjaxNonce = "' . esc_js(wp_create_nonce('promokodiki_frontend')) . '";
-    </script>';
-}
-
 
 
 
@@ -437,29 +397,6 @@ function asp_filter_expired_promocodes($results, $search) {
     }
     
     return $filtered;
-}
-
-
-// В functions.php добавьте:
-add_action('wp_ajax_get_next_update_time', 'get_next_update_time_ajax');
-add_action('wp_ajax_nopriv_get_next_update_time', 'get_next_update_time_ajax');
-
-function get_next_update_time_ajax() {
-    $next_update = get_next_update_time();
-    wp_send_json_success(array(
-        'next_update' => $next_update
-    ));
-}
-
-// Получение времени сервера (один запрос)
-add_action('wp_ajax_get_server_time', 'get_server_time_ajax');
-add_action('wp_ajax_nopriv_get_server_time', 'get_server_time_ajax');
-
-function get_server_time_ajax() {
-    wp_send_json_success(array(
-        'server_time' => current_time('timestamp'),
-        'next_update' => get_next_update_time()
-    ));
 }
 
 

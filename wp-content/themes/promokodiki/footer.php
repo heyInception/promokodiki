@@ -115,7 +115,7 @@
       <button class="modal-promocode__copy" id="copyPromoBtn">СКОПИРОВАТЬ</button>
     </div>
 
-    <a href="#" class="modal-promocode__link" id="modalPromoLink" target="_blank" rel="nofollow">Перейти в магазин</a>
+    <a href="#" class="modal-promocode__link" id="modalPromoLink" target="_blank" rel="nofollow noopener">Перейти в магазин</a>
 
     <div class="modal-promocode__meta">
       <div class="modal-promocode__used"><span>Применили:</span> <span id="modalPromoUsed">0</span> раз</div>
