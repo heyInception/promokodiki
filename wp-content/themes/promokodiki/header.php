@@ -57,20 +57,7 @@
 							<?php the_custom_logo(); ?>
 						</div>
 						<div class="header__nav">
-							<nav id="site-navigation" class="nav main-navigation" aria-label="<?php esc_attr_e( 'Основная навигация', 'promokodiki' ); ?>">
-								<button class="menu-toggle btn-reset" type="button" aria-controls="primary-menu" aria-expanded="false" aria-label="<?php esc_attr_e( 'Основное меню', 'promokodiki' ); ?>">
-									<span class="menu-toggle__icon" aria-hidden="true"></span>
-								</button>
-								<?php
-								wp_nav_menu(
-									array(
-										'theme_location' => 'menu-1',
-										'menu_id'        => 'primary-menu',
-										'items_wrap'     => '<ul id="%1$s" class="%2$s list-reset nav__list nav-menu">%3$s</ul>',
-									)
-								);
-								?>
-							</nav>
+							<?php echo promokodiki_render_primary_navigation(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the renderer. ?>
 						</div>
 						<div class="header__wrap">
 							<div class="header__search">

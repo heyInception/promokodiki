@@ -194,6 +194,11 @@ require get_template_directory() . '/inc/template-tags.php';
 require get_template_directory() . '/inc/template-functions.php';
 
 /**
+ * Primary navigation rendering and interactions.
+ */
+require get_template_directory() . '/inc/navigation-menu.php';
+
+/**
  * Customizer additions.
  */
 require get_template_directory() . '/inc/customizer.php';

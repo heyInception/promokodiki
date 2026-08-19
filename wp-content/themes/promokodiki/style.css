@@ -165,8 +165,8 @@ body .wpc-filters-main-wrap li.wpc-term-item {
 }
 
 .alphabetical__list-item .alphabetical__match {
-	color: #fe1477;
-	background: transparent;
+  color: #fe1477;
+  background: transparent;
 }
 .promocodes__like.disabled {
   opacity: 0.5;
@@ -1144,7 +1144,19 @@ article.single h4 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 170px; 
+  width: 170px;
+}
+.alphabetical__index-item {
+  white-space: nowrap;
+  text-align: center;
+}
+[hidden] {
+  display: none !important;
+}
+.promokodiki-filter {
+  display: flex;
+  flex-flow: column;
+  gap: 20px;
 }
 @media (min-width: 1230px) {
   .top__head {

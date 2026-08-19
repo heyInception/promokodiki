@@ -31,8 +31,46 @@ function promokodiki_customize_register( $wp_customize ) {
 			)
 		);
 	}
+
+	$wp_customize->add_section(
+		'promokodiki_mobile_menu',
+		array(
+			'title'       => __( 'Мобильное меню', 'promokodiki' ),
+			'description' => __( 'Настройте начальное состояние мобильной навигации.', 'promokodiki' ),
+			'priority'    => 35,
+		)
+	);
+
+	$wp_customize->add_setting(
+		'promokodiki_mobile_categories_expanded',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'promokodiki_sanitize_checkbox',
+			'transport'         => 'refresh',
+		)
+	);
+
+	$wp_customize->add_control(
+		'promokodiki_mobile_categories_expanded',
+		array(
+			'label'       => __( 'Раскрывать рубрики промокодов при открытии меню', 'promokodiki' ),
+			'section'     => 'promokodiki_mobile_menu',
+			'settings'    => 'promokodiki_mobile_categories_expanded',
+			'type'        => 'checkbox',
+		)
+	);
 }
 add_action( 'customize_register', 'promokodiki_customize_register' );
+
+/**
+ * Sanitize a Customizer checkbox value.
+ *
+ * @param mixed $checked Raw checkbox value.
+ * @return bool
+ */
+function promokodiki_sanitize_checkbox( $checked ) {
+	return in_array( $checked, array( true, 1, '1', 'true', 'on' ), true );
+}
 
 /**
  * Render the site title for the selective refresh partial.
