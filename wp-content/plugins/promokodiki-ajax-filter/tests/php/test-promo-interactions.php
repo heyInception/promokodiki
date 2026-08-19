@@ -23,6 +23,11 @@ try {
 		Promokodiki_Filter_Test_Harness::assert_same( 1, $dislike['total'] );
 		Promokodiki_Filter_Test_Harness::assert_same( 1, (int) get_post_meta( $post_id, '_promocode_votes_total', true ) );
 	} );
+	Promokodiki_Filter_Test_Harness::run( 'stored reaction is restored only for the matching visitor', static function () use ( $post_id ): void {
+		Promokodiki_Filter_Test_Harness::assert_same( 'dislike', Promokodiki_Filter_Promo_Interactions::reaction_for( $post_id, 'fixture-voter' ) );
+		Promokodiki_Filter_Test_Harness::assert_same( '', Promokodiki_Filter_Promo_Interactions::reaction_for( $post_id, 'another-voter' ) );
+		Promokodiki_Filter_Test_Harness::assert_same( '', Promokodiki_Filter_Promo_Interactions::reaction_for( $post_id, '' ) );
+	} );
 	Promokodiki_Filter_Test_Harness::run( 'new vote persists total reconstructed from legacy counters', static function (): void {
 		$legacy_post_id = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Legacy interaction fixture' ) );
 		update_post_meta( $legacy_post_id, '_promocode_likes', 4 );

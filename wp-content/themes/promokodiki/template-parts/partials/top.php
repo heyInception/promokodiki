@@ -28,9 +28,15 @@ if (!function_exists('top_sections')) {
               <div class="top__title">
                 <h2>Топ промокодов из Telegram</h2>
               </div>
-              <div class="top__items" id="popular-promocodes-container">
+              <?php $top_snapshot = promokodiki_top_snapshot(); ?>
+              <div
+				class="top__items"
+				id="popular-promocodes-container"
+				data-next-update="<?php echo esc_attr((string) $top_snapshot['next_update']); ?>"
+				data-server-time="<?php echo esc_attr((string) current_time('timestamp')); ?>"
+			  >
                 <?php
-                $promocode_ids = get_popular_promocodes();
+                $promocode_ids = $top_snapshot['ids'];
                 if (!empty($promocode_ids)) {
                   display_promocodes_items($promocode_ids);
                 } else {
