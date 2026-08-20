@@ -70,6 +70,18 @@ if ( ! function_exists( 'get_template_directory_uri' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_template_directory' ) ) {
+	function get_template_directory() {
+		return dirname( __DIR__ );
+	}
+}
+
+if ( ! function_exists( 'sanitize_title' ) ) {
+	function sanitize_title( $title ) {
+		return strtolower( trim( (string) $title ) );
+	}
+}
+
 if ( ! function_exists( 'home_url' ) ) {
 	function home_url( $path = '' ) {
 		return '/site' . $path;
@@ -104,7 +116,7 @@ if ( ! function_exists( 'get_terms' ) ) {
 		$GLOBALS['navigation_get_terms_args'] = $args;
 
 		return array(
-			(object) array( 'term_id' => 10, 'name' => 'Beauty', 'slug' => 'beauty' ),
+			(object) array( 'term_id' => 10, 'name' => 'Clothing', 'slug' => 'clothing' ),
 			(object) array( 'term_id' => 20, 'name' => 'Travel', 'slug' => 'travel' ),
 		);
 	}
@@ -119,18 +131,6 @@ if ( ! function_exists( 'is_wp_error' ) ) {
 if ( ! function_exists( 'get_term_link' ) ) {
 	function get_term_link( $term ) {
 		return '/promocode-category/' . $term->slug . '/';
-	}
-}
-
-if ( ! function_exists( 'get_term_meta' ) ) {
-	function get_term_meta( $term_id, $key, $single ) {
-		return 10 === (int) $term_id ? 501 : 0;
-	}
-}
-
-if ( ! function_exists( 'wp_get_attachment_image_url' ) ) {
-	function wp_get_attachment_image_url( $attachment_id, $size ) {
-		return 501 === (int) $attachment_id ? '/uploads/beauty.png' : false;
 	}
 }
 
@@ -162,18 +162,18 @@ navigation_assert_true( 0 === $navigation_get_terms_args['parent'], 'Only root c
 navigation_assert_true( true === $navigation_get_terms_args['hide_empty'], 'Empty categories are excluded' );
 navigation_assert_true( true === $navigation_get_terms_args['pad_counts'], 'Descendant promocodes keep their root category visible' );
 navigation_assert_true( 'name' === $navigation_get_terms_args['orderby'], 'Categories request alphabetical ordering' );
-navigation_assert_true( 'Beauty' === $categories[0]['name'], 'WordPress category ordering is preserved' );
-navigation_assert_true( '/uploads/beauty.png' === $categories[0]['image_url'], 'Configured term image is used' );
-navigation_assert_true( '/theme/img/categories/default.png' === $categories[1]['image_url'], 'Missing term image uses the approved local fallback' );
+navigation_assert_true( 'Clothing' === $categories[0]['name'], 'WordPress category ordering is preserved' );
+navigation_assert_true( '/theme/img/categories/clothing.png' === $categories[0]['image_url'], 'Existing slug image is used' );
+navigation_assert_true( '/theme/img/categories/default.png' === $categories[1]['image_url'], 'Missing slug image uses the approved local fallback' );
 
 $submenu = promokodiki_render_promocode_submenu( $categories, true );
 
 navigation_assert_contains( 'class="nav__submenu-toggle', $submenu, 'A separate submenu toggle is rendered' );
 navigation_assert_contains( 'aria-expanded="true"', $submenu, 'Expanded state is exposed to assistive technology' );
 navigation_assert_contains( 'aria-controls="promocode-category-menu"', $submenu, 'Toggle controls the category list' );
-navigation_assert_contains( 'href="/promocode-category/beauty/"', $submenu, 'Category links use their term URLs' );
-navigation_assert_contains( 'alt="Beauty"', $submenu, 'Category image has a useful alternative' );
-navigation_assert_before( 'Beauty', 'Travel', $submenu, 'Rendered categories remain alphabetical' );
+navigation_assert_contains( 'href="/promocode-category/clothing/"', $submenu, 'Category links use their term URLs' );
+navigation_assert_contains( 'alt="Clothing"', $submenu, 'Category image has a useful alternative' );
+navigation_assert_before( 'Clothing', 'Travel', $submenu, 'Rendered categories remain alphabetical' );
 
 navigation_assert_true( function_exists( 'promokodiki_render_default_primary_menu' ), 'A deterministic menu fallback exists' );
 $fallback_menu = promokodiki_render_default_primary_menu( $categories, true );

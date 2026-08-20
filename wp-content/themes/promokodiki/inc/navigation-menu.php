@@ -39,14 +39,17 @@ function promokodiki_get_menu_categories() {
 			continue;
 		}
 
-		$image_id  = absint( get_term_meta( $term->term_id, 'shops-category-image-id', true ) );
-		$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'thumbnail' ) : false;
+		$image_slug = sanitize_title( $term->slug );
+		$image_path = get_template_directory() . '/img/categories/' . $image_slug . '.png';
+		$image_url  = file_exists( $image_path )
+			? get_template_directory_uri() . '/img/categories/' . $image_slug . '.png'
+			: $fallback;
 
 		$categories[] = array(
 			'id'        => (int) $term->term_id,
 			'name'      => (string) $term->name,
 			'url'       => (string) $term_url,
-			'image_url' => $image_url ? (string) $image_url : $fallback,
+			'image_url' => $image_url,
 		);
 	}
 
