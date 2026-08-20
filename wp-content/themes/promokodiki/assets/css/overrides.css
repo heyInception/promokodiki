@@ -347,12 +347,12 @@
   height: 9px;
   border-right: 2px solid var(--black);
   border-bottom: 2px solid var(--black);
-  transform: translate(-50%, -65%) rotate(45deg);
+  transform: translate(-50%, -35%) rotate(-45deg);
   transition: transform .2s ease;
 }
 
 .nav__submenu-toggle[aria-expanded="true"] .nav__submenu-chevron {
-  transform: translate(-50%, -35%) rotate(225deg);
+  transform: translate(-50%, -35%) rotate(45deg);
 }
 
 .nav__category-image {
@@ -470,9 +470,7 @@
     justify-content: flex-start;
     gap: 10px;
     color: var(--black);
-    font-family: var(--second-family);
-    font-size: 16px;
-    font-weight: 600;
+    font: 600 16px var(--font-family);
   }
 
   .header__nav .nav__list > li.menu-item-has-children:not(.menu-item--promocodes) > a::after,
