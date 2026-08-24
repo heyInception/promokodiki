@@ -1102,7 +1102,7 @@ h6 {
   transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
 }
 .top__item:hover {
-  max-height: 410px;
+  max-height: 425px;
   -webkit-transition: max-height 0.2s ease-in-out;
   transition: max-height 0.2s ease-in-out;
 }
@@ -1177,7 +1177,7 @@ h6 {
 .top__last {
   font-family: var(--font-family);
   font-weight: 400;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--dark-grey);
 }
 .top__max {
@@ -1186,7 +1186,7 @@ h6 {
   padding: 6px 15px;
   font-family: var(--font-family);
   font-weight: 400;
-  font-size: 12px;
+  font-size: 11px;
   color: #000;
 }
 .top__head {
@@ -1281,6 +1281,8 @@ h6 {
   border-radius: 50%;
   width: 36px;
   height: 36px;
+  object-fit: contain;
+  border: 1px solid #e2e0e0;
 }
 .top__nick {
   font-family: var(--font-family);

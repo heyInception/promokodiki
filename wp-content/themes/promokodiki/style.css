@@ -434,10 +434,6 @@ body .wpc-filters-main-wrap li.wpc-term-item {
 .banner__item {
   text-align: center;
 }
-.promocodes__data a {
-  display: block;
-  margin-left: auto;
-}
 .promocodes__store .promocodes__imgs img {
   width: 78px;
   height: 78px;
@@ -1157,6 +1153,9 @@ article.single h4 {
   display: flex;
   flex-flow: column;
   gap: 20px;
+}
+.promocodes__button {
+  display: flex;
 }
 @media (min-width: 1230px) {
   .top__head {

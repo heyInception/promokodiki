@@ -1,0 +1,117 @@
+/**
+ * Interactive UI kit based on Figma node 567:1065.
+ *
+ * Usage:
+ * class="ui-button ui-button--pink"
+ * class="ui-link ui-link--orange"
+ */
+
+.ui-button {
+  --ui-control-accent: #333;
+  --ui-control-bg: transparent;
+  --ui-control-color: #333;
+  --ui-control-active-bg: var(--ui-control-accent);
+  --ui-control-active-color: #fff;
+
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 55px;
+  padding: 0 25px;
+  background: var(--ui-control-bg);
+  color: var(--ui-control-color);
+  font-family: var(--font-family, "RF Dewi Extended", sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.ui-button:hover {
+  border-color: var(--ui-control-accent);
+  background: var(--ui-control-bg);
+  color: var(--ui-control-color);
+}
+
+.ui-button:active {
+  border-color: var(--ui-control-active-bg);
+  background: var(--ui-control-active-bg);
+  color: var(--ui-control-active-color);
+}
+
+.ui-button:focus-visible {
+  outline: 2px solid var(--ui-control-accent);
+  outline-offset: 3px;
+}
+
+.ui-button--orange {
+  --ui-control-accent: #fa6108;
+  --ui-control-bg: #ffede3;
+  --ui-control-color: #fa6108;
+  --ui-control-active-bg: #fa6108;
+  --ui-control-active-color: #fff;
+}
+
+.ui-button--pink {
+  --ui-control-accent: #fe1477;
+  --ui-control-bg: #ffe9f2;
+  --ui-control-color: #fe1477;
+  --ui-control-active-bg: #fe1477;
+  --ui-control-active-color: #fff;
+}
+
+.ui-button--blue {
+  --ui-control-accent: #1999fa;
+  --ui-control-bg: #cae8ff;
+  --ui-control-color: #1999fa;
+  --ui-control-active-bg: #93d0ff;
+  --ui-control-active-color: #1999fa;
+}
+
+.ui-link {
+  --ui-link-color: #333;
+  --ui-link-interaction-color: #333;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ui-link-color);
+  font-family: var(--font-family, "RF Dewi Extended", sans-serif);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.ui-link:visited {
+  color: var(--ui-link-color);
+}
+
+.ui-link:hover,
+.ui-link:active {
+  color: var(--ui-link-interaction-color);
+}
+
+.ui-link:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--ui-link-interaction-color);
+  outline-offset: 3px;
+}
+
+.ui-link--orange {
+  --ui-link-interaction-color: #fa6108;
+}
+
+.ui-link--pink {
+  --ui-link-interaction-color: #fe1477;
+}
+
+.ui-link--blue {
+  --ui-link-interaction-color: #1999fa;
+}

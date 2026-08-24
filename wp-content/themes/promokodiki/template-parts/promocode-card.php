@@ -120,9 +120,9 @@ if (is_tax('shops_category')) {
             <?php if ( $is_expired ) : ?>
                 <button class="btn-reset promocodes__button" disabled>Промокод истёк</button>
             <?php elseif ( $has_coupon_code ) : ?>
-                <button class="btn-reset promocodes__view promocodes__button" data-post-id="<?php echo get_the_ID(); ?>">Посмотреть код</button>
+                <button class="btn-reset promocodes__view promocodes__button ui-button ui-button--orange" data-post-id="<?php echo get_the_ID(); ?>">Посмотреть код</button>
             <?php else : ?>
-                <a href="<?php echo esc_url( $coupon_link ); ?>" class="btn-reset promocodes__link promocodes__button" data-post-id="<?php echo esc_attr( (string) get_the_ID() ); ?>" rel="nofollow noopener" target="_blank">Перейти в магазин</a>
+                <a href="<?php echo esc_url( $coupon_link ); ?>" class="btn-reset promocodes__link promocodes__button ui-button ui-button--orange" data-post-id="<?php echo esc_attr( (string) get_the_ID() ); ?>" rel="nofollow noopener" target="_blank">Перейти в магазин</a>
             <?php endif; ?>
 
             <?php if ( $has_coupon_code ) : ?>
@@ -193,9 +193,9 @@ if (is_tax('shops_category')) {
         <?php if ( $is_expired ) : ?>
             <button class="btn-reset promocodes__button" disabled>Промокод истёк</button>
         <?php elseif ( $has_coupon_code ) : ?>
-            <button class="btn-reset promocodes__view promocodes__button" data-post-id="<?php echo get_the_ID(); ?>" data-graph-path="promocode-<?php the_ID(); ?>">Посмотреть код</button>
+            <button class="btn-reset promocodes__view promocodes__button ui-button ui-button--orange" data-post-id="<?php echo get_the_ID(); ?>" data-graph-path="promocode-<?php the_ID(); ?>">Посмотреть код</button>
         <?php else : ?>
-            <a href="<?php echo esc_url( $coupon_link ); ?>" class="btn-reset promocodes__link promocodes__button" data-post-id="<?php echo esc_attr( (string) get_the_ID() ); ?>" rel="nofollow noopener" target="_blank">Перейти в магазин</a>
+            <a href="<?php echo esc_url( $coupon_link ); ?>" class="btn-reset promocodes__link promocodes__button ui-button ui-button--orange" data-post-id="<?php echo esc_attr( (string) get_the_ID() ); ?>" rel="nofollow noopener" target="_blank">Перейти в магазин</a>
         <?php endif; ?>
 
         <?php if ( $has_coupon_code ) : ?>

@@ -150,6 +150,10 @@ function promokodiki_scripts()
 	if (file_exists($overrides_path)) {
 		wp_enqueue_style('promokodiki-overrides', get_stylesheet_directory_uri() . '/assets/css/overrides.css', array('promokodiki-style'), filemtime($overrides_path));
 	}
+	$ui_kit_path = get_stylesheet_directory() . '/assets/css/ui-kit.css';
+	if (file_exists($ui_kit_path)) {
+		wp_enqueue_style('promokodiki-ui-kit', get_stylesheet_directory_uri() . '/assets/css/ui-kit.css', array('promokodiki-overrides'), filemtime($ui_kit_path));
+	}
 	wp_style_add_data('promokodiki-style', 'rtl', 'replace');
 	wp_enqueue_script('jquery');
 	wp_enqueue_script('promokodiki-main', get_template_directory_uri() . '/js/main.js', array(), _S_VERSION, true);

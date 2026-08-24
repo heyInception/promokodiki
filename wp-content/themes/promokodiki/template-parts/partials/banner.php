@@ -13,7 +13,7 @@ if (!function_exists('banner_sections')) {
               </div>
               <?php $ssylkaz = get_sub_field('ssylkaz'); ?>
               <?php if ($ssylkaz) : ?>
-                <a href="<?php echo esc_url($ssylkaz['url']); ?>" target="<?php echo esc_attr($ssylkaz['target']); ?>" class="banner__button btn-reset"><?php echo esc_html($ssylkaz['title']); ?></a>
+                <a href="<?php echo esc_url($ssylkaz['url']); ?>" target="<?php echo esc_attr($ssylkaz['target']); ?>" class="banner__button btn-reset ui-button ui-button--pink"><?php echo esc_html($ssylkaz['title']); ?></a>
               <?php endif; ?>
             </div>
             <div class="banner__items">
@@ -42,7 +42,7 @@ if (!function_exists('banner_sections')) {
                 <p>Нет доступных категорий</p>
               <?php endif; ?>
             </div>
-            <a href="" class="banner__button btn-reset banner__button_m">В каталог</a>
+            <a href="" class="banner__button btn-reset ui-button ui-button--pink banner__button_m">В каталог</a>
           </div>
         </div>
       </section>

@@ -284,7 +284,7 @@ function display_promocodes_items($promocode_ids)
                 <?php if ($is_expired) : ?>
 					<button class="top__button btn-reset" disabled>Промокод истёк</button>
 				<?php elseif ($has_coupon_code) : ?>
-                    <button class="top__button btn-reset promocodes__view" data-post-id="<?php echo esc_attr((string) $post_id); ?>">
+                    <button class="top__button btn-reset promocodes__view ui-button ui-button--orange" data-post-id="<?php echo esc_attr((string) $post_id); ?>">
                         Показать промокод
                     </button>
                 <?php elseif (!empty($coupon_link)) : ?>
