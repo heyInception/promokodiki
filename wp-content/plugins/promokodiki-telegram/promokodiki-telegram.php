@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Promokodiki Telegram
  * Description: Imports high-confidence Telegram promocodes through an authenticated MTProto worker.
- * Version: 1.0.2
+ * Version: 1.1.0
  * Author: Promokodiki
  * Text Domain: promokodiki-telegram
  *
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PROMOKODIKI_TELEGRAM_VERSION', '1.0.2' );
+define( 'PROMOKODIKI_TELEGRAM_VERSION', '1.1.0' );
 define( 'PROMOKODIKI_TELEGRAM_FILE', __FILE__ );
 define( 'PROMOKODIKI_TELEGRAM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PROMOKODIKI_TELEGRAM_URL', plugin_dir_url( __FILE__ ) );

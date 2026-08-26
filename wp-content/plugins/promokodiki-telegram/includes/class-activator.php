@@ -62,14 +62,66 @@ final class Promokodiki_Telegram_Activator {
 		);
 
 		foreach ( $post_ids as $post_id ) {
+			$post_id   = (int) $post_id;
+			$post_data = array(
+				'ID'        => $post_id,
+				'post_name' => 'yandex-market-' . $post_id,
+			);
+			$code       = (string) get_post_meta( $post_id, '_promocode_code', true );
+			$offer_type = (string) get_post_meta( $post_id, '_telegram_offer_type', true );
+			$offer_type = $offer_type ?: ( '' !== $code ? 'promocode' : 'cart_discount' );
+			update_post_meta( $post_id, '_telegram_offer_type', $offer_type );
+			if ( 'yes' !== get_post_meta( $post_id, '_telegram_manual_lock', true ) ) {
+				$post_data['post_title'] = self::telegram_title(
+					(string) get_post_meta( $post_id, '_telegram_raw_text', true ),
+					$offer_type,
+					(int) get_post_meta( $post_id, '_telegram_discount_value', true )
+				);
+			}
 			wp_update_post(
-				array(
-					'ID'        => (int) $post_id,
-					'post_name' => 'yandex-market-' . (int) $post_id,
-				)
+				$post_data
 			);
 		}
 
+		$channels = Promokodiki_Telegram_Config::channels();
+		foreach ( $channels as &$channel ) {
+			$channel['last_message_id'] = 0;
+		}
+		unset( $channel );
+		Promokodiki_Telegram_Config::save_channels( $channels );
+
 		update_option( 'promokodiki_telegram_db_version', PROMOKODIKI_TELEGRAM_VERSION, false );
+	}
+
+	private static function telegram_title( string $raw_text, string $offer_type, int $discount ): string {
+		$candidate = '';
+		$lines     = preg_split( '/\R/u', $raw_text ) ?: array();
+		foreach ( $lines as $line ) {
+			$line = preg_replace( '~https?://\S+~u', '', $line ) ?? '';
+			if ( preg_match( '/(?:скидка\s*)?-?\s*\d{1,3}\s*%\s*в\s+корзине|(?:промо\s*[-–—]?\s*код|промокод|промо)\b/iu', $line, $marker, PREG_OFFSET_CAPTURE ) ) {
+				$line = substr( $line, 0, (int) $marker[0][1] );
+			}
+			$line = preg_replace( '/[*_~`\[\]()]+/u', ' ', $line ) ?? '';
+			$line = preg_replace( '/\s+/u', ' ', trim( $line ) ) ?? '';
+			$line = preg_replace( '/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/u', '', $line ) ?? '';
+			if ( mb_strlen( $line ) < 4 || preg_match( '/^(?:(?:виу|вау|срочно|шок|огонь)\s*)+$|^(?:разбира\w*|налета\w*|успева\w*)!?$/iu', $line ) ) {
+				continue;
+			}
+			$candidate = rtrim( mb_substr( $line, 0, 90 ), " .,;:!—-" );
+			break;
+		}
+
+		if ( 'cart_discount' === $offer_type ) {
+			$benefit = sprintf( 'скидка %d%% в корзине', $discount );
+			$fallback = sprintf( 'Скидка %d%% в корзине на Яндекс Маркете', $discount );
+		} elseif ( $discount > 0 ) {
+			$benefit = sprintf( 'скидка %d%% по промокоду', $discount );
+			$fallback = sprintf( 'Скидка %d%% по промокоду на Яндекс Маркете', $discount );
+		} else {
+			$benefit = 'предложение по промокоду';
+			$fallback = 'Промокод на Яндекс Маркете';
+		}
+
+		return $candidate ? $candidate . ' — ' . $benefit : $fallback;
 	}
 }

@@ -92,8 +92,9 @@ final class Promokodiki_Telegram_Promocode_Repository {
 			'_telegram_expires_at'             => $item['expires_at'],
 			'_telegram_discount_label'         => $item['discount_label'],
 			'_telegram_discount_value'         => $item['discount_value'],
+			'_telegram_offer_type'             => $item['offer_type'],
 			'_telegram_confidence'             => 'high',
-			'_telegram_detected_code_count'    => 1,
+			'_telegram_detected_code_count'    => $item['detected_code_count'],
 			'_telegram_affiliate_status'       => sanitize_key( (string) ( $link['status'] ?? 'direct' ) ),
 			'_telegram_affiliate_campaign_id'  => absint( $link['campaign_id'] ?? 0 ),
 			'_telegram_inactive_reason'         => $is_expired ? 'expired' : '',
@@ -185,21 +186,28 @@ final class Promokodiki_Telegram_Promocode_Repository {
 	/** @param array<string, mixed> $item @return array<string, mixed>|WP_Error */
 	private function validate( array $item ) {
 		$count = (int) ( $item['detected_code_count'] ?? 0 );
-		if ( 1 !== $count ) {
+		if ( $count > 1 ) {
 			return new WP_Error( 'telegram_multiple_codes', 'Exactly one promocode is required.' );
 		}
 		if ( 'high' !== sanitize_key( (string) ( $item['confidence'] ?? '' ) ) ) {
 			return new WP_Error( 'telegram_low_confidence', 'Only high-confidence items may be published.' );
 		}
 
-		$channel = $this->sanitize_channel( (string) ( $item['channel'] ?? '' ) );
-		$code    = trim( sanitize_text_field( (string) ( $item['code'] ?? '' ) ) );
-		$url     = esc_url_raw( (string) ( $item['destination_url'] ?? '' ), array( 'http', 'https' ) );
+		$channel    = $this->sanitize_channel( (string) ( $item['channel'] ?? '' ) );
+		$code       = trim( sanitize_text_field( (string) ( $item['code'] ?? '' ) ) );
+		$url        = esc_url_raw( (string) ( $item['destination_url'] ?? '' ), array( 'http', 'https' ) );
+		$offer_type = sanitize_key( (string) ( $item['offer_type'] ?? ( 1 === $count ? 'promocode' : '' ) ) );
 		if ( '' === $channel || (int) ( $item['message_id'] ?? 0 ) < 1 ) {
 			return new WP_Error( 'telegram_invalid_source', 'Telegram source is invalid.' );
 		}
-		if ( mb_strlen( $code ) < 4 || mb_strlen( $code ) > 32 || ! preg_match( '/^[\p{L}\p{N}_-]+$/u', $code ) ) {
+		if ( 'promocode' === $offer_type && ( 1 !== $count || mb_strlen( $code ) < 4 || mb_strlen( $code ) > 32 || ! preg_match( '/^[\p{L}\p{N}_-]+$/u', $code ) ) ) {
 			return new WP_Error( 'telegram_invalid_code', 'Promocode is invalid.' );
+		}
+		if ( 'cart_discount' === $offer_type && ( 0 !== $count || '' !== $code || (float) ( $item['discount_value'] ?? 0 ) <= 0 ) ) {
+			return new WP_Error( 'telegram_invalid_cart_discount', 'Cart discount is invalid.' );
+		}
+		if ( ! in_array( $offer_type, array( 'promocode', 'cart_discount' ), true ) ) {
+			return new WP_Error( 'telegram_invalid_offer_type', 'Telegram offer type is invalid.' );
 		}
 		if ( '' === $url ) {
 			return new WP_Error( 'telegram_missing_destination', 'Merchant destination is required.' );
@@ -208,7 +216,8 @@ final class Promokodiki_Telegram_Promocode_Repository {
 		return array(
 			'channel'             => $channel,
 			'message_id'          => (int) $item['message_id'],
-			'detected_code_count' => 1,
+			'offer_type'          => $offer_type,
+			'detected_code_count' => $count,
 			'confidence'          => 'high',
 			'title'               => sanitize_text_field( (string) ( $item['title'] ?? '' ) ) ?: 'Промокод из Telegram',
 			'excerpt'             => sanitize_textarea_field( (string) ( $item['excerpt'] ?? '' ) ),
