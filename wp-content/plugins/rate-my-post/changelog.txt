@@ -1,0 +1,369 @@
+﻿== Changelog ==
+
+= 4.4.4 =
+* Switched to array data type for schema representation.
+
+= 4.4.3 =
+* Fixed migration where kk star CPT reviews did not import.
+
+= 4.4.2 =
+* Reverted accessibility improvements as many had styling issues with it.
+* Added User ID support in email body filter.
+
+= 4.4.1 =
+* Added import/export of settings.
+* Improved Accessibility.
+* Set default structured-data-type to CreativeWorkSeries.
+
+= 4.4.0 =
+* Added button to export stats and analytics.
+
+= 4.3.2 =
+* Fixed bug with user tracking after rating not working.
+
+= 4.3.1 =
+* Added tracking of user on email notification after rating.
+* Added tracking of user on email notification after feedback.
+* Fixed bug where nonce verification were failing.
+
+= 4.3.0 =
+* Added blocks for rating, result and top-rated posts.
+* Added rmp_is_not_votable filter.
+* Fixed issue where structured datatype is missing after migration.
+
+= 4.2.5 =
+* Fixed security issue where posts that aren’t published and private can be rated.
+
+= 4.2.4 =
+* Fixed PHP Fatal error:  Uncaught TypeError: implode(): Argument #1 ($pieces) must be of type array, string given
+* Added compatibility with Avada theme.
+* Added more params to rmp_top_rated_query filter.
+
+= 4.2.3 =
+* Fixed: Uncaught TypeError: round(): Argument #1 ($num) must be of type int|float, string given
+* Reduced top-rated post query cache to 1 hour.
+* Re-added common functions used by other plugins/themes.
+
+= 4.2.2 =
+* Further improved the top-rated posts database query and added caching.
+
+= 4.2.1 =
+* Fixed top-rated posts widget not working correctly.
+* Improvement: add rating customization metaboxes to posts edit screen by default.
+* Improve top-rated post widget appearance.
+* Removed redundant datatable CSS.
+* Remove deprecated jQuery codes.
+
+= 4.2.0 =
+* Added [ratemypost-top-rated] top rated shortcode.
+* Added Average rating column to post edit listing page.
+* Added sorting to Stat page.
+* Improved top-rated widget query especially for site with large posts.
+* Improvements: Ensure rating metaboxes in post edit screen are shown only when necessary.
+
+= 4.1.2 =
+* Fixed sorting by rating in Analytics.
+* Removed redundant sorting from stat.
+
+= 4.1.1 =
+* Fixed bug where feedbacks didn't show up in post edit screens.
+* Fixed DB error due to absence of primary key in table.
+
+= 4.1.0 =
+* New admin dashboard design.
+* Fixed PHP fatal error triggered in rare rating cases.
+
+= 4.0.2 =
+* Fixed bug where ratings not working if recaptcha is enabled.
+
+= 4.0.1 =
+* Pro: [Bulk-Rating Tool](https://feedbackwp.com/docs/#Bulk_Rating_Tool) to add rating to posts without votes.
+* Fixed bug where ratings were not recorded in some cases.
+
+= 4.0.0 =
+* Fixed partial saving issues.
+
+= 3.4.5 =
+* Fixed bug where a private post could be rated.
+
+= 3.4.4 =
+* Improved compatibility with latest WP and PHP 8.
+
+= 3.4.3 =
+* Security fix - reported by [Patchstack](https://patchstack.com/)
+* Change compatible to version
+
+= 3.4.2 =
+* Security fix - reported by [Patchstack](https://patchstack.com/)
+
+= 3.4.1 =
+* Added JS method to manually init single widget - thanks to [Alfredo Arena](https://github.com/alfredoct96)
+
+= 3.4.0 =
+* Removed jQuery dependency on frontend - thanks to [Alfredo Arena](https://github.com/alfredoct96)
+* Ditching support for IE
+* Improved performance - thanks to [Alfredo Arena](https://github.com/alfredoct96)
+* Added option to disable clear post cache - thanks to [Alfredo Arena](https://github.com/alfredoct96)
+
+= 3.3.9 =
+* Security fix (proper escaping and sanitization)
+
+= 3.3.8 =
+* Optimized query for stats table - thanks to [Alfredo Arena](https://github.com/alfredoct96)
+
+= 3.3.7 =
+* Fixed issues with Mutex on some server configurations - thanks to [Thomas Wünsche](https://github.com/bzrk)
+
+= 3.3.6 =
+* Fixed PHP 8 deprecated features
+
+= 3.3.5 =
+* Security improvements
+
+= 3.3.4 =
+* Amp style improvements - thanks to [milindmore22](https://github.com/milindmore22)
+* Top rated posts widget now uses smaller image size
+* Added filter for image size in top rated posts widget
+
+= 3.3.3 =
+* Preload fonts
+* Full compatibility with WP 5.8
+
+= 3.3.2 =
+* Style fix: Fix empty spaces added by CSS changes in WP 5.7
+* Compatibility with WP 5.7
+
+= 3.3.1 =
+* Bug fix: Properly encode social media share links
+* Improvement: Added fallback image for schema
+* Compatibility with WP 5.5
+
+= 3.3.0 =
+* Improvement: AMP Compatibility mode is no longer BETA and comes with style
+* Improvement: Ratings on archive pages are no longer shown for excluded posts
+* Improvement: Ratings on archive pages have an additional class if post hasn't been rated yet
+* Improvement: Added admin notices if additional configuration is required
+* Other small improvements
+
+= 3.2.1 =
+* Removed several PRO version templates which were added in the latest release (not used by the free version)
+* Updated migration tools - it now works with the latest release of YASR
+* TTF font is no longer used
+* Fixed compatibility with Messenger Customer Chat by Facebook plugin
+
+= 3.2.0 =
+* Bug Fix: Some rating widget strings could not be translated in the multilingual compatibility mode
+* New feature: Added option to re-init rating widgets for compatibility with infinite scroll plugins, popups etc.
+* New feature: Danger Zone allows deleting all plugin data except the settings
+* Improvement: Social media links now have rel="nofollow noreferrer noopener" attribute
+* Improvement: Added a filter to top rated posts query - it is now possible to only display top rated posts within a category
+* Improvement: RTL compatibility
+* Improvement: Better handling of feedback tokens
+* Updated NPM packages
+
+= 3.1.0 =
+* Fixed issues with feedback token on some server configurations
+* Added double vote protection via user id (applies to logged in users but not admins)
+
+= 3.0.0 =
+* Renamed to Rate My Post - WP Rating System
+* Code refactor, many parts have been rewritten
+* Shortcode accepts post id parameter
+* Average rating is now stored in post meta
+* Allows multiple rating/results widgets on a single web page
+* Possible to change max rating - for example to 10-star rating system
+* Allows overriding templates for complete customization
+* AMP Compatibility is now stable
+* New hooks
+* Better performance
+* Simplified settings
+* Some features have been discontinued (read above)
+
+= 2.10.3 =
+* Bug fix: Post titles were not shown in the analytics section for websites with many posts
+* Added installation instructions
+
+= 2.10.2 =
+* The plugin is now compatible with Divi theme
+
+= 2.10.1 =
+* Improvement: Strings in emails are now internationalized
+* Bug fix: Custom results text feature didn't work unless "ajax load results" was enabled
+* Bug fix: Fixed some warnings for older versions of PHP
+* Bug fix: Better compatibility with wpautop
+
+= 2.10.0 =
+* Improvement: Ajax is no longer used on page load unless enabled in the advanced settings. You SHOULD ENABLE Ajax Load if you are using caching plugin OTHER THAN: WP Super Cache, LiteSpeed Cache, WP Fastest Cache, WP Rocket or SG Optimizer
+* Improvement: Prevent accidental votes now applies also to non-touch devices (see documentation to apply only to mobile)
+* Improvement: Filters for email subjects and texts
+* Improvement: Uses custom font for better performance (before FontAwesome was used)
+* Improvement: Modernizr is no longer used
+* Updated js-cookie library to version 2.2.1
+* Added link to the documentation in the about section
+
+= 2.9.2 =
+* Fix: Included the supported structured data types for rich snippets
+* Fix: Some strings were not translatable
+* Improvement: Filter for email
+* Improvement: Hooks were added to AMP template
+* Improvement: Option to also show results on the front page or main blog page
+
+= 2.9.1 =
+* Bug fix: Migration from KK star ratings did not work with KK star ratings version 3.x.x
+* Added LinkedIn social share icon
+
+= 2.9.0 =
+* Bug fix: Archive pages stars appeared also in widgets and such
+* New feature: Option to prevent double votes via IP
+
+= 2.8.1 =
+* Bug fix: Saving settings did not work on some installations
+* Bug fix: Don't show rating/results widget on AMP pages unless AMP compatibility is enabled
+* Bug fix: Escape html for structured data
+* Updated POT file
+
+= 2.8.0 =
+* New feature: Analytics submenu - see details about each vote
+* Improvement: Define minimum votes for the top rated posts widget
+* Improvement: Stats have been moved into submenu
+* Improvement: About plugin section
+* Other minor improvements and bug fixes
+
+= 2.7.0 =
+* Improvement: Redesigned feedback functionality
+* New feature: Delete each feedback
+* New feature: Migration tools for YASR and WP-PostRatings
+* Other minor improvements and bug fixes
+
+= 2.6.0 =
+* Bug Fix: Feedback widget not working with social share icons enabled
+* Developer feature: Hooks in social widget and feedback widget
+* Developer feature: Rating icon class filter
+* Developer feature: Function to output the stars for any post
+* Developer feature: Function to get top rated posts
+* Improvement: Queries use less memory
+* Improvement: Support for half stars on category pages
+* New feature: Option to align the rating widget
+* New feature: Trending posts widget
+
+= 2.5.0 =
+* New feature: Option to show ratings on archive pages
+* New feature: Option to allow only logged in users to vote
+* New feature: Option to add social share links instead of social follow links
+* Bug Fix: Backslashes in texts
+* Functions for developers and new hooks
+* Improved code
+
+= 2.4.0 =
+* New feature: Set who can manipulate votes
+* New feature: Option to enable reCAPTCHA v3 protection
+* New feature: Migration tool for kk StarRatings
+* Bug Fix: Do not revert ratings on post update
+* Bug fix: Rich snippet was added to AMP
+* Other minor bug fixes
+
+= 2.3.0 =
+* New feature: AMP compatibility (BETA)
+* New feature: New types of rating widget (smileys and trophies)
+* New feature: Filters for strings in all widgets
+* Improvement: Enhanced security
+* Improvement: Prevent cache issues on save settings
+* Other minor improvements and bug fixes
+
+= 2.2.1 =
+* Bug fix: Different handling of cookies as current implementation in rare cases (server configurations) caused errors in case that too many cookies were present in user's browser
+* Bug fix: Modernizr library is optional as it conflicts with some themes
+* Other minor bug fixes
+
+= 2.2.0 =
+* New feature: Automatically add rating and/or result widget to custom post types
+* New feature: Option to only count negative votes if feedback is left
+* New feature: Option to prevent accidental votes on mobile (button to confirm rating)
+* New feature: Event tracking via Matomo thanks to smik2002
+* Improvement: Feedback can be easily deleted by clicking a button in meta box
+* Improvement: Better compatibility with older browsers such as IE
+* New feature: Option to delete all plugin data on uninstall
+* Improvement: Added non-minified js and css for developers - not used by the plugin
+* User request: Add class to rating widget if cookie is present
+* Portuguese (Brazil) translations thanks to douglasferraz89
+
+= 2.1.3 =
+* Bug fix: iOS requires double tap if hover texts are enabled
+* Bug fix: Custom hover color does not disappear after the click if custom rated color is not inserted
+* User request: Append class to the main div after rating so that the whole widget can be easily hidden after vote
+* Improvement: Stars stay highlighted only until the response from server is sent back (if highlight the stars feature is enabled)
+* Improvement: Improved stats section - search and sorting
+* Minor bug fixes
+
+= 2.1.2 =
+* Improvement: Vote count and links to posts in emails
+* Improvement: Option to not load FontAwesome
+* Improvement: Compatibility with FontAwesome autoreplace (icons to SVGs)
+* Improvement: Better compatibility with various themes
+* Improvement: Event tracking with Google Analytics (tested with GA Google Analytics, MonsterInsights and Google Analytics by ShareThis plugins)
+* Bug fix: On mobile hover-color of stars does not disappear after vote until user taps somewhere else
+* German translations thanks to Stefan (smik2002)
+
+= 2.1.1 =
+* Fix: Added missing POT file for translations
+* Fix: Support for multilingual websites
+* Improvement: Custom thank you text is displayed after vote
+* Improvement: Interaction with the rating widget is not possible after vote
+* Improvement: Stars stay highlighted after vote (only if "color the stars in rating widget" option is disabled)
+* Improvement: Option to disable headings in rating widget
+* Improvement: Option to display descriptive rating under the stars on hover (tooltips have been discontinued)
+
+= 2.1.0 =
+* Improvement: Rewritten frontend ajax
+* New feature: Recalculate vote count and average rating after vote (enabled by default, but can be disabled)
+* New feature: Set border color, border radius, border width, background color and stars spacing
+* New feature: Customizable vote count and average rating text
+* New feature: Supports half stars
+* Minor improvements
+
+= 2.0.2 =
+* Minor improvements
+* Bug fix: On some websites the rating widget did not show
+
+= 2.0.1 =
+* Bug fix: Plugin crashed on some server configurations
+
+= 2.0.0 =
+* Rewritten in OOP for easier scalability
+* New feature: In addition to stars, supports thumbs and hearts
+* New feature: Change stars, thumbs or hearts size
+* New feature: Change stars, thumbs or hearts color
+* New feature: Option to not show the results in rating widget
+* New feature: Define what is negative and what is positive rating
+
+= 1.1.6 =
+* Bug fix: Option to color the stars in rating widget works only if results widget is enabled
+
+= 1.1.5 =
+* Option to color the stars in rating widget according to the post rating
+
+= 1.1.4 =
+* Structured data for rich snippets
+* Results widget (shortcode or automatically before every post's content)
+* Security improvements
+
+= 1.1.3 =
+* Compatibility with custom post types
+
+= 1.1.2 =
+* Does not allow to submit empty feedback
+* Custom notice if the feedback is empty
+* Allows you to reset ratings
+
+= 1.1.1 =
+* Fixed "division by zero" warning
+
+= 1.1.0 =
+* Customize section allows you to customize plugin to your liking (strings, font size, margin etc.)
+* Exclude from feature allows you to exclude ratings from certain pages and posts
+* Disable cookie feature
+* Supports Instagram, Twitter and Linkedin
+* Other minor improvements
+
+= 1.0 =
+* Initial release

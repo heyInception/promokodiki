@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "feedbackwp/rating-result-widget",
+  "version": "0.0.1",
+  "title": "Rating Result Widget",
+  "category": "widgets",
+  "icon": "star-filled",
+  "description": "Display rating result widget from FeedbackWP",
+  "attributes": {
+    "id": {
+      "type": "string"
+    }
+  },
+  "supports": {
+    "html": false
+  },
+  "textdomain": "rate-my-post",
+  "editorScript": "file:./index.js",
+  "render": "file:./render.php"
+}

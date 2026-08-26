@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<ruleset name="Promokodiki Admitad Coupons">
+	<description>WordPress Coding Standards for the Admitad automation plugin.</description>
+	<file>admitad-coupons.php</file>
+	<file>includes/class-plugin.php</file>
+	<file>includes/class-config.php</file>
+	<file>includes/class-capabilities.php</file>
+	<file>includes/class-schema.php</file>
+	<file>includes/class-activator.php</file>
+	<file>includes/db.php</file>
+	<exclude-pattern>admin/*</exclude-pattern>
+	<exclude-pattern>includes/api.php</exclude-pattern>
+	<exclude-pattern>includes/cli.php</exclude-pattern>
+	<exclude-pattern>includes/importer.php</exclude-pattern>
+	<exclude-pattern>includes/migration.php</exclude-pattern>
+	<exclude-pattern>includes/post-types.php</exclude-pattern>
+	<exclude-pattern>tests/*</exclude-pattern>
+	<arg name="extensions" value="php"/>
+	<arg value="sp"/>
+	<config name="minimum_supported_wp_version" value="6.4"/>
+	<rule ref="WordPress">
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+	</rule>
+	<rule ref="WordPress-Docs"/>
+	<rule ref="WordPress-Extra"/>
+</ruleset>

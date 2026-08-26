@@ -1,0 +1,882 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2026-06-19 10:29-0400\n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: da\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
+"X-Generator: Poedit 3.9\n"
+
+#: includes/class-ddp-admin.php:23
+msgid "Pro"
+msgstr "Pro-version"
+
+#: includes/class-ddp-admin.php:50
+msgid "Upgrade to Pro"
+msgstr "Opgrader til Pro"
+
+#: includes/class-ddp-admin.php:91
+msgid "Are you sure you want to delete duplicates? There is no undo feature."
+msgstr ""
+"Er du sikker på, at du vil slette dubletter? Der er ingen "
+"fortrydelsesfunktion."
+
+#: includes/class-ddp-admin.php:92
+msgid ""
+"You have to select which duplicates to delete. Tip: You can click the top or "
+"bottom checkbox to select all."
+msgstr ""
+"Du skal vælge, hvilke dubletter der skal slettes. Tip: Du kan klikke på det "
+"øverste eller nederste afkrydsningsfelt for at vælge alle."
+
+#: includes/class-ddp-admin.php:93 includes/class-ddp-admin.php:1052
+msgid "From URL"
+msgstr "Fra URL"
+
+#: includes/class-ddp-admin.php:94 includes/class-ddp-admin.php:1053
+msgid "Target URL"
+msgstr "Link URL"
+
+#: includes/class-ddp-admin.php:95
+msgid "Refreshing..."
+msgstr "Opdater data..."
+
+#: includes/class-ddp-admin.php:96
+msgid "Refresh"
+msgstr "Opdater"
+
+#: includes/class-ddp-admin.php:97
+msgid "Error details: "
+msgstr "Fejloplysninger: "
+
+#: includes/class-ddp-admin.php:98
+msgid "Redirects DataTables error occurred. "
+msgstr "Der opstod en fejl i DataTables. "
+
+#: includes/class-ddp-admin.php:99
+msgid "Looking for duplicates"
+msgstr "Rensning af dubletter"
+
+#: includes/class-ddp-admin.php:100
+msgid "Request: "
+msgstr "Anmodning: "
+
+#: includes/class-ddp-admin.php:101
+msgid "Failed to load data. "
+msgstr "Det lykkedes ikke at indlæse data. "
+
+#: includes/class-ddp-admin.php:102
+msgid "Duplicate"
+msgstr "Duplikater"
+
+#: includes/class-ddp-admin.php:103
+msgid "Original"
+msgstr "Original"
+
+#: includes/class-ddp-admin.php:104
+msgid "Please select at least one row to delete."
+msgstr "Vælg venligst mindst én række, der skal slettes."
+
+#: includes/class-ddp-admin.php:105
+msgid "Response from the server: "
+msgstr "Svar fra serveren: "
+
+#: includes/class-ddp-admin.php:106
+msgid "An error occurred: "
+msgstr "Der opstod en fejl: "
+
+#: includes/class-ddp-admin.php:107
+msgid "Delete Selected"
+msgstr "Slet det valgte"
+
+#: includes/class-ddp-admin.php:108
+msgid "Select Visible"
+msgstr "Vælg »Synlig«"
+
+#: includes/class-ddp-admin.php:109
+msgid "Select None"
+msgstr "Vælg ingen"
+
+#: includes/class-ddp-admin.php:110
+msgid "Something went wrong."
+msgstr "Noget gik galt."
+
+#: includes/class-ddp-admin.php:111
+msgid "DataTables error occurred. "
+msgstr "Der opstod en fejl i DataTables. "
+
+#: includes/class-ddp-admin.php:112
+msgid "Unknown error occurred"
+msgstr "Der opstod en ukendt fejl"
+
+#: includes/class-ddp-admin.php:113
+msgid "Select Post"
+msgstr "Vælg post"
+
+#: includes/class-ddp-admin.php:156 includes/class-ddp-admin.php:390
+#: includes/class-ddp-admin.php:572
+msgid "Settings"
+msgstr "Indstillinger"
+
+#: includes/class-ddp-admin.php:178
+msgid "Usage and FAQ"
+msgstr "Brug og ofte stillede spørgsmål"
+
+#: includes/class-ddp-admin.php:180
+msgid "What does this plugin do?"
+msgstr "Hvad gør dette plugin?"
+
+#: includes/class-ddp-admin.php:181
+msgid ""
+"Helps you clean duplicate posts from your blog. The plugin checks for "
+"blogposts on your blog with the same title."
+msgstr ""
+"Hjælper dig med at fjerne duplikatindlæg fra din blog. Plugin'et tjekker for "
+"blogindlæg på din blog med samme titel."
+
+#: includes/class-ddp-admin.php:182
+msgid ""
+"It can run automatically via WordPress's own internal CRON-system, or you "
+"can run it automatically."
+msgstr ""
+"Det kan køre automatisk via WordPress' eget interne CRON-system, eller du "
+"kan køre det automatisk."
+
+#: includes/class-ddp-admin.php:183
+msgid ""
+"It also has a nice feature that can send you an e-mail when Delete Duplicate "
+"Posts finds and deletes something (if you have turned on the CRON feature)."
+msgstr ""
+"Den har også en fin funktion, der kan sende dig en e-mail, når Delete "
+"Duplicate Posts finder og sletter noget (hvis du har slået CRON-funktionen "
+"til)."
+
+#: includes/class-ddp-admin.php:184
+msgid "Help! Something was deleted that was not supposed to be deleted!"
+msgstr "Hjælp mig! Noget blev slettet, som ikke skulle slettes!"
+
+#: includes/class-ddp-admin.php:185
+msgid ""
+"I am sorry for that, I can only recommend you restore the database you took "
+"just before you ran this plugin."
+msgstr ""
+"Det er jeg ked af. Jeg kan kun anbefale, at du gendanner den database, du "
+"tog, lige før du kørte dette plugin."
+
+#: includes/class-ddp-admin.php:186
+msgid ""
+"If you run this plugin, manually or automatically, it is at your OWN risk!"
+msgstr ""
+"Hvis du kører dette plugin, manuelt eller automatisk, er det på din EGEN "
+"risiko!"
+
+#: includes/class-ddp-admin.php:187
+msgid ""
+"We have done our best to avoid deleting something that should not be "
+"deleted, but if it happens, there is nothing we can do to help you."
+msgstr ""
+"Vi har gjort vores bedste for at undgå at slette noget, der ikke bør "
+"slettes, men hvis det alligevel sker, kan vi desværre ikke hjælpe dig."
+
+#. translators: %d: Number of duplicates deleted.
+#: includes/class-ddp-admin.php:216
+#, php-format
+msgid "Deleted %d duplicate posts."
+msgstr "Slettet %d dubletter."
+
+#: includes/class-ddp-admin.php:228 includes/class-ddp-admin.php:329
+#: includes/class-ddp-admin.php:340
+msgid "Whoops! Some error occured, try again, please!"
+msgstr "Ups! Der opstod en fejl, prøv venligst igen!"
+
+#: includes/class-ddp-admin.php:236
+msgid ""
+"Whoops! There was a problem with the data you posted. Please go back and try "
+"again."
+msgstr ""
+"Ups! Der opstod et problem med de data, du sendte. Gå venligst tilbage og "
+"prøv igen."
+
+#: includes/class-ddp-admin.php:322
+msgid "Settings saved."
+msgstr "Indstillingerne er gemt."
+
+#: includes/class-ddp-admin.php:333
+msgid "The log was cleared."
+msgstr "Loggen blev tømt."
+
+#: includes/class-ddp-admin.php:379
+msgid "Welcome to Delete Duplicate Posts!"
+msgstr ""
+
+#: includes/class-ddp-admin.php:380
+msgid ""
+"Thanks for installing. Scan your site for duplicate posts below to get "
+"started."
+msgstr ""
+"Tak for installationen. Gennemgå din hjemmeside nedenfor for at finde "
+"eventuelle dubletter, så du kan komme i gang."
+
+#: includes/class-ddp-admin.php:388
+msgid "Duplicates"
+msgstr "Duplikater"
+
+#: includes/class-ddp-admin.php:389
+msgid "Log"
+msgstr "Log"
+
+#: includes/class-ddp-admin.php:391 includes/class-ddp-admin.php:1046
+#: includes/class-ddp-admin.php:1062
+msgid "Redirects"
+msgstr "Omdirigerer"
+
+#. translators: %s: Total number of deleted duplicates
+#. translators: %s: Number of deleted posts
+#: includes/class-ddp-admin.php:443 sidebar.php:28
+#, php-format
+msgid "%s duplicates deleted!"
+msgstr "%s Duplikater slettet!"
+
+#. translators: %s: Total number of deleted duplicates
+#: includes/class-ddp-admin.php:449
+#, php-format
+msgid ""
+"Hey, I noticed this plugin has deleted %s duplicate posts for you - that's "
+"awesome! Could you please do me a BIG favor and give it a 5-star rating on "
+"WordPress? Just to help us spread the word and boost our motivation."
+msgstr ""
+"Hej, jeg bemærkede, at dette plugin har slettet %s duplikerede indlæg for "
+"dig - det er fantastisk! Vil du gøre mig en STOR tjeneste og give det en 5-"
+"stjernet vurdering på WordPress? Bare for at hjælpe os med at sprede ordet "
+"og øge vores motivation."
+
+#: includes/class-ddp-admin.php:453
+msgid "Ok, you deserve it"
+msgstr "Okay, du fortjener det"
+
+#: includes/class-ddp-admin.php:464
+msgid ""
+"Sign up to our newsletter to receive the latest tips and updates directly to "
+"your inbox. Ensure your WordPress site remains efficient and duplicate-free!"
+msgstr ""
+"Tilmeld dig vores nyhedsbrev for at modtage de nyeste tips og opdateringer "
+"direkte i din indbakke. Sørg for, at din WordPress-hjemmeside forbliver "
+"effektiv og fri for dubletter!"
+
+#: includes/class-ddp-admin.php:466
+msgid "Name"
+msgstr "Navn"
+
+#: includes/class-ddp-admin.php:467
+msgid "Email"
+msgstr "E-mail"
+
+#: includes/class-ddp-admin.php:471
+msgid "Subscribe"
+msgstr "Tilmeld"
+
+#. translators: %s: Privacy Policy link, linked text is "Privacy Policy".
+#: includes/class-ddp-admin.php:478
+#, php-format
+msgid "You can unsubscribe anytime. For more details, review our %s."
+msgstr ""
+"Du kan til enhver tid afmelde dig. Se vores %s for yderligere oplysninger."
+
+#: includes/class-ddp-admin.php:479
+msgid "Privacy Policy"
+msgstr "Privatlivspolitik"
+
+#: includes/class-ddp-admin.php:506
+msgid "Delete Duplicate Posts Pro"
+msgstr "Slet dublerede indlæg Pro"
+
+#: includes/class-ddp-admin.php:507
+msgid ""
+"Pro adds deeper cleanup controls for sites that need more than a basic title "
+"scan."
+msgstr ""
+"Pro-versionen indeholder mere avancerede rydningsfunktioner til websteder, "
+"der kræver mere end en simpel titelscanning."
+
+#: includes/class-ddp-admin.php:509
+msgid "Delete permanently:"
+msgstr "Slet permanent:"
+
+#: includes/class-ddp-admin.php:509
+msgid "Remove duplicates from the database instead of moving them to trash."
+msgstr ""
+"Fjern dubletter fra databasen i stedet for at flytte dem til papirkurven."
+
+#: includes/class-ddp-admin.php:510
+msgid "301 redirects:"
+msgstr "301-omdirigeringer:"
+
+#: includes/class-ddp-admin.php:510
+msgid "Send visitors from deleted URLs to the original post."
+msgstr "Omdiriger besøgende fra slettede URL’er til det oprindelige indlæg."
+
+#: includes/class-ddp-admin.php:511
+msgid "Compare by meta:"
+msgstr "Sammenlign efter meta:"
+
+#: includes/class-ddp-admin.php:511 includes/class-ddp-admin.php:803
+msgid "Find duplicates by SKU, custom fields, or any post meta value."
+msgstr ""
+"Find dubletter efter SKU, brugerdefinerede felter eller en hvilken som helst "
+"postmeta-værdi."
+
+#: includes/class-ddp-admin.php:512
+msgid "Any post status:"
+msgstr "Hvilke indlægstyper?:"
+
+#: includes/class-ddp-admin.php:512
+msgid "Include drafts, scheduled, private, and other statuses in the scan."
+msgstr "Medtag kladder, planlagte, private og andre statuser i scanningen."
+
+#: includes/class-ddp-admin.php:513
+msgid "Redirect management:"
+msgstr "Håndtering af omdirigeringer:"
+
+#: includes/class-ddp-admin.php:513
+msgid "View and manage redirects created when duplicates are removed."
+msgstr ""
+"Se og administrer omdirigeringer, der er oprettet i forbindelse med "
+"fjernelse af dubletter."
+
+#. translators: %s: Yearly price, e.g. $29.99/year.
+#: includes/class-ddp-admin.php:519
+#, php-format
+msgid "%s/year"
+msgstr "%s/år"
+
+#. translators: 1: Lifetime price, 2: Link to lifetime checkout.
+#: includes/class-ddp-admin.php:526
+#, php-format
+msgid "Prefer a one-time purchase? %1$s — %2$s"
+msgstr "Foretrækker du et engangskøb? %1$s — %2$s"
+
+#: includes/class-ddp-admin.php:528
+msgid "Get lifetime access"
+msgstr "Få adgang for altid"
+
+#: includes/class-ddp-admin.php:533
+msgid "30-day money-back guarantee"
+msgstr "30 dages pengene-tilbage-garanti"
+
+#: includes/class-ddp-admin.php:534
+msgid ""
+"If the plugin does not work as expected and we cannot resolve the issue, we "
+"will consider a full refund within 30 days of purchase."
+msgstr ""
+"Hvis pluginet ikke fungerer som forventet, og vi ikke kan løse problemet, "
+"vil vi overveje at give en fuld refusion inden for 30 dage efter købet."
+
+#: includes/class-ddp-admin.php:558
+msgid "The Log"
+msgstr "Logbogen"
+
+#: includes/class-ddp-admin.php:565
+msgid "Reset log"
+msgstr "Nulstil loggen"
+
+#: includes/class-ddp-admin.php:579
+msgid "Automatically Deleting Duplicates"
+msgstr "Automatisk sletning af dubletter"
+
+#: includes/class-ddp-admin.php:581
+msgid ""
+"You have enabled automatic deletion, so I am running on automatic. I will "
+"take care of everything..."
+msgstr ""
+"Du har aktiveret automatisk sletning, så jeg kører på automatik. Jeg tager "
+"mig af det hele..."
+
+#. translators: Showing when the next check happens and what the current time is
+#: includes/class-ddp-admin.php:585
+#, php-format
+msgid "Next automated check %1$s. Current time %2$s"
+msgstr "Næste automatiserede check %1$s. Nuværende tid %2$s"
+
+#: includes/class-ddp-admin.php:600
+msgid "Which post types?:"
+msgstr "Hvilke indlægstyper?:"
+
+#. translators: Total number of deleted duplicates
+#: includes/class-ddp-admin.php:646
+#, php-format
+msgid "(%s total found)"
+msgstr "(%s i alt fundet)"
+
+#: includes/class-ddp-admin.php:658
+msgid "Choose which post types to scan for duplicates."
+msgstr "Vælg, hvilke indlægstyper der skal scannes for dubletter."
+
+#: includes/class-ddp-admin.php:664
+msgid "Post status"
+msgstr "Status for indlæg"
+
+#: includes/class-ddp-admin.php:703
+msgid ""
+"Warning: Enabling this can give false results. Only enable if you know what "
+"you are doing."
+msgstr ""
+"Advarsel: Aktivering af dette kan give falske resultater. Aktivér den kun, "
+"hvis du ved, hvad du laver."
+
+#: includes/class-ddp-admin.php:720
+msgid ""
+"Free version scans published posts only. Pro can include drafts, scheduled, "
+"private, and other statuses."
+msgstr ""
+"Gratisversionen scanner kun offentliggjorte indlæg. Pro-versionen kan også "
+"omfatte kladder, planlagte indlæg, private indlæg og indlæg med andre "
+"statuser."
+
+#: includes/class-ddp-admin.php:742
+msgid "Comparison Method"
+msgstr "Sammenligningsmetode"
+
+#: includes/class-ddp-admin.php:749
+msgid "Compare by title (default)"
+msgstr "Sammenlign efter titel (standard)"
+
+#: includes/class-ddp-admin.php:750
+msgid "Looks at the title of the post itself."
+msgstr "Kigger på titlen på selve indlægget."
+
+#: includes/class-ddp-admin.php:759 includes/class-ddp-admin.php:801
+msgid "Compare by meta tag"
+msgstr "Sammenlign efter metatag"
+
+#: includes/class-ddp-admin.php:761
+msgid "Compare by any meta tag."
+msgstr "Sammenlign med et hvilket som helst metatag."
+
+#: includes/class-ddp-admin.php:812
+msgid "Delete which posts?:"
+msgstr "Hvilke posts skal slettes?:"
+
+#: includes/class-ddp-admin.php:822
+msgid "Keep oldest"
+msgstr "Behold den ældste"
+
+#: includes/class-ddp-admin.php:829
+msgid "Keep latest"
+msgstr "Hold dig opdateret"
+
+#: includes/class-ddp-admin.php:832
+msgid ""
+"Keep the oldest or the latest version of duplicates? Default is keeping the "
+"oldest, and deleting any subsequent duplicate posts"
+msgstr ""
+"Gem den ældste eller nyeste duplet? Standard er at beholde den ældste post "
+"og slette alle efterfølgende"
+
+#: includes/class-ddp-admin.php:838
+msgid "Deletion method:"
+msgstr "Sletningsmetode:"
+
+#: includes/class-ddp-admin.php:841
+msgid "Move to trash (default)"
+msgstr "Flyt til papirkurven (standard)"
+
+#: includes/class-ddp-admin.php:843
+msgid "Delete permanently"
+msgstr "Slet permanent"
+
+#: includes/class-ddp-admin.php:847
+msgid ""
+"Trash keeps posts recoverable from the WordPress trash. Permanent deletion "
+"removes them from the database."
+msgstr ""
+"Papirkurven gør det muligt at gendanne indlæg fra WordPress-papirkurven. Ved "
+"permanent sletning fjernes de fra databasen."
+
+#: includes/class-ddp-admin.php:852
+msgid "Permanent deletion is available in Pro."
+msgstr "Permanent sletning er tilgængelig i Pro-versionen."
+
+#: includes/class-ddp-admin.php:860
+msgid "Enable 301 redirects?:"
+msgstr "Aktiver 301-omdirigeringer?:"
+
+#: includes/class-ddp-admin.php:871 includes/class-ddp-admin.php:877
+msgid "Automatically 301 redirect deleted posts to the original."
+msgstr ""
+"Omdirigerer automatisk slettede indlæg til originalen via en 301-"
+"omdirigering."
+
+#: includes/class-ddp-admin.php:887
+msgid "Delete Duplicates Automatically"
+msgstr "Slet duplikater automatisk"
+
+#: includes/class-ddp-admin.php:892
+msgid "Enable automatic deletion?:"
+msgstr "Aktivere automatisk sletning?:"
+
+#: includes/class-ddp-admin.php:903
+msgid "Clean duplicates automatically."
+msgstr "Fjern automatisk dubletter."
+
+#: includes/class-ddp-admin.php:909
+msgid "How many:"
+msgstr "Hvor mange?:"
+
+#: includes/class-ddp-admin.php:916
+msgid "No limit"
+msgstr "Ingen grænse"
+
+#: includes/class-ddp-admin.php:940
+msgid ""
+"If you have many duplicates, the plugin might time out before finding them "
+"all. Try limiting the amount of duplicates here. Default: Unlimited."
+msgstr ""
+"Hvis du har mange dubletter, kan plugin'et gå i stå, før det finder dem "
+"alle. Prøv at begrænse antallet af dubletter her. Standardindstilling: "
+"Ubegrænset."
+
+#: includes/class-ddp-admin.php:941
+msgid "This only applies to automatic (CRON) jobs."
+msgstr "Dette gælder kun for automatiske (CRON) jobs."
+
+#: includes/class-ddp-admin.php:947
+msgid "How often?:"
+msgstr "Hvor ofte?:"
+
+#: includes/class-ddp-admin.php:970
+msgid "How often should the cron job run?"
+msgstr "Hvor ofte skal cron-jobbet køre?"
+
+#: includes/class-ddp-admin.php:980
+msgid "Send status mail?:"
+msgstr "Send status email?:"
+
+#: includes/class-ddp-admin.php:993
+msgid "Sends a status email if duplicates have been found."
+msgstr "Sender en statusmail, hvis der er fundet dubletter."
+
+#: includes/class-ddp-admin.php:1000
+msgid "Email recipient:"
+msgstr "Modtager af e-mail:"
+
+#: includes/class-ddp-admin.php:1006
+msgid "Who should get the notification email."
+msgstr "Hvem skal have besked via e-mail."
+
+#: includes/class-ddp-admin.php:1020
+msgid "Enable debug logging?:"
+msgstr "Aktivere debug-logning?:"
+
+#: includes/class-ddp-admin.php:1031
+msgid "Should only be enabled if debugging a problem."
+msgstr "Bør kun aktiveres, hvis man fejlsøger et problem."
+
+#: includes/class-ddp-admin.php:1036
+msgid "Save Settings"
+msgstr "Gem indstillinger"
+
+#: includes/class-ddp-admin.php:1047
+msgid "This table shows all redirects created by the plugin."
+msgstr "Denne tabel viser alle omdirigeringer, der er oprettet af plugin'et."
+
+#: includes/class-ddp-admin.php:1051
+msgid "ID"
+msgstr "ID"
+
+#: includes/class-ddp-admin.php:1063
+msgid ""
+"Redirects are a premium feature. Please upgrade to access this functionality."
+msgstr ""
+"Omdirigeringer er en premium-funktion. Opgrader venligst for at få adgang "
+"til denne funktion."
+
+#: includes/class-ddp-duplicates.php:35 includes/class-ddp-duplicates.php:97
+#: includes/class-ddp-logger.php:32 includes/class-ddp-redirects.php:73
+msgid "You do not have sufficient permissions to perform this action."
+msgstr "Du har ikke tilstrækkelige tilladelser til at udføre denne handling."
+
+#: includes/class-ddp-duplicates.php:43
+msgid "Cleaning duplicates"
+msgstr "Rensning af dubletter"
+
+#: includes/class-ddp-duplicates.php:48
+msgid "No duplicates were selected?"
+msgstr "Der blev ikke valgt nogen dubletter?"
+
+#: includes/class-ddp-duplicates.php:65
+msgid "Invalid duplicates selected."
+msgstr "Ugyldige dubletter valgt."
+
+#. translators: 1: Database error message, 2: SQL query
+#: includes/class-ddp-duplicates.php:340
+#, php-format
+msgid "Look up error: %1$s %2$s"
+msgstr "Opslagsfejl: %1$s %2$s"
+
+#. translators: 1: Duplicate post ID, 2: Original post ID.
+#: includes/class-ddp-duplicates.php:371
+#, php-format
+msgid "Post ID %1$s has the same title as Post ID %2$s"
+msgstr "Indlæg nr. %1$s har samme titel som indlæg nr. %2$s"
+
+#: includes/class-ddp-duplicates.php:388
+msgid "Error, choose which meta_key to look for duplicate values in."
+msgstr "Fejl, vælg hvilken meta_key, der skal søges efter duplikatværdier i."
+
+#. translators: 1: Meta key name, 2: Shared meta value.
+#: includes/class-ddp-duplicates.php:565
+#, php-format
+msgid "meta_key %1$s has the same meta_value %2$s"
+msgstr "meta_key %1$s har samme meta_value %2$s"
+
+#. translators: 1: Number of duplicates, 2: Time in seconds, 3: Status data, 4: Memory usage
+#: includes/class-ddp-duplicates.php:643
+#, php-format
+msgid "Duplicates found: %1$d, Time: %2$s sec. %3$s Mem usage: %4$s"
+msgstr "Fundne dubletter: %1$d, Tid: %2$s sek. %3$s Hukommelsesforbrug: %4$s"
+
+#: includes/class-ddp-duplicates.php:651
+msgid "Error: Choose post types to check."
+msgstr "Fejl: Vælg indlægstyper, der skal kontrolleres."
+
+#. translators: 1: Number of duplicates found, 2: Time in seconds.
+#: includes/class-ddp-duplicates.php:668
+#, php-format
+msgid "Duplicates found: %1$s. Time: %2$s sec."
+msgstr "Der blev fundet %1$s dubletter. Tid: %2$s sek."
+
+#: includes/class-ddp-duplicates.php:706
+msgid "Automatic CRON job running."
+msgstr "Automatisk CRON-job kører."
+
+#: includes/class-ddp-duplicates.php:708
+msgid "Manually cleaning."
+msgstr "Manuel rengøring."
+
+#. translators: Debug notice. 1: type of duplicate. 2: The title of the post. 3: The ID. 4: Time spent deleting.
+#: includes/class-ddp-duplicates.php:777
+#, php-format
+msgid "DEBUG: Deleted %1$s %2$s (id: %3$s) in %4$s sec."
+msgstr "DEBUG: Slettet %1$s %2$s (id: %3$s) på %4$s sek."
+
+#. translators: 1: Number of deleted duplicate posts, 2: Time in seconds.
+#: includes/class-ddp-duplicates.php:786
+#, php-format
+msgid "A total of %1$s duplicate posts were deleted in %2$s sec."
+msgstr "I alt %1$s duplikerede indlæg blev slettet på %2$s sek."
+
+#. translators: 1: Number of deleted posts, 2: Blog URL.
+#: includes/class-ddp-duplicates.php:802
+#, php-format
+msgid ""
+"Hi Admin, I have deleted <strong>%1$d</strong> duplicated posts on your "
+"blog, %2$s."
+msgstr ""
+"Hej Admin, jeg har slettet <strong>%1$d</strong> duplikerede indlæg på din "
+"blog, %2$s."
+
+#: includes/class-ddp-duplicates.php:804
+msgid ""
+"You are receiving this e-mail because you have turned on e-mail "
+"notifications by the plugin"
+msgstr ""
+"Du modtager denne e-mail, fordi du har slået e-mailnotifikationer til med "
+"plugin'et"
+
+#. Plugin Name of the plugin/theme
+#: includes/class-ddp-duplicates.php:805
+msgid "Delete Duplicate Posts"
+msgstr "Slet duplikerede indlæg"
+
+#: includes/class-ddp-duplicates.php:807
+msgid "Made by"
+msgstr "Fremstillet af"
+
+#. Author of the plugin/theme
+#: includes/class-ddp-duplicates.php:807
+msgid "cleverplugins.com"
+msgstr "cleverplugins.com"
+
+#: includes/class-ddp-duplicates.php:812
+msgid "Deleted Duplicate Posts Status"
+msgstr "Status for slettede duplikatindlæg"
+
+#. translators: %s: Email recipient.
+#: includes/class-ddp-duplicates.php:817
+#, php-format
+msgid "DEBUG: Sending email to: %s"
+msgstr "DEBUG: Sender e-mail til: %s"
+
+#. translators: %s: Email recipient.
+#: includes/class-ddp-duplicates.php:822
+#, php-format
+msgid "Status email sent to %s."
+msgstr "Statusmail sendt til %s."
+
+#. translators: %s: Email address.
+#: includes/class-ddp-duplicates.php:826
+#, php-format
+msgid "Not a valid email %s."
+msgstr "Ikke en gyldig e-mail %s."
+
+#. translators: %s: Number of duplicates deleted.
+#: includes/class-ddp-duplicates.php:836
+#, php-format
+msgid "A total of %s duplicates were deleted."
+msgstr "I alt blev %s dubletter slettet."
+
+#: includes/class-ddp-install.php:30
+msgid "Every 5 minutes"
+msgstr "Hvert 5. minut"
+
+#: includes/class-ddp-install.php:34
+msgid "Every 10 minutes"
+msgstr "Hvert 10. minut"
+
+#: includes/class-ddp-install.php:38
+msgid "Every 15 minutes"
+msgstr "Hvert 15. minut"
+
+#: includes/class-ddp-install.php:42
+msgid "Every 30 minutes"
+msgstr "Hvert 30. minut"
+
+#: includes/class-ddp-install.php:88
+msgid "Plugin activated."
+msgstr "Plugin aktiveret."
+
+#: includes/class-ddp-logger.php:49
+msgid "Error: Log is empty.. do something :-)"
+msgstr "Fejl: Loggen er tom: Loggen er tom... gør noget :-)"
+
+#. translators: 1: Current URL, 2: Target URL
+#: includes/class-ddp-redirects.php:48
+#, php-format
+msgid "DEBUG: Redirected from %1$s to %2$s"
+msgstr "DEBUG: Omdirigeret fra %1$s til %2$s"
+
+#: includes/class-ddp-redirects.php:78
+msgid "No redirects selected for deletion."
+msgstr "Ingen omdirigeringer valgt til sletning."
+
+#: includes/class-ddp-redirects.php:93
+msgid "An error occurred while deleting redirects."
+msgstr "Der opstod en fejl under sletning af omdirigeringer."
+
+#. translators: %d: Number of deleted redirects
+#: includes/class-ddp-redirects.php:101
+#, php-format
+msgid "Deleted %d redirects."
+msgstr "Slettet %d omdirigeringer."
+
+#: includes/class-ddp-redirects.php:110
+msgid "No valid redirects selected for deletion."
+msgstr "Ingen gyldige omdirigeringer valgt til sletning."
+
+#: includes/class-ddp-redirects.php:129
+msgid ""
+"You do not have sufficient permissions to perform this action or the "
+"security check failed."
+msgstr ""
+"Du har ikke tilstrækkelige rettigheder til at udføre denne handling, eller "
+"sikkerhedskontrollen mislykkedes."
+
+#: includes/class-ddp-redirects.php:138
+msgid "Table does not exist"
+msgstr "Tabellen findes ikke"
+
+#. translators: Notice for creating a redirect from a to b. Value 1 is HTTP status code (ie 301), 2 is from and 3 is target URL.
+#: includes/class-ddp-redirects.php:233
+#, php-format
+msgid "Created %1$s redirect from %2$s to %3$s"
+msgstr "Oprettet %1$s omdirigering fra %2$s til %3$s"
+
+#: includes/class-ddp-settings.php:119
+msgid "Rendering Help Scouts beacon for easy help and support"
+msgstr "Rendering Help Scouts fyrtårn for nem hjælp og support"
+
+#: includes/class-ddp-settings.php:126
+msgid ""
+"Your email is added to cleverplugins.com newsletter. Unsubscribe any time."
+msgstr ""
+"Din e-mail er tilføjet til cleverplugins.com's nyhedsbrev. Du kan afmelde "
+"dig når som helst."
+
+#: sidebar.php:42
+msgid "Awesome Features"
+msgstr "Awesome funktioner"
+
+#: sidebar.php:43
+msgid "Upgrade Now!"
+msgstr "Opgrader nu!"
+
+#: sidebar.php:50
+msgid "We recommend you always make a backup before running this tool."
+msgstr ""
+"Vi anbefaler, at du altid laver en sikkerhedskopi, før du kører dette "
+"værktøj."
+
+#: sidebar.php:55
+msgid "Our other plugins"
+msgstr "Vores andre plugins"
+
+#: sidebar.php:56 sidebar.php:61
+msgid "Visit wpsecurityninja.com"
+msgstr "Besøg wpsecurityninja.com"
+
+#: sidebar.php:58
+msgid "WordPress Security made easy"
+msgstr "WordPress-sikkerhed på den nemme måde"
+
+#: sidebar.php:59
+msgid ""
+"Complete WordPress site protection with firewall, malware scanner, scheduled "
+"scans, security tests and much more - all you need to keep your website "
+"secure. Free trial."
+msgstr ""
+"Komplet beskyttelse af WordPress-hjemmesider med firewall, malware-scanner, "
+"planlagte scanninger, sikkerhedstests og meget mere – alt, hvad du har brug "
+"for for at sikre din hjemmeside. Gratis prøveperiode."
+
+#: sidebar.php:65
+msgid "Need help?"
+msgstr "Brug for hjælp?"
+
+#: sidebar.php:66
+msgid "Email support only for pro customers."
+msgstr "E-mail-support er forbeholdt Pro-kunder."
+
+#: sidebar.php:67
+msgid "Free users:"
+msgstr "Gratis brugere:"
+
+#: sidebar.php:67
+msgid "Support Forum on WordPress.org"
+msgstr "Supportforum på WordPress.org"
+
+#: sidebar.php:70
+msgid "Recreate Databases"
+msgstr "Genskabe databaser"
+
+#. Plugin URI of the plugin/theme
+#. Author URI of the plugin/theme
+msgid "https://cleverplugins.com"
+msgstr "https://cleverplugins.com"
+
+#. Description of the plugin/theme
+msgid ""
+"Remove duplicate blogposts on your blog! Searches and removes duplicate "
+"posts and their post meta tags. You can delete posts, pages and other Custom "
+"Post Types enabled on your website."
+msgstr ""
+"Fjern duplikerede blogindlæg på din blog! Søger og fjerner duplikerede "
+"indlæg og deres metatags. Du kan slette indlæg, sider og andre "
+"brugerdefinerede indlægstyper, der er aktiveret på din hjemmeside."
+
+#~ msgid "Click here"
+#~ msgstr "klik her"

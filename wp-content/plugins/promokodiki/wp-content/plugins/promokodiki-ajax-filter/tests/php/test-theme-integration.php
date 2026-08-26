@@ -1,0 +1,690 @@
+<?php
+/**
+ * Verify that the theme delegates promocode filtering to the plugin.
+ *
+ * @package PromokodikiAjaxFilter
+ */
+
+require_once dirname( __DIR__ ) . '/harness.php';
+
+if ( ! taxonomy_exists( 'shops_category' ) ) {
+	register_taxonomy( 'shops_category', 'promocode', array( 'public' => true ) );
+}
+if ( ! post_type_exists( 'promocode' ) ) {
+	register_post_type( 'promocode', array( 'public' => true ) );
+}
+
+$theme_dir = dirname( __DIR__, 4 ) . '/themes/promokodiki';
+if ( file_exists( $theme_dir . '/inc/shops.php' ) ) { require_once $theme_dir . '/inc/shops.php'; }
+
+if ( ! function_exists( 'promokodiki_scripts' ) ) {
+	$worktree_theme_root = static fn(): string => dirname( $theme_dir );
+	$worktree_theme      = static fn(): string => 'promokodiki';
+	add_filter( 'theme_root', $worktree_theme_root );
+	add_filter( 'template', $worktree_theme );
+	add_filter( 'stylesheet', $worktree_theme );
+	require $theme_dir . '/functions.php';
+	remove_filter( 'stylesheet', $worktree_theme );
+	remove_filter( 'template', $worktree_theme );
+	remove_filter( 'theme_root', $worktree_theme_root );
+}
+
+Promokodiki_Filter_Test_Harness::run(
+	'shop profile resolves Admitad data without requiring ACF',
+	static function (): void {
+		$term = wp_insert_term( 'Shop profile ' . wp_generate_uuid4(), 'shops_category', array( 'description' => 'Taxonomy fallback' ) );
+		$term_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+		update_term_meta( $term_id, '_admitad_shop_description', '<p>API description</p>' );
+		update_term_meta( $term_id, '_admitad_shop_summary', 'API summary' );
+		update_term_meta( $term_id, '_admitad_shop_rating', '4.6' );
+		try {
+			$profile = promokodiki_shop_profile( get_term( $term_id, 'shops_category' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( '<p>API description</p>', $profile['full_description'] );
+			Promokodiki_Filter_Test_Harness::assert_same( 'API summary', $profile['about'] );
+			Promokodiki_Filter_Test_Harness::assert_same( 4.6, $profile['rating'] );
+			Promokodiki_Filter_Test_Harness::assert_true( promokodiki_shop_matches_search( get_term( $term_id ), 'PROFILE' ) );
+		} finally { wp_delete_term( $term_id, 'shops_category' ); }
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'shop assets target the real catalogue page template',
+	static function () use ( $theme_dir ): void {
+		$source = (string) file_get_contents( $theme_dir . '/inc/shops.php' );
+		Promokodiki_Filter_Test_Harness::assert_true( str_contains( $source, "is_page_template( 'page-shops.php' )" ) );
+		Promokodiki_Filter_Test_Harness::assert_true( ! str_contains( $source, "is_page_template( 'archive-shops.php' )" ) );
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'shop catalogue includes only terms with active unexpired offers',
+	static function (): void {
+		$active_term  = wp_insert_term( 'Active shop ' . wp_generate_uuid4(), 'shops_category' );
+		$expired_term = wp_insert_term( 'Expired shop ' . wp_generate_uuid4(), 'shops_category' );
+		$active_id    = (int) $active_term['term_id'];
+		$expired_id   = (int) $expired_term['term_id'];
+		$active_post  = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Active offer' ) );
+		$expired_post = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Expired offer' ) );
+		wp_set_post_terms( $active_post, array( $active_id ), 'shops_category' );
+		wp_set_post_terms( $expired_post, array( $expired_id ), 'shops_category' );
+		update_post_meta( $expired_post, '_promocode_expiry_date', '2000-01-01' );
+		try {
+			$ids = promokodiki_shop_active_term_ids( true );
+			Promokodiki_Filter_Test_Harness::assert_true( in_array( $active_id, $ids, true ) );
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $expired_id, $ids, true ) );
+			set_transient( 'promokodiki_active_shop_ids_v1', array( 999 ), HOUR_IN_SECONDS );
+			update_post_meta( $active_post, '_promocode_is_active', 'no' );
+			Promokodiki_Filter_Test_Harness::assert_same( false, get_transient( 'promokodiki_active_shop_ids_v1' ) );
+		} finally {
+			wp_delete_post( $active_post, true );
+			wp_delete_post( $expired_post, true );
+			wp_delete_term( $active_id, 'shops_category' );
+			wp_delete_term( $expired_id, 'shops_category' );
+			promokodiki_shop_flush_active_cache();
+		}
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'theme footer renders required markup and delegates script output to WordPress',
+	static function () use ( $theme_dir ): void {
+		$original_query   = $GLOBALS['wp_query'] ?? null;
+		$original_scripts = $GLOBALS['wp_scripts'] ?? null;
+		$original_footer  = $GLOBALS['wp_filter']['wp_footer'] ?? null;
+		$marker           = '<!-- promokodiki-footer-hook-marker -->';
+		$print_marker     = static function () use ( $marker ): void {
+			echo $marker;
+		};
+
+		$GLOBALS['wp_query']   = new WP_Query();
+		$GLOBALS['wp_scripts'] = new WP_Scripts();
+		$GLOBALS['wp_filter']['wp_footer'] = new WP_Hook();
+		add_action( 'wp_footer', $print_marker, 999 );
+		ob_start();
+		try {
+			require $theme_dir . '/footer.php';
+			$footer = (string) ob_get_clean();
+		} finally {
+			remove_action( 'wp_footer', $print_marker, 999 );
+			$GLOBALS['wp_query']   = $original_query;
+			$GLOBALS['wp_scripts'] = $original_scripts;
+			if ( null === $original_footer ) {
+				unset( $GLOBALS['wp_filter']['wp_footer'] );
+			} else {
+				$GLOBALS['wp_filter']['wp_footer'] = $original_footer;
+			}
+			if ( ob_get_level() ) {
+				ob_end_clean();
+			}
+		}
+
+		Promokodiki_Filter_Test_Harness::assert_contains( $marker, $footer );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'id="promocodeModal"', $footer );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'footer__button_up', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( '<script', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'load_more_promocodes', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'load_more_search_results', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'DOMContentLoaded', $footer );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'window.openPromoModal', $footer );
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'theme enqueues global UI scripts and limits search pagination to search requests',
+	static function (): void {
+		$original_query   = $GLOBALS['wp_query'] ?? null;
+		$original_scripts = $GLOBALS['wp_scripts'] ?? null;
+
+		try {
+			$GLOBALS['wp_query']   = new WP_Query();
+			$GLOBALS['wp_scripts'] = new WP_Scripts();
+			promokodiki_scripts();
+			$non_search_scripts = wp_scripts();
+
+			foreach ( array( 'promokodiki-footer-ui', 'promokodiki-navigation', 'promokodiki-promo-modal' ) as $handle ) {
+				Promokodiki_Filter_Test_Harness::assert_true( $non_search_scripts->query( $handle, 'enqueued' ), $handle . ' was not enqueued globally' );
+			}
+			$interaction_script = $non_search_scripts->registered['promokodiki-promo-modal'] ?? null;
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $interaction_script, 'interaction script was not registered' );
+			Promokodiki_Filter_Test_Harness::assert_same( _S_VERSION, $interaction_script->ver, 'interaction script cache key is not the theme version' );
+			$rocket_exclusions = apply_filters( 'rocket_exclude_js', array() );
+			Promokodiki_Filter_Test_Harness::assert_true(
+				in_array( '/wp-content/themes/promokodiki/js/promocode-modal.js', $rocket_exclusions, true ),
+				'interaction script is not excluded from stale WP Rocket minification'
+			);
+			$main_style = wp_styles()->registered['promokodiki-main-style'] ?? null;
+			$navigation = $non_search_scripts->registered['promokodiki-navigation'] ?? null;
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $main_style, 'main stylesheet was not registered' );
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $navigation, 'navigation script was not registered' );
+			Promokodiki_Filter_Test_Harness::assert_same( _S_VERSION, $main_style->ver, 'main stylesheet cache key is not the theme version' );
+			Promokodiki_Filter_Test_Harness::assert_same( _S_VERSION, $navigation->ver, 'navigation cache key is not the theme version' );
+			Promokodiki_Filter_Test_Harness::assert_true( version_compare( _S_VERSION, '1.0.0', '>' ), 'theme cache key was not advanced for changed navigation assets' );
+			Promokodiki_Filter_Test_Harness::assert_true( ! $non_search_scripts->query( 'promokodiki-search-load-more', 'enqueued' ), 'search pagination was enqueued outside search' );
+
+			$GLOBALS['wp_query']            = new WP_Query();
+			$GLOBALS['wp_query']->is_search = true;
+			$GLOBALS['wp_scripts']          = new WP_Scripts();
+			promokodiki_scripts();
+			$search_scripts = wp_scripts();
+
+			Promokodiki_Filter_Test_Harness::assert_true( $search_scripts->query( 'promokodiki-search-load-more', 'enqueued' ), 'search pagination was not enqueued for search' );
+			$localized_data = (string) $search_scripts->get_data( 'promokodiki-search-load-more', 'data' );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'PromokodikiSearchConfig', $localized_data );
+			Promokodiki_Filter_Test_Harness::assert_contains( wp_create_nonce( 'promokodiki_search' ), $localized_data );
+		} finally {
+			$GLOBALS['wp_query']   = $original_query;
+			$GLOBALS['wp_scripts'] = $original_scripts;
+		}
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'theme exposes one interaction client with the plugin nonce contract',
+	static function (): void {
+		$original_scripts = $GLOBALS['wp_scripts'] ?? null;
+		try {
+			$GLOBALS['wp_scripts'] = new WP_Scripts();
+			promokodiki_scripts();
+			$scripts = wp_scripts();
+			$modal   = $scripts->registered['promokodiki-promo-modal'] ?? null;
+
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $modal, 'Interaction client was not registered' );
+			$localized = (string) $scripts->get_data( 'promokodiki-promo-modal', 'data' );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'PromokodikiInteractions', $localized );
+			Promokodiki_Filter_Test_Harness::assert_contains( wp_create_nonce( 'promokodiki_filter_frontend' ), $localized );
+			Promokodiki_Filter_Test_Harness::assert_same( false, has_action( 'wp_enqueue_scripts', 'my_enqueue_scripts' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( false, has_action( 'wp_enqueue_scripts', 'promocodes_likes_scripts' ) );
+		} finally {
+			$GLOBALS['wp_scripts'] = $original_scripts;
+		}
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'live header renders the accessible primary navigation contract',
+	static function () use ( $theme_dir ): void {
+		if ( ! function_exists( 'wp_create_nav_menu' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/nav-menu.php';
+		}
+
+		$menu_id = wp_create_nav_menu( 'PAF header navigation ' . wp_generate_uuid4() );
+		if ( is_wp_error( $menu_id ) ) {
+			throw new RuntimeException( $menu_id->get_error_message() );
+		}
+		$parent_id = wp_update_nav_menu_item(
+			$menu_id,
+			0,
+			array(
+				'menu-item-title'  => 'Parent item',
+				'menu-item-url'    => home_url( '/parent-item/' ),
+				'menu-item-status' => 'publish',
+				'menu-item-type'   => 'custom',
+			)
+		);
+		wp_update_nav_menu_item(
+			$menu_id,
+			0,
+			array(
+				'menu-item-title'     => 'Child item',
+				'menu-item-url'       => home_url( '/child-item/' ),
+				'menu-item-status'    => 'publish',
+				'menu-item-type'      => 'custom',
+				'menu-item-parent-id' => $parent_id,
+			)
+		);
+
+		$original_locations = get_theme_mod( 'nav_menu_locations', null );
+		$original_query     = $GLOBALS['wp_query'] ?? null;
+		$original_head      = $GLOBALS['wp_filter']['wp_head'] ?? null;
+		$original_server    = $_SERVER['SERVER_NAME'] ?? null;
+		$stub_search        = static function ( $output, string $tag ) {
+			return 'wd_asp' === $tag ? '<form role="search"></form>' : $output;
+		};
+		set_theme_mod( 'nav_menu_locations', array_merge( (array) $original_locations, array( 'menu-1' => $menu_id ) ) );
+		$GLOBALS['wp_query']            = new WP_Query();
+		$GLOBALS['wp_filter']['wp_head'] = new WP_Hook();
+		$_SERVER['SERVER_NAME']          = 'promokodiki.wp.local';
+		add_filter( 'pre_do_shortcode_tag', $stub_search, 10, 2 );
+		$buffer_level = ob_get_level();
+		ob_start();
+		try {
+			require $theme_dir . '/header.php';
+			$header = (string) ob_get_clean();
+		} finally {
+			remove_filter( 'pre_do_shortcode_tag', $stub_search, 10 );
+			$GLOBALS['wp_query'] = $original_query;
+			if ( null === $original_head ) {
+				unset( $GLOBALS['wp_filter']['wp_head'] );
+			} else {
+				$GLOBALS['wp_filter']['wp_head'] = $original_head;
+			}
+			if ( null === $original_server ) {
+				unset( $_SERVER['SERVER_NAME'] );
+			} else {
+				$_SERVER['SERVER_NAME'] = $original_server;
+			}
+			if ( null === $original_locations ) {
+				remove_theme_mod( 'nav_menu_locations' );
+			} else {
+				set_theme_mod( 'nav_menu_locations', $original_locations );
+			}
+			wp_delete_nav_menu( $menu_id );
+			while ( ob_get_level() > $buffer_level ) {
+				ob_end_clean();
+			}
+		}
+
+		Promokodiki_Filter_Test_Harness::assert_contains( 'id="site-navigation"', $header );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'aria-label="Основная навигация"', $header );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'class="menu-toggle btn-reset"', $header );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'aria-controls="primary-menu"', $header );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'aria-expanded="false"', $header );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'nav__list nav-menu', $header );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'menu-item-has-children', $header );
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'search pagination rejects missing or invalid nonces before request processing',
+	static function (): void {
+		$original_post    = $_POST;
+		$original_request = $_REQUEST;
+		if ( ! defined( 'DOING_AJAX' ) ) {
+			define( 'DOING_AJAX', true );
+		}
+		$die_handler = static function (): callable {
+			return static function ( mixed $message = '', string $title = '', array $args = array() ): void {
+				throw new RuntimeException( 'wp_die:' . (string) $message );
+			};
+		};
+
+		add_filter( 'wp_die_handler', $die_handler );
+		add_filter( 'wp_die_ajax_handler', $die_handler );
+		try {
+			foreach ( array( null, 'invalid-nonce' ) as $nonce ) {
+				$_POST = array(
+					'page'         => 2,
+					'search_query' => array( 'must-not-be-processed' ),
+				);
+				if ( null !== $nonce ) {
+					$_POST['nonce'] = $nonce;
+				}
+				$_REQUEST = $_POST;
+
+				ob_start();
+				$exception = null;
+				try {
+					load_more_search_results();
+				} catch ( Throwable $throwable ) {
+					$exception = $throwable;
+				}
+				$output = (string) ob_get_clean();
+
+				Promokodiki_Filter_Test_Harness::assert_true( null !== $exception, 'Invalid nonce did not terminate the request' );
+				Promokodiki_Filter_Test_Harness::assert_same( 'wp_die:-1', $exception->getMessage() );
+				Promokodiki_Filter_Test_Harness::assert_same( '', $output, 'Invalid nonce produced result markup' );
+			}
+		} finally {
+			remove_filter( 'wp_die_handler', $die_handler );
+			remove_filter( 'wp_die_ajax_handler', $die_handler );
+			$_POST    = $original_post;
+			$_REQUEST = $original_request;
+			if ( ob_get_level() ) {
+				ob_end_clean();
+			}
+		}
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'search pagination accepts its nonce and reaches empty-query termination',
+	static function (): void {
+		$original_post    = $_POST;
+		$original_request = $_REQUEST;
+		$die_handler = static function (): callable {
+			return static function ( mixed $message = '', string $title = '', array $args = array() ): void {
+				throw new RuntimeException( 'wp_die:' . (string) $message );
+			};
+		};
+
+		add_filter( 'wp_die_handler', $die_handler );
+		add_filter( 'wp_die_ajax_handler', $die_handler );
+		try {
+			$_POST = array(
+				'nonce'        => wp_create_nonce( 'promokodiki_search' ),
+				'search_query' => '',
+			);
+			$_REQUEST = $_POST;
+			$exception = null;
+			try {
+				load_more_search_results();
+			} catch ( RuntimeException $runtime_exception ) {
+				$exception = $runtime_exception;
+			}
+
+			Promokodiki_Filter_Test_Harness::assert_true( null !== $exception, 'Empty query did not reach normal termination' );
+			Promokodiki_Filter_Test_Harness::assert_same( 'wp_die:', $exception->getMessage() );
+		} finally {
+			remove_filter( 'wp_die_handler', $die_handler );
+			remove_filter( 'wp_die_ajax_handler', $die_handler );
+			$_POST    = $original_post;
+			$_REQUEST = $original_request;
+		}
+	}
+);
+
+$templates = array(
+	'home'     => $theme_dir . '/template-parts/partials/promocodes.php',
+	'category' => $theme_dir . '/taxonomy-promocode_category.php',
+	'shop'     => $theme_dir . '/taxonomy-shops_category.php',
+);
+
+foreach ( $templates as $context => $path ) {
+	Promokodiki_Filter_Test_Harness::run(
+		'theme delegates the ' . $context . ' context to the filter plugin',
+		static function () use ( $context, $path ): void {
+			$contents = file_get_contents( $path );
+
+			Promokodiki_Filter_Test_Harness::assert_true( false !== $contents, 'Could not read ' . $path );
+			Promokodiki_Filter_Test_Harness::assert_contains( 'promokodiki_filter_render', $contents );
+			Promokodiki_Filter_Test_Harness::assert_contains( "'context' => '" . $context . "'", $contents );
+			Promokodiki_Filter_Test_Harness::assert_not_contains( 'fe_widget', $contents );
+			Promokodiki_Filter_Test_Harness::assert_not_contains( 'fe_sort', $contents );
+		}
+	);
+}
+
+Promokodiki_Filter_Test_Harness::run(
+	'theme no longer registers legacy filter ajax handlers',
+	static function () use ( $theme_dir ): void {
+		$contents = file_get_contents( $theme_dir . '/functions.php' );
+
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'increment_promocode_used_count', $contents );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'wp_ajax_increment_promocode_count', $contents );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'function load_more_promocodes', $contents );
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'wp_ajax_load_more_promocodes', $contents );
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'theme modal script leaves click tracking to the plugin',
+	static function () use ( $theme_dir ): void {
+		$contents = file_get_contents( $theme_dir . '/js/promocode-modal.js' );
+
+		Promokodiki_Filter_Test_Harness::assert_not_contains( 'increment_promocode_used', $contents );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'openPromoModal', $contents );
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'mobile filter keeps controls in a horizontal scroll row',
+	static function (): void {
+		$contents = file_get_contents( PROMOKODIKI_FILTER_DIR . 'assets/css/filter.css' );
+
+		Promokodiki_Filter_Test_Harness::assert_contains( '@media (max-width: 767px)', $contents );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'overflow-x: auto', $contents );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'flex-flow: row nowrap', $contents );
+	}
+);
+
+Promokodiki_Filter_Test_Harness::run(
+	'filter assets synchronize dropdowns and display the loader',
+	static function (): void {
+		$script = file_get_contents( PROMOKODIKI_FILTER_DIR . 'assets/js/filter.js' );
+		$styles = file_get_contents( PROMOKODIKI_FILTER_DIR . 'assets/css/filter.css' );
+
+		Promokodiki_Filter_Test_Harness::assert_true( false !== $script );
+		Promokodiki_Filter_Test_Harness::assert_true( false !== $styles );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'replaceSelectOptions', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'data-filter-loader', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'stateOverride', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'historyMode', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( "request(1, false, 'replace', state)", $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'window.history.replaceState', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'prepareResultsPayload', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( 'prepareSelectOptions', $script );
+		Promokodiki_Filter_Test_Harness::assert_contains( '@keyframes promokodiki-filter-spin', $styles );
+	}
+);
+
+$discounts_helper = $theme_dir . '/inc/discounts.php';
+if ( file_exists( $discounts_helper ) ) {
+	require_once $discounts_helper;
+}
+
+$discount_ids    = array();
+$page_id         = 0;
+$regular_page_id = 0;
+
+try {
+	$usage_values    = array( 10, 70, 20, 60, 30, 50, 40 );
+	$reaction_values = array( 5, 3, 12, 9, 1, 14, 7 );
+	for ( $index = 0; $index < 7; $index++ ) {
+		$post_id = wp_insert_post(
+			array(
+				'post_type'   => 'promocode',
+				'post_status' => 'publish',
+				'post_title'  => 'PAF fallback active ' . $index,
+				'post_date'   => wp_date( 'Y-m-d H:i:s', time() - ( $index * HOUR_IN_SECONDS ) ),
+			)
+		);
+		$discount_ids[] = $post_id;
+		update_post_meta( $post_id, '_promocode_used_count', $usage_values[ $index ] );
+		if ( 0 === $index % 2 ) {
+			update_post_meta( $post_id, '_promocode_votes_total', $reaction_values[ $index ] );
+		} else {
+			update_post_meta( $post_id, '_promocode_likes', $reaction_values[ $index ] - 1 );
+			update_post_meta( $post_id, '_promocode_dislikes', 1 );
+		}
+		if ( 5 === $index ) {
+			update_post_meta( $post_id, '_promocode_expiry_date', '' );
+		} elseif ( 6 !== $index ) {
+			update_post_meta( $post_id, '_promocode_expiry_date', wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ) );
+		}
+	}
+
+	$inactive_id    = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'PAF fallback inactive' ) );
+	$discount_ids[] = $inactive_id;
+	update_post_meta( $inactive_id, '_promocode_is_active', 'no' );
+	update_post_meta( $inactive_id, '_promocode_expiry_date', wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ) );
+	update_post_meta( $inactive_id, '_promocode_used_count', 99999 );
+	update_post_meta( $inactive_id, '_promocode_votes_total', 99999 );
+
+	$expired_id     = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'PAF fallback expired' ) );
+	$discount_ids[] = $expired_id;
+	update_post_meta( $expired_id, '_promocode_expiry_date', wp_date( 'Y-m-d', time() - DAY_IN_SECONDS ) );
+	update_post_meta( $expired_id, '_promocode_used_count', 99998 );
+	update_post_meta( $expired_id, '_promocode_votes_total', 99998 );
+
+	$restrict_query = static function ( WP_Query $query ) use ( &$discount_ids ): void {
+		if ( 'promocode' === $query->get( 'post_type' ) ) {
+			$query->set( 'post__in', $discount_ids );
+		}
+	};
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts fallback returns six newest active unexpired posts and retains undated offers',
+		static function () use ( $discount_ids, $inactive_id, $expired_id, $restrict_query ): void {
+			Promokodiki_Filter_Test_Harness::assert_true( function_exists( 'promokodiki_discounts_fallback_query' ) );
+			add_action( 'pre_get_posts', $restrict_query );
+			try {
+				$query = promokodiki_discounts_fallback_query( 'newest' );
+			} finally {
+				remove_action( 'pre_get_posts', $restrict_query );
+			}
+
+			$actual = array_map( 'intval', wp_list_pluck( $query->posts, 'ID' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( array_slice( $discount_ids, 0, 6 ), $actual );
+			Promokodiki_Filter_Test_Harness::assert_same( 6, $query->post_count );
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $inactive_id, $actual, true ) );
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $expired_id, $actual, true ) );
+			Promokodiki_Filter_Test_Harness::assert_true( in_array( $discount_ids[5], $actual, true ) );
+		}
+	);
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts fallback uses lifetime popularity when the seven-day window is empty',
+		static function () use ( $discount_ids, $restrict_query ): void {
+			Promokodiki_Filter_Test_Harness::assert_true( function_exists( 'promokodiki_discounts_fallback_query' ) );
+			add_action( 'pre_get_posts', $restrict_query );
+			try {
+				$query = promokodiki_discounts_fallback_query( 'popular' );
+			} finally {
+				remove_action( 'pre_get_posts', $restrict_query );
+			}
+
+			$expected = array( $discount_ids[1], $discount_ids[3], $discount_ids[5], $discount_ids[6], $discount_ids[4], $discount_ids[2] );
+			Promokodiki_Filter_Test_Harness::assert_same( $expected, array_map( 'intval', wp_list_pluck( $query->posts, 'ID' ) ) );
+		}
+	);
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts fallback safely uses lifetime popularity when the click table is absent',
+		static function () use ( $discount_ids, $restrict_query ): void {
+			global $wpdb;
+
+			$original_prefix = $wpdb->prefix;
+			$wpdb->prefix    = 'paf_missing_' . str_replace( '-', '', wp_generate_uuid4() ) . '_';
+			$wpdb->last_error = '';
+			add_action( 'pre_get_posts', $restrict_query );
+			try {
+				$query = promokodiki_discounts_fallback_query( 'popular' );
+			} finally {
+				remove_action( 'pre_get_posts', $restrict_query );
+				$wpdb->prefix = $original_prefix;
+			}
+
+			$expected = array( $discount_ids[1], $discount_ids[3], $discount_ids[5], $discount_ids[6], $discount_ids[4], $discount_ids[2] );
+			Promokodiki_Filter_Test_Harness::assert_same( $expected, array_map( 'intval', wp_list_pluck( $query->posts, 'ID' ) ) );
+			Promokodiki_Filter_Test_Harness::assert_same( '', $wpdb->last_error, 'Missing click table produced a database error' );
+		}
+	);
+
+	global $wpdb;
+	$click_table = $wpdb->prefix . 'promokodiki_click_stats';
+	$click_rows  = array(
+		array( $discount_ids[0], current_time( 'Y-m-d' ), 2 ),
+		array( $discount_ids[2], wp_date( 'Y-m-d', current_time( 'timestamp' ) - ( 6 * DAY_IN_SECONDS ) ), 9 ),
+		array( $discount_ids[4], wp_date( 'Y-m-d', current_time( 'timestamp' ) - ( 8 * DAY_IN_SECONDS ) ), 900 ),
+		array( $inactive_id, current_time( 'Y-m-d' ), 999 ),
+		array( $expired_id, current_time( 'Y-m-d' ), 1000 ),
+	);
+	foreach ( $click_rows as $click_row ) {
+		$wpdb->insert(
+			$click_table,
+			array(
+				'promocode_id' => $click_row[0],
+				'click_date'    => $click_row[1],
+				'clicks'        => $click_row[2],
+			),
+			array( '%d', '%s', '%d' )
+		);
+	}
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts fallback ranks only eligible seven-day clicks before lifetime popularity',
+		static function () use ( $discount_ids, $restrict_query ): void {
+			add_action( 'pre_get_posts', $restrict_query );
+			try {
+				$query = promokodiki_discounts_fallback_query( 'popular' );
+			} finally {
+				remove_action( 'pre_get_posts', $restrict_query );
+			}
+
+			Promokodiki_Filter_Test_Harness::assert_same(
+				array( $discount_ids[2], $discount_ids[0] ),
+				array_map( 'intval', wp_list_pluck( $query->posts, 'ID' ) )
+			);
+		}
+	);
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts fallback lazily orders discussed by stored or derived reaction totals',
+		static function () use ( $discount_ids, $restrict_query ): void {
+			Promokodiki_Filter_Test_Harness::assert_true( function_exists( 'promokodiki_discounts_fallback_query' ) );
+			add_action( 'pre_get_posts', $restrict_query );
+			try {
+				$query = promokodiki_discounts_fallback_query( 'discussed' );
+			} finally {
+				remove_action( 'pre_get_posts', $restrict_query );
+			}
+
+			$expected = array( $discount_ids[5], $discount_ids[2], $discount_ids[3], $discount_ids[6], $discount_ids[0], $discount_ids[1] );
+			Promokodiki_Filter_Test_Harness::assert_same( $expected, array_map( 'intval', wp_list_pluck( $query->posts, 'ID' ) ) );
+		}
+	);
+
+	$page_id = wp_insert_post(
+		array(
+			'post_type'   => 'page',
+			'post_status' => 'publish',
+			'post_title'  => 'PAF canonical discounts page',
+		)
+	);
+	update_post_meta( $page_id, '_wp_page_template', 'page-discounts.php' );
+	$regular_page_id = wp_insert_post(
+		array(
+			'post_type'   => 'page',
+			'post_status' => 'publish',
+			'post_title'  => 'PAF canonical regular page',
+		)
+	);
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts canonical strips GET sort through core without changing other templates',
+		static function () use ( $page_id, $regular_page_id ): void {
+			$inject_sort = static fn( string $url, WP_Post $post ): string => add_query_arg( 'paf_sort', 'newest', $url );
+			add_filter( 'get_canonical_url', $inject_sort, 5, 2 );
+			try {
+				$discounts_url = wp_get_canonical_url( $page_id );
+				$regular_url   = wp_get_canonical_url( $regular_page_id );
+			} finally {
+				remove_filter( 'get_canonical_url', $inject_sort, 5 );
+			}
+
+			Promokodiki_Filter_Test_Harness::assert_same( get_permalink( $page_id ), $discounts_url );
+			Promokodiki_Filter_Test_Harness::assert_same(
+				add_query_arg( 'paf_sort', 'newest', get_permalink( $regular_page_id ) ),
+				$regular_url
+			);
+		}
+	);
+
+	Promokodiki_Filter_Test_Harness::run(
+		'discounts partial renders a single plugin feed without duplicate tab panels',
+		static function () use ( $theme_dir, $restrict_query ): void {
+			$original_get = $_GET;
+			$_GET         = array( 'paf_sort' => 'newest' );
+			add_action( 'pre_get_posts', $restrict_query );
+			ob_start();
+			try {
+				require $theme_dir . '/template-parts/partials/promocodes-discounts.php';
+				$html = (string) ob_get_clean();
+			} finally {
+				remove_action( 'pre_get_posts', $restrict_query );
+				$_GET = $original_get;
+				if ( ob_get_level() ) {
+					ob_end_clean();
+				}
+			}
+
+			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'data-promokodiki-filter' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'data-filter-results' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( 1, substr_count( $html, 'data-filter-more' ) );
+			Promokodiki_Filter_Test_Harness::assert_same( 0, substr_count( $html, 'tabs__panel' ) );
+		}
+	);
+
+	Promokodiki_Filter_Test_Harness::finish();
+} finally {
+	if ( $regular_page_id ) {
+		wp_delete_post( $regular_page_id, true );
+	}
+	if ( $page_id ) {
+		wp_delete_post( $page_id, true );
+	}
+	foreach ( $discount_ids as $post_id ) {
+		$wpdb->delete( $wpdb->prefix . 'promokodiki_click_stats', array( 'promocode_id' => $post_id ), array( '%d' ) );
+		wp_delete_post( $post_id, true );
+	}
+}

@@ -1,0 +1,545 @@
+# Translation of Plugins - Smart Bulk Delete &amp; Content Cleaner for WordPress - Stable (latest release) in Russian
+# This file is distributed under the same license as the Plugins - Smart Bulk Delete &amp; Content Cleaner for WordPress - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2025-10-30 18:25:53+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n % 10 == 1 && n % 100 != 11) ? 0 : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? 1 : 2);\n"
+"X-Generator: GlotPress/4.0.3\n"
+"Language: ru\n"
+"Project-Id-Version: Plugins - Smart Bulk Delete &amp; Content Cleaner for WordPress - Stable (latest release)\n"
+
+#. Plugin Name of the plugin
+#: smart-bulk-content-remover.php
+#: includes/class-smart-bulk-content-remover.php:173
+#: includes/class-smart-bulk-content-remover.php:367
+#: includes/class-smart-bulk-content-remover.php:481
+#: includes/class-smart-bulk-content-remover.php:696
+msgid "Smart Bulk Delete & Content Cleaner for WordPress"
+msgstr "Smart Bulk Delete & Content Cleaner for WordPress"
+
+#: includes/class-smart-bulk-content-remover.php:1340
+msgid "Apply"
+msgstr "Применить"
+
+#: includes/class-smart-bulk-content-remover.php:317
+msgid "Advanced Page Remover"
+msgstr "Расширенный удалитель страниц"
+
+#: includes/class-smart-bulk-content-remover.php:2859
+msgid "No comments found."
+msgstr "Комментарии не найдены."
+
+#: includes/class-smart-bulk-content-remover.php:781
+msgid "Delete permanently (skip Trash)"
+msgstr "Удалить без возможности восстановления (пропустить корзину)"
+
+#: includes/class-smart-bulk-content-remover.php:771
+msgid "Load Comments"
+msgstr "Загрузить комментарии"
+
+#: includes/class-smart-bulk-content-remover.php:731
+msgid "All Post Types"
+msgstr "Все типы записей"
+
+#: includes/class-smart-bulk-content-remover.php:727
+msgid "Advanced Comment Remover"
+msgstr "Расширенный инструмент для удаления комментариев"
+
+#: includes/class-smart-bulk-content-remover.php:560
+msgid "Advanced Media Remover"
+msgstr "Расширенный удалитель мультимедиа"
+
+#: includes/class-smart-bulk-content-remover.php:456
+msgid "Load Posts"
+msgstr "Загрузить записи"
+
+#: includes/class-smart-bulk-content-remover.php:409
+msgid "Advanced Post Remover"
+msgstr "Расширенный инструмент для удаления постов"
+
+#: includes/class-smart-bulk-content-remover.php:355
+#: includes/class-smart-bulk-content-remover.php:784
+msgid "Delete Selected"
+msgstr "Удалить выбранное"
+
+#: includes/class-smart-bulk-content-remover.php:298
+#: includes/class-smart-bulk-content-remover.php:352
+msgid "Permanently Delete (skip Trash)"
+msgstr "Удалить навсегда (пропустить корзину)"
+
+#: includes/class-smart-bulk-content-remover.php:344
+msgid "Load Pages"
+msgstr "Загрузить страницы"
+
+#: includes/class-smart-bulk-content-remover.php:271
+#: includes/class-smart-bulk-content-remover.php:334
+msgid "All Authors"
+msgstr "Все авторы"
+
+#: includes/class-smart-bulk-content-remover.php:262
+#: includes/class-smart-bulk-content-remover.php:325
+#: includes/class-smart-bulk-content-remover.php:433
+#: includes/class-smart-bulk-content-remover.php:746
+msgid "Pending"
+msgstr "На рассмотрении"
+
+#: includes/class-smart-bulk-content-remover.php:259
+#: includes/class-smart-bulk-content-remover.php:322
+#: includes/class-smart-bulk-content-remover.php:430
+#: includes/class-smart-bulk-content-remover.php:744
+msgid "All Statuses"
+msgstr "Все статусы"
+
+#: includes/class-smart-bulk-content-remover.php:263
+#: includes/class-smart-bulk-content-remover.php:326
+#: includes/class-smart-bulk-content-remover.php:434
+#: includes/class-smart-bulk-content-remover.php:748
+msgid "Trash"
+msgstr "Корзина"
+
+#: includes/class-smart-bulk-content-remover.php:2762
+msgid "No posts found."
+msgstr "Записей не найдено."
+
+#: includes/class-smart-bulk-content-remover.php:2504
+msgid "No pages found."
+msgstr "Страниц не найдено."
+
+#: includes/class-smart-bulk-content-remover.php:2490
+#: includes/class-smart-bulk-content-remover.php:2748
+#: includes/class-smart-bulk-content-remover.php:2840
+msgid "Select All"
+msgstr "Выбрать всё"
+
+#: includes/class-smart-bulk-content-remover.php:747
+msgid "Spam"
+msgstr "Спам-комментарий"
+
+#: includes/class-smart-bulk-content-remover.php:745
+msgid "Approved"
+msgstr "Одобрен"
+
+#: includes/class-smart-bulk-content-remover.php:261
+#: includes/class-smart-bulk-content-remover.php:324
+#: includes/class-smart-bulk-content-remover.php:432
+msgid "Draft"
+msgstr "Черновик"
+
+#: includes/class-smart-bulk-content-remover.php:260
+#: includes/class-smart-bulk-content-remover.php:323
+#: includes/class-smart-bulk-content-remover.php:431
+msgid "Published"
+msgstr "Опубликовано"
+
+#: includes/class-smart-bulk-content-remover.php:2449
+msgid "No images were deleted."
+msgstr "Ни одно изображение не было удалено."
+
+#: includes/class-smart-bulk-content-remover.php:2447
+msgid "Your selected images are deleted."
+msgstr "Выбранные изображения удалены."
+
+#: includes/class-smart-bulk-content-remover.php:2228
+msgid "No attachments found for this author."
+msgstr "Для этого автора не найдено вложений."
+
+#: includes/class-smart-bulk-content-remover.php:2178
+#: includes/class-smart-bulk-content-remover.php:2266
+msgid "Could not create archive with PclZip."
+msgstr "Не удалось создать архив с помощью PclZip."
+
+#: includes/class-smart-bulk-content-remover.php:2154
+#: includes/class-smart-bulk-content-remover.php:2242
+msgid "No valid files found to archive."
+msgstr "Не найдено действительных файлов для архивирования."
+
+#: includes/class-smart-bulk-content-remover.php:2140
+msgid "No media files found for the selected year."
+msgstr "Медиафайлы для выбранного года не найдены."
+
+#: includes/class-smart-bulk-content-remover.php:2125
+msgid "Invalid year selected."
+msgstr "Выбран недействительный год."
+
+#: includes/class-smart-bulk-content-remover.php:2117
+#: includes/class-smart-bulk-content-remover.php:2204
+msgid "Invalid nonce."
+msgstr "Неверный одноразовый номер."
+
+#: includes/class-smart-bulk-content-remover.php:2082
+#: includes/class-smart-bulk-content-remover.php:2165
+#: includes/class-smart-bulk-content-remover.php:2253
+msgid "Could not create archive."
+msgstr "Не удалось создать архив."
+
+#: includes/class-smart-bulk-content-remover.php:2072
+msgid "No valid image files found."
+msgstr "Не найдено действительных файлов изображений."
+
+#: includes/class-smart-bulk-content-remover.php:2059
+msgid "No images found for the selected month and year."
+msgstr "Не найдено изображений для выбранного месяца и года."
+
+#: includes/class-smart-bulk-content-remover.php:2041
+msgid "Invalid month/year value."
+msgstr "Недопустимое значение месяца/года."
+
+#: includes/class-smart-bulk-content-remover.php:1997
+msgid "Could not create a zip file."
+msgstr "Не удалось создать zip-файл."
+
+#: includes/class-smart-bulk-content-remover.php:1856
+msgid "No unattached images found."
+msgstr "Не найдено независимых изображений."
+
+#: includes/class-smart-bulk-content-remover.php:1787
+msgid "No attached images found."
+msgstr "Не найдено прикрепленных изображений."
+
+#: includes/class-smart-bulk-content-remover.php:1727
+#: includes/class-smart-bulk-content-remover.php:1796
+#: includes/class-smart-bulk-content-remover.php:1865
+msgid "Could not create archive"
+msgstr "Не удалось создать архив"
+
+#: includes/class-smart-bulk-content-remover.php:1698
+msgid "All images have been successfully deleted."
+msgstr "Все изображения были успешно удалены."
+
+#: includes/class-smart-bulk-content-remover.php:1674
+msgid "Invalid year."
+msgstr "Неправильный год."
+
+#: includes/class-smart-bulk-content-remover.php:1671
+msgid "No media found for the selected year."
+msgstr "Медиафайлы для выбранного года не найдены."
+
+#: includes/class-smart-bulk-content-remover.php:1669
+msgid "Media for the selected year deleted successfully."
+msgstr "Медиафайлы за выбранный год успешно удалены."
+
+#: includes/class-smart-bulk-content-remover.php:1626
+msgid "All attached images and associated files deleted successfully."
+msgstr "Все прикрепленные изображения и связанные файлы успешно удалены."
+
+#: includes/class-smart-bulk-content-remover.php:1591
+msgid "All unattached images and associated files deleted successfully."
+msgstr "Все не связанные изображения и связанные файлы успешно удалены."
+
+#: includes/class-smart-bulk-content-remover.php:1557
+msgid "Images between selected dates and associated files deleted successfully."
+msgstr "Изображения за выбранный период и связанные файлы успешно удалены."
+
+#: includes/class-smart-bulk-content-remover.php:1517
+msgid "Invalid month-year."
+msgstr "Недопустимый месяц-год."
+
+#: includes/class-smart-bulk-content-remover.php:1514
+msgid "Media for the selected month-year deleted successfully."
+msgstr "Медиафайлы за выбранный месяц-год успешно удалены."
+
+#: includes/class-smart-bulk-content-remover.php:1478
+msgid "Invalid Nonce"
+msgstr "Неверный Nonce"
+
+#: includes/class-smart-bulk-content-remover.php:1465
+msgid "Invalid author ID."
+msgstr "Неверный ID автора."
+
+#: includes/class-smart-bulk-content-remover.php:1460
+msgid "No media files found for the selected author."
+msgstr "Медиафайлы для выбранного автора не найдены."
+
+#: includes/class-smart-bulk-content-remover.php:1450
+msgid "Error while deleting attachment"
+msgstr "Ошибка при удалении вложения"
+
+#: includes/class-smart-bulk-content-remover.php:1427
+msgid "Nonce verification failed!"
+msgstr "Не удалось выполнить проверку nonce кода!"
+
+#: includes/class-smart-bulk-content-remover.php:1336
+msgid "Select Author"
+msgstr "Выбрать автора"
+
+#: includes/class-smart-bulk-content-remover.php:1327
+msgid "Filter by Author"
+msgstr "Фильтр по автору"
+
+#: includes/class-smart-bulk-content-remover.php:1273
+msgid "Filter by Year"
+msgstr "Фильтр по году"
+
+#: includes/class-smart-bulk-content-remover.php:1221
+msgid "Select Month-Year"
+msgstr "Выберите месяц-год"
+
+#: includes/class-smart-bulk-content-remover.php:1217
+msgid "Filter by Month"
+msgstr "Фильтр по месяцу"
+
+#: includes/class-smart-bulk-content-remover.php:1184
+msgid "Failed to delete any images."
+msgstr "Не удалось удалить изображения."
+
+#: includes/class-smart-bulk-content-remover.php:1181
+msgid "Successfully deleted $deleted_count images."
+msgstr "Удалено $deleted_count изображений."
+
+#: includes/class-smart-bulk-content-remover.php:1168
+#: includes/class-smart-bulk-content-remover.php:1987
+msgid "No images found for the specified date range."
+msgstr "Не найдено изображений за указанный период."
+
+#: includes/class-smart-bulk-content-remover.php:1112
+msgid "All comments deleted successfully"
+msgstr "Все комментарии удалены успешно"
+
+#: includes/class-smart-bulk-content-remover.php:1104
+msgid "No comments found to delete."
+msgstr "Не найдено комментариев для удаления."
+
+#: includes/class-smart-bulk-content-remover.php:111
+#: includes/class-smart-bulk-content-remover.php:112
+msgid "Smart Bulk Content Remover"
+msgstr "Smart Bulk Content Remover"
+
+#. Author of the plugin
+#: smart-bulk-content-remover.php
+msgid "Kirtikumar Solanki"
+msgstr "Kirtikumar Solanki"
+
+#. Author URI of the plugin
+#: smart-bulk-content-remover.php
+msgid "https://profiles.wordpress.org/solankisoftware/"
+msgstr "https://profiles.wordpress.org/solankisoftware/"
+
+#: includes/class-smart-bulk-content-remover.php:123
+#: includes/class-smart-bulk-content-remover.php:124
+#: includes/class-smart-bulk-content-remover.php:176
+msgid "Page Settings"
+msgstr "Настройки страницы"
+
+#: includes/class-smart-bulk-content-remover.php:133
+#: includes/class-smart-bulk-content-remover.php:134
+#: includes/class-smart-bulk-content-remover.php:370
+msgid "Post Settings"
+msgstr "Настройки записи"
+
+#: includes/class-smart-bulk-content-remover.php:143
+#: includes/class-smart-bulk-content-remover.php:144
+#: includes/class-smart-bulk-content-remover.php:484
+msgid "Media Settings"
+msgstr "Настройки медиа"
+
+#: includes/class-smart-bulk-content-remover.php:153
+#: includes/class-smart-bulk-content-remover.php:154
+#: includes/class-smart-bulk-content-remover.php:699
+msgid "Comments Settings"
+msgstr "Настройки комментариев"
+
+#: includes/class-smart-bulk-content-remover.php:586
+#: includes/class-smart-bulk-content-remover.php:649
+#: includes/class-smart-bulk-content-remover.php:676
+#: includes/class-smart-bulk-content-remover.php:1231
+#: includes/class-smart-bulk-content-remover.php:1293
+#: includes/class-smart-bulk-content-remover.php:1348
+msgid "Close"
+msgstr "Закрыть"
+
+#: includes/class-smart-bulk-content-remover.php:287
+#: includes/class-smart-bulk-content-remover.php:341
+#: includes/class-smart-bulk-content-remover.php:446
+#: includes/class-smart-bulk-content-remover.php:663
+#: includes/class-smart-bulk-content-remover.php:761
+msgid "From:"
+msgstr "От:"
+
+#: includes/class-smart-bulk-content-remover.php:289
+#: includes/class-smart-bulk-content-remover.php:342
+#: includes/class-smart-bulk-content-remover.php:451
+#: includes/class-smart-bulk-content-remover.php:667
+#: includes/class-smart-bulk-content-remover.php:766
+msgid "To:"
+msgstr "До:"
+
+#: includes/class-smart-bulk-content-remover.php:815
+msgid "bytes"
+msgstr "байты"
+
+#: includes/class-smart-bulk-content-remover.php:819
+msgid "MB"
+msgstr "Мб"
+
+#: includes/class-smart-bulk-content-remover.php:1080
+#: includes/class-smart-bulk-content-remover.php:1456
+msgid "All media files deleted successfully."
+msgstr "Все медиафайлы успешно удалены."
+
+#: includes/class-smart-bulk-content-remover.php:1056
+msgid "No media found for delete."
+msgstr "Не найдено никаких медиафайлов для удаления."
+
+#: includes/class-smart-bulk-content-remover.php:1049
+#: includes/class-smart-bulk-content-remover.php:1093
+#: includes/class-smart-bulk-content-remover.php:1125
+#: includes/class-smart-bulk-content-remover.php:1150
+#: includes/class-smart-bulk-content-remover.php:1250
+#: includes/class-smart-bulk-content-remover.php:1308
+#: includes/class-smart-bulk-content-remover.php:1365
+#: includes/class-smart-bulk-content-remover.php:1530
+#: includes/class-smart-bulk-content-remover.php:1569
+#: includes/class-smart-bulk-content-remover.php:1604
+#: includes/class-smart-bulk-content-remover.php:1638
+#: includes/class-smart-bulk-content-remover.php:1681
+#: includes/class-smart-bulk-content-remover.php:1715
+#: includes/class-smart-bulk-content-remover.php:1772
+#: includes/class-smart-bulk-content-remover.php:1841
+#: includes/class-smart-bulk-content-remover.php:1911
+#: includes/class-smart-bulk-content-remover.php:1951
+#: includes/class-smart-bulk-content-remover.php:2034
+#: includes/class-smart-bulk-content-remover.php:2293
+msgid "Invalid nonce"
+msgstr "Неверный nonce (одноразовый номер)"
+
+#: includes/class-smart-bulk-content-remover.php:1036
+msgid "No post types selected."
+msgstr "Типы постов не выбраны."
+
+#: includes/class-smart-bulk-content-remover.php:1029
+msgid "Post type \"%s\" deleted successfully!"
+msgstr "Тип публикации «%s» удален успешно!"
+
+#: includes/class-smart-bulk-content-remover.php:1021
+msgid "Post type \"%s\" does not have any data."
+msgstr "Тип записи «%s» не содержит данных."
+
+#: includes/class-smart-bulk-content-remover.php:996
+#: includes/class-smart-bulk-content-remover.php:1044
+#: includes/class-smart-bulk-content-remover.php:1088
+#: includes/class-smart-bulk-content-remover.php:1120
+#: includes/class-smart-bulk-content-remover.php:1145
+#: includes/class-smart-bulk-content-remover.php:1193
+#: includes/class-smart-bulk-content-remover.php:1242
+#: includes/class-smart-bulk-content-remover.php:1303
+#: includes/class-smart-bulk-content-remover.php:1359
+#: includes/class-smart-bulk-content-remover.php:1391
+#: includes/class-smart-bulk-content-remover.php:1422
+#: includes/class-smart-bulk-content-remover.php:1473
+#: includes/class-smart-bulk-content-remover.php:1526
+#: includes/class-smart-bulk-content-remover.php:1564
+#: includes/class-smart-bulk-content-remover.php:1598
+#: includes/class-smart-bulk-content-remover.php:1633
+#: includes/class-smart-bulk-content-remover.php:1686
+#: includes/class-smart-bulk-content-remover.php:1907
+#: includes/class-smart-bulk-content-remover.php:1944
+#: includes/class-smart-bulk-content-remover.php:2027
+#: includes/class-smart-bulk-content-remover.php:2111
+#: includes/class-smart-bulk-content-remover.php:2198
+#: includes/class-smart-bulk-content-remover.php:2288
+msgid "You do not have sufficient permissions to perform this action."
+msgstr "У вас недостаточно прав для выполнения этого действия."
+
+#: includes/class-smart-bulk-content-remover.php:989
+msgid "All pages and associated database records deleted successfully."
+msgstr "Все страницы и связанные с ними записи базы данных успешно удалены."
+
+#: includes/class-smart-bulk-content-remover.php:976
+msgid "No pages found to delete."
+msgstr "Страниц для удаления не найдено."
+
+#: includes/class-smart-bulk-content-remover.php:964
+msgid "You do not have permission to delete pages."
+msgstr "У вас нет прав на удаление страниц."
+
+#: includes/class-smart-bulk-content-remover.php:958
+msgid "Nonce verification failed."
+msgstr "Не удалось выполнить проверку одноразового номера."
+
+#: includes/class-smart-bulk-content-remover.php:821
+msgid "GB"
+msgstr "ГБ"
+
+#: includes/class-smart-bulk-content-remover.php:817
+msgid "KB"
+msgstr "КБ"
+
+#: includes/class-smart-bulk-content-remover.php:711
+msgid "Comments)"
+msgstr "Комментарии)"
+
+#: includes/class-smart-bulk-content-remover.php:659
+msgid "Filter by Date Range"
+msgstr "Фильтр по дате"
+
+#: includes/class-smart-bulk-content-remover.php:637
+msgid "Total Size Of Unattached images: "
+msgstr "Общий размер не прикрепленных изображений: "
+
+#: includes/class-smart-bulk-content-remover.php:628
+msgid "#Number Of Unattached Images: "
+msgstr "#Количество незакрепленных изображений: "
+
+#: includes/class-smart-bulk-content-remover.php:605
+msgid "Total Size Of Attached images: "
+msgstr "Общий размер вложенных изображений: "
+
+#: includes/class-smart-bulk-content-remover.php:601
+msgid "#Number Of Attached Images: "
+msgstr "#Количество вложенных изображений: "
+
+#: includes/class-smart-bulk-content-remover.php:577
+msgid "Total Size Of All Images: "
+msgstr "Общий размер всех изображений: "
+
+#: includes/class-smart-bulk-content-remover.php:573
+msgid "#Total Number Of Images:"
+msgstr "#Общее количество изображений:"
+
+#: includes/class-smart-bulk-content-remover.php:516
+msgid "Delete Media"
+msgstr "Удалить медиафайлы"
+
+#: includes/class-smart-bulk-content-remover.php:505
+msgid "Media)"
+msgstr "СМИ)"
+
+#: includes/class-smart-bulk-content-remover.php:494
+msgid "Delete All Media Files"
+msgstr "Удалить все медиафайлы"
+
+#: includes/class-smart-bulk-content-remover.php:406
+msgid "Delete Post Type Data"
+msgstr "Удалить данные типа записи"
+
+#: includes/class-smart-bulk-content-remover.php:392
+msgid "Posts)"
+msgstr "Сообщения)"
+
+#: includes/class-smart-bulk-content-remover.php:191
+msgid "Pages )"
+msgstr "Страницы )"
+
+#: includes/class-smart-bulk-content-remover.php:190
+#: includes/class-smart-bulk-content-remover.php:392
+#: includes/class-smart-bulk-content-remover.php:504
+#: includes/class-smart-bulk-content-remover.php:711
+msgid "("
+msgstr "("
+
+#: includes/class-smart-bulk-content-remover.php:189
+msgid "Delete All Pages?"
+msgstr "Удалить все страницы?"
+
+#: includes/class-smart-bulk-content-remover.php:165
+#: includes/class-smart-bulk-content-remover.php:1704
+msgid "Settings"
+msgstr "Настройки"
+
+#. Description of the plugin
+#: smart-bulk-content-remover.php
+msgid "Smartly remove posts, pages, custom types, media and comments in bulk. Save time, declutter your site and streamline content management."
+msgstr "Умное массовое удаление постов, страниц, пользовательских типов, медиафайлов и комментариев. Экономьте время, освобождайте место на сайте и оптимизируйте управление контентом."

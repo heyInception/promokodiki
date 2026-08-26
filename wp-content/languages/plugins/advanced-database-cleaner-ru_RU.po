@@ -1,0 +1,182 @@
+# Translation of Plugins - Advanced Database Cleaner – Optimize &amp; Clean Database to Speed Up Site Performance - Stable (latest release) in Russian
+# This file is distributed under the same license as the Plugins - Advanced Database Cleaner – Optimize &amp; Clean Database to Speed Up Site Performance - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2026-04-09 05:56:39+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n % 10 == 1 && n % 100 != 11) ? 0 : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? 1 : 2);\n"
+"X-Generator: GlotPress/4.0.3\n"
+"Language: ru\n"
+"Project-Id-Version: Plugins - Advanced Database Cleaner – Optimize &amp; Clean Database to Speed Up Site Performance - Stable (latest release)\n"
+
+#. Author of the plugin
+#: advanced-db-cleaner.php
+msgid "SigmaPlugin"
+msgstr "SigmaPlugin"
+
+#: includes/classes/class-adbc-admin-init.php:519
+msgid "Remind me later"
+msgstr "Напомни мне позже"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:46
+#: includes/endpoints/class-adbc-info-endpoints.php:74
+msgid "Version"
+msgstr "Версия"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:47
+msgid "Site URL"
+msgstr "URL сайта"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:48
+msgid "Home URL"
+msgstr "URL главной страницы"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:49
+msgid "Multisite"
+msgstr "Мультисайт"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:50
+msgid "Sites"
+msgstr "Сайтов"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:51
+msgid "Language"
+msgstr "Язык"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:59 assets/js/app.js:2
+#: assets/js/translations.js:671
+msgid "Database"
+msgstr "База данных"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:106
+msgid "Server"
+msgstr "Сервер"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:111
+msgid "PHP"
+msgstr "PHP"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:113
+msgid "Memory Limit"
+msgstr "Лимит памяти"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:115
+msgid "Post Max Size"
+msgstr "Макс. размер записи"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:116 assets/js/app.js:2
+#: assets/js/translations.js:1362
+msgid "Max execution time"
+msgstr "Макс. время выполнения"
+
+#: includes/classes/class-adbc-hardcoded-items.php:1147
+#: includes/classes/class-adbc-hardcoded-items.php:1194
+msgid "WordPress core"
+msgstr "Ядро WordPress"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:43 assets/js/app.js:2
+#: assets/js/translations.js:1022
+msgid "WordPress"
+msgstr "WordPress"
+
+#: includes/classes/class-adbc-admin-init.php:520
+#: includes/classes/class-adbc-admin-init.php:572 assets/js/app.js:2
+#: assets/js/translations.js:399
+msgid "Dismiss"
+msgstr "Отклонить"
+
+#: includes/classes/class-adbc-admin-init.php:518
+msgid "No, not good enough"
+msgstr "Нет, не достаточно хорошо"
+
+#: includes/classes/class-adbc-admin-init.php:517
+msgid "I already did"
+msgstr "Я уже сделал"
+
+#: includes/classes/class-adbc-admin-init.php:513
+msgid "Awesome!"
+msgstr "Потрясающе!"
+
+#: includes/classes/class-adbc-admin-init.php:516
+msgid "Ok, you deserved it"
+msgstr "Хорошо, вы это заслужили"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:52 assets/js/app.js:2
+#: assets/js/translations.js:1021
+msgid "Theme"
+msgstr "Тема"
+
+#: includes/models/class-adbc-cron-jobs.php:218 assets/js/app.js:2
+#: assets/js/translations.js:504
+msgid "Once"
+msgstr "Один раз"
+
+#: includes/classes/class-adbc-admin-init.php:772
+msgid "The free version of Advanced DB Cleaner has been de-activated since the premium version is active."
+msgstr "Бесплатная версия Advanced DB Cleaner была деактивирована, так как премиум-версия активна."
+
+#. Plugin URI of the plugin
+#: advanced-db-cleaner.php
+msgid "https://sigmaplugin.com/downloads/wordpress-advanced-database-cleaner"
+msgstr "https://sigmaplugin.com/downloads/wordpress-advanced-database-cleaner"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:82 assets/js/app.js:2
+#: assets/js/translations.js:49
+msgid "Settings"
+msgstr "Настройки"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:49
+#: includes/endpoints/class-adbc-info-endpoints.php:86
+#: includes/endpoints/class-adbc-info-endpoints.php:92
+#: includes/endpoints/class-adbc-info-endpoints.php:93
+#: includes/endpoints/class-adbc-info-endpoints.php:94
+#: includes/endpoints/class-adbc-info-endpoints.php:107 assets/js/app.js:2
+#: assets/js/translations.js:331
+msgid "No"
+msgstr "Нет"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:49
+#: includes/endpoints/class-adbc-info-endpoints.php:86
+#: includes/endpoints/class-adbc-info-endpoints.php:92
+#: includes/endpoints/class-adbc-info-endpoints.php:93
+#: includes/endpoints/class-adbc-info-endpoints.php:94
+#: includes/endpoints/class-adbc-info-endpoints.php:107 assets/js/app.js:2
+#: assets/js/translations.js:326
+msgid "Yes"
+msgstr "Да"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:61 assets/js/app.js:2
+#: assets/js/translations.js:452
+msgid "Database size"
+msgstr "Размер базы данных"
+
+#: includes/classes/class-adbc-admin-init.php:440 assets/js/app.js:2
+#: assets/js/translations.js:509
+msgid "Once monthly"
+msgstr "Один раз в месяц"
+
+#: includes/classes/class-adbc-admin-init.php:434 assets/js/app.js:2
+#: assets/js/translations.js:508
+msgid "Once weekly"
+msgstr "Один раз в неделю"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:62 assets/js/app.js:2
+#: assets/js/translations.js:453
+msgid "Total tables"
+msgstr "Всего таблиц"
+
+#: includes/endpoints/class-adbc-info-endpoints.php:63
+msgid "Total options"
+msgstr "Всего опций"
+
+#. Plugin Name of the plugin
+#: advanced-db-cleaner.php
+msgid "Advanced Database Cleaner"
+msgstr "Advanced Database Cleaner"
+
+#. Author URI of the plugin
+#: advanced-db-cleaner.php
+msgid "https://sigmaplugin.com"
+msgstr "https://sigmaplugin.com"

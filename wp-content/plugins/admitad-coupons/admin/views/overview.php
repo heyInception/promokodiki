@@ -1,0 +1,2 @@
+<?php /** @package Promokodiki_Admitad */ ?>
+<div class="wrap promokodiki-admitad-admin"><h1>Admitad: обзор автоматизации</h1><p>Состояние очереди, расписания и обработки данных. Версия схемы: <?php echo esc_html( (string) $snapshot['schema_version'] ); ?>.</p><div data-admitad-table data-admitad-action="promokodiki_admitad_admin" data-admitad-operation="overview_refresh" data-admitad-page="admitad-overview" data-admitad-fragment="overview-status"><?php require ADMITAD_PLUGIN_DIR . 'admin/views/partials/overview-status.php'; ?></div></div>

@@ -1,0 +1,454 @@
+# Translation of Plugins - Delete Duplicate Posts - Stable (latest release) in Russian
+# This file is distributed under the same license as the Plugins - Delete Duplicate Posts - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2025-05-15 19:41:03+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n % 10 == 1 && n % 100 != 11) ? 0 : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? 1 : 2);\n"
+"X-Generator: GlotPress/4.0.3\n"
+"Language: ru\n"
+"Project-Id-Version: Plugins - Delete Duplicate Posts - Stable (latest release)\n"
+
+#: includes/class-ddp-admin.php:137
+msgid "Duplicate"
+msgstr "Дубликат"
+
+#: includes/class-ddp-admin.php:128 includes/class-ddp-admin.php:1250
+msgid "From URL"
+msgstr "С сайта"
+
+#: includes/class-ddp-admin.php:129 includes/class-ddp-admin.php:1253
+msgid "Target URL"
+msgstr "Целевой URL"
+
+#: includes/class-ddp-admin.php:130
+msgid "Refreshing..."
+msgstr "Обновление..."
+
+#: includes/class-ddp-admin.php:131
+msgid "Refresh"
+msgstr "Обновить"
+
+#: includes/class-ddp-admin.php:134
+msgid "Looking for duplicates"
+msgstr "Ищем дубли"
+
+#: includes/class-ddp-admin.php:141
+msgid "An error occurred: "
+msgstr "Произошла ошибка: "
+
+#: includes/class-ddp-admin.php:142
+msgid "Delete Selected"
+msgstr "Удалить Выбранные"
+
+#: includes/class-ddp-admin.php:143
+msgid "Select Visible"
+msgstr "Выберите Видимость"
+
+#: includes/class-ddp-admin.php:144
+msgid "Select None"
+msgstr "Снять выбор"
+
+#: includes/class-ddp-admin.php:410
+msgid "Log"
+msgstr "Лог"
+
+#: includes/class-ddp-admin.php:418 includes/class-ddp-admin.php:1238
+#: includes/class-ddp-admin.php:1268
+msgid "Redirects"
+msgstr "Редиректы"
+
+#: includes/class-ddp-admin.php:600
+msgid "Automatically Deleting Duplicates"
+msgstr "Автоматическое удаление дубликатов"
+
+#: includes/class-ddp-admin.php:1271
+msgid "Redirects are a premium feature. Please upgrade to access this functionality."
+msgstr "Перенаправления — это премиум-функция. Пожалуйста, обновитесь, чтобы получить доступ к этой функции."
+
+#: includes/class-ddp-admin.php:1241
+msgid "This table shows all redirects created by the plugin."
+msgstr "В этой таблице показаны все перенаправления, созданные плагином."
+
+#: includes/class-ddp-admin.php:746
+msgid "Warning: Enabling this can give false results. Only enable if you know what you are doing."
+msgstr "Предупреждение: включение этого параметра может привести к ложным результатам. Включайте только если вы знаете, что делаете."
+
+#: includes/class-ddp-admin.php:139
+msgid "Please select at least one row to delete."
+msgstr "Пожалуйста, выберите хотя бы одну строку для удаления."
+
+#: includes/class-ddp-admin.php:132
+msgid "Error details: "
+msgstr "Детали ошибки: "
+
+#: includes/class-ddp-admin.php:136
+msgid "Failed to load data. "
+msgstr "Не удалось загрузить данные. "
+
+#: includes/class-ddp-admin.php:135
+msgid "Request: "
+msgstr "Запрос: "
+
+#: includes/class-ddp-admin.php:140
+msgid "Response from the server: "
+msgstr "Ответ от сервера: "
+
+#. translators: 1: Database error message, 2: SQL query
+#: includes/class-ddp-duplicates.php:297
+msgid "Look up error: %1$s %2$s"
+msgstr "Ошибка поиска: %1$s %2$s"
+
+#. translators: 1: Number of duplicates found, 2: Time in seconds.
+#: includes/class-ddp-duplicates.php:402
+msgid "Duplicates found: %1$s. Time: %2$s sec."
+msgstr "Найдено дубликатов: %1$s. Время: %2$s сек."
+
+#. translators: 1: Number of duplicates, 2: Time in seconds, 3: Status data, 4:
+#. Memory usage
+#: includes/class-ddp-duplicates.php:380
+msgid "Duplicates found: %1$d, Time: %2$s sec. %3$s Mem usage: %4$s"
+msgstr "Найдено дубликатов: %1$d, Время: %2$s сек. %3$s Использование памяти: %4$s"
+
+#: includes/class-ddp-duplicates.php:42 includes/class-ddp-duplicates.php:94
+#: includes/class-ddp-logger.php:32
+msgid "You do not have sufficient permissions to perform this action."
+msgstr "У вас недостаточно прав для выполнения этого действия."
+
+#: includes/class-ddp-admin.php:473
+msgid "Ok, you deserve it"
+msgstr "Хорошо, вы это заслужили"
+
+#: includes/class-ddp-duplicates.php:67
+msgid "Invalid duplicates selected."
+msgstr "Выбраны недопустимые дубликаты."
+
+#: includes/class-ddp-duplicates.php:52
+msgid "No duplicates were selected?"
+msgstr "Дубликаты не выбраны?"
+
+#: includes/class-ddp-admin.php:1062
+msgid "How many:"
+msgstr "Какое количество:"
+
+#: includes/class-ddp-admin.php:1103
+msgid "This only applies to automatic (CRON) jobs."
+msgstr "Это применимо только к автоматическим (CRON) заданиям."
+
+#: includes/class-ddp-admin.php:1034
+msgid "Delete Duplicates Automatically"
+msgstr "Автоматическое удаление дубликатов"
+
+#. translators: %s: Number of duplicates deleted.
+#: includes/class-ddp-duplicates.php:551
+msgid "A total of %s duplicates were deleted."
+msgstr "Всего было удалено %s дубликатов."
+
+#. translators: %s: Email recipient list.
+#: includes/class-ddp-duplicates.php:535
+msgid "DEBUG: Sending email to: %s"
+msgstr "ОТЛАДКА: Отправка электронной почты на адрес: %s"
+
+#: includes/class-ddp-duplicates.php:432
+msgid "Automatic CRON job running."
+msgstr "Автоматический запуск задания CRON."
+
+#: sidebar.php:50
+msgid "We recommend you always make a backup before running this tool."
+msgstr "Мы рекомендуем всегда делать резервную копию перед запуском этого инструмента."
+
+#: includes/class-ddp-admin.php:1215
+msgid "Should only be enabled if debugging a problem."
+msgstr "Следует включать только при отладке проблемы."
+
+#: includes/class-ddp-admin.php:1202
+msgid "Enable debug logging?:"
+msgstr "Включить ведение журнала отладки:"
+
+#: sidebar.php:107
+msgid "Recreate Databases"
+msgstr "Воссоздать базы данных"
+
+#. translators: Total number of deleted duplicates
+#: includes/class-ddp-admin.php:678
+msgid "(%s total found)"
+msgstr "(%s всего найдено)"
+
+#: includes/class-ddp-admin.php:1069
+msgid "No limit"
+msgstr "Нет ограничений"
+
+#: includes/class-ddp-admin.php:1100
+msgid "If you have many duplicates, the plugin might time out before finding them all. Try limiting the amount of duplicates here. Default: Unlimited."
+msgstr "Если у вас много дубликатов, плагин может истечь по тайм-ауту, прежде чем найдет их все. Попробуйте ограничить количество дубликатов здесь. По умолчанию: неограниченно."
+
+#: includes/class-ddp-admin.php:127
+msgid "You have to select which duplicates to delete. Tip: You can click the top or bottom checkbox to select all."
+msgstr "Вам нужно выбрать, какие дубликаты удалить. Совет. Чтобы выбрать все, можно установить верхний или нижний флажок."
+
+#: sidebar.php:104
+msgid "Support Forum on WordPress.org"
+msgstr "Форум поддержки на WordPress.org"
+
+#: includes/class-ddp-admin.php:797
+msgid "Looks at the title of the post itself."
+msgstr "Смотрим на название поста."
+
+#: includes/class-ddp-duplicates.php:48
+msgid "Cleaning duplicates"
+msgstr "Очистка дублей"
+
+#: includes/class-ddp-settings.php:147
+msgid "Rendering Help Scouts beacon for easy help and support"
+msgstr "Оказание маяка помощи скаутам для легкой помощи и поддержки"
+
+#: includes/class-ddp-admin.php:126
+msgid "Are you sure you want to delete duplicates? There is no undo feature."
+msgstr "Вы уверены, что хотите удалить дубликаты? Функция отмены не предусмотрена."
+
+#: includes/class-ddp-admin.php:691
+msgid "Choose which post types to scan for duplicates."
+msgstr "Выберите, какие типы сообщений следует сканировать на наличие дубликатов."
+
+#: sidebar.php:92
+msgid "Our other plugins"
+msgstr "Наши другие плагины"
+
+#: includes/class-ddp-admin.php:794
+msgid "Compare by title (default)"
+msgstr "Сравнить по названию (по умолчанию)"
+
+#: includes/class-ddp-settings.php:154
+msgid "Your email is added to cleverplugins.com newsletter. Unsubscribe any time."
+msgstr "Ваш email добавлен в рассылку cleverplugins.com. Отписаться можно в любое время."
+
+#: includes/class-ddp-duplicates.php:388
+msgid "Error: Choose post types to check."
+msgstr "Ошибка: Выберите типы сообщений для проверки."
+
+#: includes/class-ddp-logger.php:56
+msgid "Error: Log is empty.. do something :-)"
+msgstr "Ошибка: Журнал пуст.. сделайте что-нибудь :-)"
+
+#: includes/class-ddp-admin.php:699
+msgid "Post status"
+msgstr "Статус поста"
+
+#. translators: %s: Number of deleted posts
+#: sidebar.php:28
+msgid "%s duplicates deleted!"
+msgstr "%s дубликатов удалено!"
+
+#: includes/class-ddp-admin.php:138
+msgid "Original"
+msgstr "Исходный"
+
+#: includes/class-ddp-admin.php:356
+msgid "Settings saved."
+msgstr "Настройки сохранены."
+
+#: includes/class-ddp-admin.php:1176
+msgid "Email recipient:"
+msgstr "Получатель электронного письма:"
+
+#: includes/class-ddp-admin.php:918
+msgid "Keep latest"
+msgstr "Сохранить новые"
+
+#: includes/class-ddp-admin.php:909
+msgid "Keep oldest"
+msgstr "Сохранить самые старые"
+
+#: includes/class-ddp-admin.php:783
+msgid "Comparison Method"
+msgstr "Метод сравнения"
+
+#: includes/class-ddp-admin.php:407
+msgid "Duplicates"
+msgstr "Дубликаты"
+
+#: includes/class-ddp-install.php:27
+msgid "Every 5 minutes"
+msgstr "Каждые 5 минут"
+
+#. translators: %s: Email address field value.
+#: includes/class-ddp-duplicates.php:543
+msgid "Not a valid email %s."
+msgstr "Недействительный адрес электронной почты %s."
+
+#: includes/class-ddp-duplicates.php:484
+msgid "DEBUG: Deleted %1$s %2$s (id: %3$s) in %4$s sec."
+msgstr "ОТЛАДКА: Удалено %1$s %2$s (id: %3$s) через %4$s сек."
+
+#: includes/class-ddp-admin.php:1041
+msgid "Enable automatic deletion?:"
+msgstr "Включить автоматическое удаление?:"
+
+#. Description of the plugin
+#: delete-duplicate-posts.php
+msgid "Remove duplicate blogposts on your blog! Searches and removes duplicate posts and their post meta tags. You can delete posts, pages and other Custom Post Types enabled on your website."
+msgstr "Удалите дубликаты постов в своем блоге! Поиск и удаление дубликатов записей и их метатегов записей. Вы можете удалять записи, страницы и другие пользовательские типы записей, включенные на вашем сайте."
+
+#: includes/class-ddp-admin.php:1140
+msgid "How often should the cron job run?"
+msgstr "Как часто следует запускать задание cron?"
+
+#: includes/class-ddp-admin.php:1111
+msgid "How often?:"
+msgstr "Как часто:"
+
+#: includes/class-ddp-admin.php:625
+msgid "Which post types?:"
+msgstr "Какие типы постов?:"
+
+#. translators: Showing when the next check happens and what the current time
+#. is
+#: includes/class-ddp-admin.php:607
+msgid "Next automated check %1$s. Current time %2$s"
+msgstr "Следующая автоматическая проверка %1$s. Текущее время %2$s"
+
+#: includes/class-ddp-admin.php:275
+msgid "What does this plugin do?"
+msgstr "Что делает этот плагин?"
+
+#: includes/class-ddp-admin.php:274
+msgid "Usage and FAQ"
+msgstr "Использование и часто задаваемые вопросы"
+
+#: includes/class-ddp-install.php:35
+msgid "Every 15 minutes"
+msgstr "Каждые 15 минут"
+
+#: includes/class-ddp-install.php:31
+msgid "Every 10 minutes"
+msgstr "Каждые 10 минут"
+
+#. translators: 1: Number of deleted duplicate posts, 2: Time in seconds.
+#: includes/class-ddp-duplicates.php:497
+msgid "A total of %1$s duplicate posts were deleted in %2$s sec."
+msgstr "Всего за %2$s сек. было удалено %1$s дубликатов постов."
+
+#: includes/class-ddp-duplicates.php:434
+msgid "Manually cleaning."
+msgstr "Ручная очистка."
+
+#. Plugin Name of the plugin
+#: delete-duplicate-posts.php includes/class-ddp-duplicates.php:697
+#: includes/class-ddp-duplicates.php:848
+msgid "Delete Duplicate Posts"
+msgstr "Удаление дубликатов постов"
+
+#. Author of the plugin
+#: delete-duplicate-posts.php includes/class-ddp-duplicates.php:702
+msgid "cleverplugins.com"
+msgstr "cleverplugins.com"
+
+#: includes/class-ddp-duplicates.php:712
+msgid "Deleted Duplicate Posts Status"
+msgstr "Удалять дубликаты статусов записей"
+
+#. translators: %s: Email recipient list.
+#: includes/class-ddp-duplicates.php:539
+msgid "Status email sent to %s."
+msgstr "Статус отправленного  письма на %s."
+
+#: includes/class-ddp-install.php:69
+msgid "Plugin activated."
+msgstr "Плагин активирован."
+
+#: includes/class-ddp-admin.php:275
+msgid "It also has a nice feature that can send you an e-mail when Delete Duplicate Posts finds and deletes something (if you have turned on the CRON feature)."
+msgstr "К услугам гостей приятная особенность, которая может отправить вам по электронной почте, когда Удалитель дубликатов постов находит и удаляет (если включена функция CRON)."
+
+#: includes/class-ddp-admin.php:275
+msgid "Help! Something was deleted that was not supposed to be deleted!"
+msgstr "Помощь! Что-то было удалено,что не должно удаляться!"
+
+#: includes/class-ddp-admin.php:275
+msgid "I am sorry for that, I can only recommend you restore the database you took just before you ran this plugin."
+msgstr "Я прошу прощения за это, я могу только рекомендовать вам восстановить базу данных, вы сделали ее как раз перед  запуском этого плагина."
+
+#: includes/class-ddp-admin.php:302
+msgid "Whoops! There was a problem with the data you posted. Please go back and try again."
+msgstr "Упс! Произошла проблема с данными. Пожалуйста вернитесь назад, и попробуйте снова."
+
+#: includes/class-ddp-admin.php:582
+msgid "Reset log"
+msgstr "Сброс журнала"
+
+#: includes/class-ddp-admin.php:897
+msgid "Delete which posts?:"
+msgstr "Какие записи удалять?"
+
+#: includes/class-ddp-admin.php:1054
+msgid "Clean duplicates automatically."
+msgstr "Автоматическая очистка дубликатов."
+
+#: includes/class-ddp-admin.php:1152
+msgid "Send status mail?:"
+msgstr "Отправить статус почты?:"
+
+#: includes/class-ddp-admin.php:1167
+msgid "Sends a status email if duplicates have been found."
+msgstr "Отправляет электронное письмо с информацией о состоянии, если обнаружены дубликаты."
+
+#: includes/class-ddp-admin.php:1247
+msgid "ID"
+msgstr "ID"
+
+#. Plugin URI of the plugin
+#. Author URI of the plugin
+#: delete-duplicate-posts.php
+msgid "https://cleverplugins.com"
+msgstr "https://cleverplugins.com"
+
+#: includes/class-ddp-admin.php:275
+msgid "We have done our best to avoid deleting something that should not be deleted, but if it happens, there is nothing we can do to help you."
+msgstr "Мы сделали все возможное, чтобы не удалять то, что не следует удалять, но если это произойдет, мы ничем не сможем вам помочь."
+
+#: includes/class-ddp-admin.php:275
+msgid "If you run this plugin, manually or automatically, it is at your OWN risk!"
+msgstr "Если вы запускаете этот плагин вручную или автоматически, вы делаете это на свой страх и риск!"
+
+#: includes/class-ddp-admin.php:275
+msgid "It can run automatically via WordPress's own internal CRON-system, or you can run it automatically."
+msgstr "Он может запускаться автоматически через внутреннюю CRON-систему WordPress, или вы можете запустить его автоматически."
+
+#: includes/class-ddp-admin.php:275
+msgid "Helps you clean duplicate posts from your blog. The plugin checks for blogposts on your blog with the same title."
+msgstr "Помогает вам очистить ваш блог от дубликатов постов. Плагин проверяет наличие постов в вашем блоге с таким же заголовком."
+
+#: includes/class-ddp-admin.php:571
+msgid "The Log"
+msgstr "Лог"
+
+#: includes/class-ddp-admin.php:1222
+msgid "Save Settings"
+msgstr "Сохранить настройки"
+
+#: includes/class-ddp-admin.php:923
+msgid "Keep the oldest or the latest version of duplicates? Default is keeping the oldest, and deleting any subsequent duplicate posts"
+msgstr "Сохранять самую старую или последнюю версию дубликатов? По умолчанию сохраняется самая старая версия и удаляются все последующие дубликаты сообщений"
+
+#: includes/class-ddp-admin.php:603
+msgid "You have enabled automatic deletion, so I am running on automatic. I will take care of everything..."
+msgstr "Вы включили автоматическое удаление, поэтому я работаю в автоматическом режиме. Я обо всем позабочусь..."
+
+#: includes/class-ddp-admin.php:367
+msgid "The log was cleared."
+msgstr "Лог был очищен."
+
+#: includes/class-ddp-admin.php:362 includes/class-ddp-admin.php:373
+msgid "Whoops! Some error occured, try again, please!"
+msgstr "Упс! Произошла ошибка. Повторите попытку, пожалуйста!"
+
+#: includes/class-ddp-install.php:39
+msgid "Every 30 minutes"
+msgstr "Каждые 30 минут"
+
+#: includes/class-ddp-admin.php:254 includes/class-ddp-admin.php:413
+#: includes/class-ddp-admin.php:591
+msgid "Settings"
+msgstr "Настройки"

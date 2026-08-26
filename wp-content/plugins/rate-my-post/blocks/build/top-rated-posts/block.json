@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "feedbackwp/top-rated-posts",
+  "version": "0.0.1",
+  "title": "Top Rated Posts",
+  "category": "widgets",
+  "icon": "list-view",
+  "description": "Display a list of top-rated posts by FeedbackWP",
+  "attributes": {
+    "number": {
+      "type": "string",
+      "default": 10
+    },
+    "minimum_rating": {
+      "type": "string",
+      "default": 1
+    },
+    "minimum_votes": {
+      "type": "string",
+      "default": 1
+    },
+    "show_featured_image": {
+      "type": "boolean",
+      "default": false
+    },
+    "show_star_rating": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "supports": {
+    "html": false
+  },
+  "textdomain": "rate-my-post",
+  "editorScript": "file:./index.js",
+  "render": "file:./render.php"
+}
