@@ -1,0 +1,1 @@
+"""Telegram promocode worker."""

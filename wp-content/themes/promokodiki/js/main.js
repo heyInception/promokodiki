@@ -74,6 +74,19 @@ let swiperNews = new swiper__WEBPACK_IMPORTED_MODULE_2__["default"](".news__slid
     }
   }
 });
+let swiperTelegramTop = new swiper__WEBPACK_IMPORTED_MODULE_2__["default"](".top__slider", {
+  modules: [swiper_modules__WEBPACK_IMPORTED_MODULE_3__.Navigation],
+  spaceBetween: 10,
+  navigation: {
+    nextEl: ".top__next",
+    prevEl: ".top__prev"
+  },
+  breakpoints: {
+    320: { slidesPerView: 1 },
+    768: { slidesPerView: 2 },
+    1230: { slidesPerView: 4 }
+  }
+});
 (function ($) {
   $(document).ready(function () {
     $(document).ready(function () {

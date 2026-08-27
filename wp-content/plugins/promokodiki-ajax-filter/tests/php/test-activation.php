@@ -16,7 +16,7 @@ Promokodiki_Filter_Test_Harness::run(
 
 		$table = $wpdb->prefix . 'promokodiki_click_stats';
 		Promokodiki_Filter_Test_Harness::assert_true( class_exists( 'Promokodiki_Filter_Plugin' ) );
-		Promokodiki_Filter_Test_Harness::assert_same( '2', get_option( 'promokodiki_filter_db_version' ) );
+		Promokodiki_Filter_Test_Harness::assert_same( '3', get_option( 'promokodiki_filter_db_version' ) );
 		Promokodiki_Filter_Test_Harness::assert_same(
 			$table,
 			$wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) )

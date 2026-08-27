@@ -87,7 +87,8 @@ final class Promokodiki_Filter_Option_Service {
 
 	private static function active_promocode_ids( array $tax_query ): array {
 		$args = array(
-			'post_type'              => 'promocode',
+			'post_type'                    => 'promocode',
+			'promokodiki_include_telegram' => true,
 			'post_status'            => 'publish',
 			'posts_per_page'         => -1,
 			'fields'                 => 'ids',

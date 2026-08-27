@@ -15,6 +15,57 @@ $coupon_code = get_post_meta(get_the_ID(), $meta_prefix . 'code', true);
 $coupon_link = get_post_meta(get_the_ID(), $meta_prefix . 'link', true);
 $is_verified = get_post_meta(get_the_ID(), $meta_prefix . 'is_verified', true);
 $campaign_name = get_post_meta(get_the_ID(), 'campaign_name', true);
+$is_telegram = '' !== get_post_meta(get_the_ID(), '_telegram_source_key', true);
+$telegram_icon_url = 'https://promokodiki.com/wp-content/uploads/2026/08/telegram-svgrepo-com.svg';
+$author_brands = get_the_terms(get_the_ID(), 'shops_category');
+if (!$author_brands || is_wp_error($author_brands)) {
+    $author_brands = get_the_terms(get_the_ID(), 'promocode_brand');
+}
+$author_brands = $author_brands && !is_wp_error($author_brands) ? $author_brands : array();
+
+$render_promocode_author = static function () use ($is_telegram, $telegram_icon_url, $author_brands, $campaign_name): void {
+    if ($is_telegram) {
+        ?>
+        <div class="promocodes__author">
+            <img src="<?php echo esc_url($telegram_icon_url); ?>" alt="Telegram">
+            <span class="top__nick">@telegram</span>
+        </div>
+        <?php
+        return;
+    }
+
+    if ($author_brands) {
+        foreach ($author_brands as $brand) {
+            $image_id = get_term_meta($brand->term_id, '_admitad_shop_logo_id', true);
+            if (!$image_id) $image_id = get_term_meta($brand->term_id, 'image', true);
+            if (!$image_id) $image_id = get_term_meta($brand->term_id, 'brand_image', true);
+            if (!$image_id) $image_id = get_term_meta($brand->term_id, 'promocode_brand-image-id', true);
+            $brand_image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
+            $brand_url = get_term_link($brand);
+            ?>
+            <div class="promocodes__author">
+                <?php if ($brand_image_url) : ?>
+                    <img src="<?php echo esc_url($brand_image_url); ?>" alt="<?php echo esc_attr($brand->name); ?>">
+                <?php endif; ?>
+                <?php if (!is_wp_error($brand_url)) : ?>
+                    <a href="<?php echo esc_url($brand_url); ?>"><span><?php echo esc_html($brand->name); ?></span></a>
+                <?php else : ?>
+                    <span><?php echo esc_html($brand->name); ?></span>
+                <?php endif; ?>
+            </div>
+            <?php
+        }
+        return;
+    }
+
+    if ($campaign_name) {
+        ?>
+        <div class="promocodes__author">
+            <span><?php echo esc_html($campaign_name); ?></span>
+        </div>
+        <?php
+    }
+};
 // Для shops получаем дополнительные поля
 
 // Проверяем истек ли купон/промокод
@@ -41,7 +92,7 @@ $image_alt = '';
 $category_name = '';
 
 if (is_tax('shops_category')) {
-    $image_id = get_term_meta($current_category->term_id, 'shops-category-image-id', true);
+    $image_id = get_term_meta($current_category->term_id, '_admitad_shop_logo_id', true);
     $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
     $image_alt = $image_id ? (get_post_meta($image_id, '_wp_attachment_image_alt', true) ?: $current_category->name) : '';
     $category_name = $current_category->name;
@@ -65,7 +116,10 @@ if (is_tax('shops_category')) {
     <?php endif; ?>
 
     <?php
-    $image_uri = get_post_meta(get_the_ID(), 'image_url', true);
+    $image_uri = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+    if (!$image_uri) {
+        $image_uri = get_post_meta(get_the_ID(), 'image_url', true);
+    }
     if ($image_uri) {
     ?>
         <div class="promocodes__imgs ">
@@ -90,17 +144,7 @@ if (is_tax('shops_category')) {
         <a href="<?php the_permalink(); ?>" class="promocodes__title"><?php the_title(); ?></a>
 
         <div class="promocodes__data">
-             <div class="promocodes__author">
-                    <?php
-                    $image_uri = get_post_meta(get_the_ID(), 'image_url', true);
-                    if ($image_uri) {
-                    ?>
-                        <?php echo '<img src="' . esc_url($image_uri) . '" alt="' . esc_attr(get_the_title()) . '">'; ?>
-                    <?php } ?>
-                    <?php if ($campaign_name) : ?>
-                        <span><?php echo esc_html($campaign_name); ?></span>
-                    <?php endif; ?>
-                </div>
+            <?php $render_promocode_author(); ?>
 
             <div class="promocodes__used"><?php echo $used_count; ?> Применено</div>
 
@@ -133,47 +177,7 @@ if (is_tax('shops_category')) {
     </div>
 
     <div class="promocodes__data promocodes__data_m">
-        <?php if ($image_url || $category_name) : ?>
-            <div class="promocodes__author">
-                <?php if ($image_url) : ?>
-                    <img src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($image_alt); ?>">
-                <?php endif; ?>
-                <?php if ($category_name) : ?>
-                    <span><?php echo esc_html($category_name); ?></span>
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
-        <?php
-        // Альтернативный способ получить ID поста
-        $post_id = get_the_ID();
-
-        if ('promocode' === get_post_type($post_id)) {
-            $brands = get_the_terms($post_id, 'promocode_brand');
-
-            if ($brands && !is_wp_error($brands)) {
-                foreach ($brands as $brand) {
-                    // Пробуем разные варианты метаполей
-                    $image_id = get_term_meta($brand->term_id, 'image', true);
-                    if (!$image_id) $image_id = get_term_meta($brand->term_id, 'brand_image', true);
-                    if (!$image_id) $image_id = get_term_meta($brand->term_id, 'promocode_brand-image-id', true);
-
-                    $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
-        ?>
-                    <div class="promocodes__author">
-                        <?php if ($image_url) : ?>
-                            <img src="<?php echo esc_url($image_url); ?>"
-                                alt="<?php echo esc_attr($brand->name); ?>">
-                        <?php endif; ?>
-                        <?php $brand_url = get_term_link( $brand ); ?>
-                        <?php if ( ! is_wp_error( $brand_url ) ) : ?><a href="<?php echo esc_url( $brand_url ); ?>"><span><?php echo esc_html($brand->name); ?></span></a><?php else : ?><span><?php echo esc_html($brand->name); ?></span><?php endif; ?>
-                    </div>
-        <?php
-                }
-            } else {
-                echo '<p>Нет привязанных брендов</p>';
-            }
-        }
-        ?>
+        <?php $render_promocode_author(); ?>
 
         <div class="promocodes__used"><?php echo $used_count; ?> Применено</div>
 

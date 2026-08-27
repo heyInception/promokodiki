@@ -42,13 +42,16 @@ final class Promokodiki_Filter_Query_Service {
 
 	private static function run_standard( array $state, array $context, array $settings, int $page, int $limit, int $offset ): array {
 		$args = array(
-			'post_type'           => 'promocode',
+			'post_type'                    => 'promocode',
 			'post_status'         => 'publish',
 			'posts_per_page'      => $limit + 1,
 			'offset'              => $offset,
 			'ignore_sticky_posts' => true,
 			'no_found_rows'       => false,
 		);
+		if ( 'home' === $context['type'] ) {
+			$args['promokodiki_include_telegram'] = true;
+		}
 
 		$tax_query = self::tax_query( $state, $context );
 		if ( $tax_query ) {

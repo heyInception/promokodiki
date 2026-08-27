@@ -21,6 +21,14 @@
 !/wp-content/plugins/admitad-coupons/**
 !/wp-content/plugins/promokodiki-ajax-filter/
 !/wp-content/plugins/promokodiki-ajax-filter/**
+!/wp-content/plugins/promokodiki-telegram/
+!/wp-content/plugins/promokodiki-telegram/**
+/wp-content/plugins/promokodiki-telegram/worker/.env
+/wp-content/plugins/promokodiki-telegram/worker/.venv/
+/wp-content/plugins/promokodiki-telegram/worker/*.session*
+/wp-content/plugins/promokodiki-telegram/worker/__pycache__/
+/wp-content/plugins/promokodiki-telegram/worker/promokodiki_telegram_worker/__pycache__/
+/wp-content/plugins/promokodiki-telegram/worker/tests/__pycache__/
 
 **/node_modules/
 **/vendor/
