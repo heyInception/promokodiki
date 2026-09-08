@@ -2,8 +2,39 @@
 
 from collections import Counter
 from datetime import timedelta
+import json
 
 from .parser import parse_message
+
+
+MAX_IMPORT_ITEMS = 20
+MAX_IMPORT_BODY_BYTES = 4 * 1024 * 1024
+
+
+def _payload_size(payload):
+    return len(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+
+
+def _split_payload(payload):
+    metadata = {key: value for key, value in payload.items() if key != "items"}
+    batches = []
+    current = []
+
+    for original_item in payload["items"]:
+        item = original_item
+        if _payload_size({**metadata, "items": [item]}) > MAX_IMPORT_BODY_BYTES and "media" in item:
+            item = {key: value for key, value in item.items() if key != "media"}
+
+        candidate = current + [item]
+        if current and (len(candidate) > MAX_IMPORT_ITEMS or _payload_size({**metadata, "items": candidate}) > MAX_IMPORT_BODY_BYTES):
+            batches.append(current)
+            current = [item]
+        else:
+            current = candidate
+
+    if current:
+        batches.append(current)
+    return batches or [[]]
 
 
 def sync_all(wordpress, telegram, now):
@@ -43,8 +74,15 @@ def sync_all(wordpress, telegram, now):
             "inactive_message_ids": sorted(set(inactive)),
             "items": items,
         }
-        response = wordpress.import_batch(payload)
+        batches = _split_payload(payload)
+        imported = 0
+        for index, batch in enumerate(batches):
+            batch_payload = {"channel": username, "items": batch}
+            if index == len(batches) - 1:
+                batch_payload.update({key: value for key, value in payload.items() if key not in {"channel", "items"}})
+            response = wordpress.import_batch(batch_payload)
+            imported += int(response.get("imported", 0))
         totals["channels"] += 1
-        totals["imported"] += int(response.get("imported", 0))
+        totals["imported"] += imported
         totals["skipped"] += sum(skipped.values())
     return totals
