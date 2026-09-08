@@ -18,23 +18,49 @@ if (!function_exists('banner_sections')) {
             </div>
             <div class="banner__items">
               <?php
+              $category_cards = [
+                'zdorove-i-krasota' => [
+                  'color' => 'pink',
+                  'image' => 1,
+                ],
+                'elektronika' => [
+                  'color' => 'blue',
+                  'image' => 2,
+                ],
+                'moda' => [
+                  'color' => 'orange',
+                  'image' => 3,
+                ],
+                'produkty-pitaniya-i-bytovaya-himiya' => [
+                  'color' => 'yellow',
+                  'image' => 4,
+                ],
+              ];
+
               $popular_categories = get_terms([
                 'taxonomy' => 'promocode_category',
-                'orderby' => 'include',
-                'order' => 'ASC',
-                'number' => 4,
+                'slug' => array_keys($category_cards),
+                'orderby' => 'none',
                 'hide_empty' => false,
               ]);
 
               if (!empty($popular_categories) && !is_wp_error($popular_categories)) :
-                $popular_colors = ['pink', 'blue', 'orange', 'yellow'];
-                foreach ($popular_categories as $index => $category) :
-                  $image_id = get_term_meta($category->term_id, 'category_image', true);
-                  $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'full') : get_template_directory_uri() . '/img/default-category.jpg';
+                $categories_by_slug = [];
+
+                foreach ($popular_categories as $category) {
+                  $categories_by_slug[$category->slug] = $category;
+                }
+
+                foreach ($category_cards as $slug => $card) :
+                  if (empty($categories_by_slug[$slug])) {
+                    continue;
+                  }
+
+                  $category = $categories_by_slug[$slug];
               ?>
                   <a href="<?php echo esc_url(get_term_link($category)); ?>"
-                    class="banner__item banner__item_<?php echo esc_attr($popular_colors[$index % count($popular_colors)]); ?>"
-                    style="background-image: url(<?php echo esc_url(get_template_directory_uri() . '/img/banner-' . ($index + 1) . '.png'); ?>)">
+                    class="banner__item banner__item_<?php echo esc_attr($card['color']); ?>"
+                    style="background-image: url(<?php echo esc_url(get_template_directory_uri() . '/img/banner-' . $card['image'] . '.png'); ?>)">
                     <?php echo esc_html($category->name); ?>
                   </a>
                 <?php endforeach;
