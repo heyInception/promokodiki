@@ -13,6 +13,7 @@
           'posts_per_page' => 1,
           'orderby' => 'date',
           'order' => 'DESC',
+		  'meta_query' => promokodiki_promocode_recommendation_expiry_meta_query( current_time( 'Y-m-d' ) ),
         ));
 
         if ($latest_promo->have_posts()) :

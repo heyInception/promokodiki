@@ -35,14 +35,7 @@ if (!function_exists('promocodes_sections')) {
                     'posts_per_page' => 8, // Количество промокодов на главной
                     'orderby' => 'date',
                     'order' => 'DESC',
-                    'meta_query' => array(
-                      array(
-                        'key' => '_promocode_expiry_date',
-                        'value' => current_time('mysql'),
-                        'compare' => '>=',
-                        'type' => 'DATETIME'
-                      )
-                    )
+					'meta_query' => promokodiki_promocode_listing_expiry_meta_query( current_time( 'Y-m-d' ) )
                   );
 
                   $promocodes_query = new WP_Query($args);
@@ -58,14 +51,8 @@ if (!function_exists('promocodes_sections')) {
                       $coupon_code = get_post_meta(get_the_ID(), '_promocode_code', true);
                       $coupon_link = get_post_meta(get_the_ID(), '_promocode_link', true);
                       $is_verified = get_post_meta(get_the_ID(), '_promocode_is_verified', true);
-                      $is_expired = false;
-
-                      if (!empty($expiry_date)) {
-                        $current_time = current_time('timestamp');
-                        $expiry_timestamp = strtotime($expiry_date);
-                        $expiry_end_of_day = strtotime('tomorrow', $expiry_timestamp) - 1;
-                        $is_expired = $current_time > $expiry_end_of_day;
-                      }
+					  $expiry_state = promokodiki_promocode_expiry_state( (string) $expiry_date, current_time( 'Y-m-d' ) );
+					  $is_expired = in_array( $expiry_state, array( 'grace', 'hidden' ), true );
 
                       $image_url = '';
                       $category_name = '';
@@ -95,9 +82,11 @@ if (!function_exists('promocodes_sections')) {
                             <?php else: ?>
                               <div class="promocodes__latest">Истекло</div>
                             <?php endif; ?>
-                            <?php if ($expiry_date) : ?>
-                              <div class="promocodes__date">до <?php echo date('d.m.Y', strtotime($expiry_date)); ?></div>
-                            <?php endif; ?>
+							<?php if ( 'undated' === $expiry_state ) : ?>
+							  <div class="promocodes__date promocodes__date_dn">Срок не указан</div>
+							<?php else : ?>
+							  <div class="promocodes__date">до <?php echo esc_html( promokodiki_promocode_expiry_label( (string) $expiry_date ) ); ?></div>
+							<?php endif; ?>
                           </div>
 
                           <a href="<?php the_permalink(); ?>" class="promocodes__title"><?php the_title(); ?></a>
@@ -198,7 +187,9 @@ if (!function_exists('promocodes_sections')) {
                               </div>
                             </div>
 
-                            <?php if (!empty($coupon_code) && strpos($coupon_code, 'НЕ НУЖЕН') === false) : ?>
+							<?php if ( $is_expired ) : ?>
+							  <button class="btn-reset promocodes__button" disabled>Промокод истёк</button>
+                            <?php elseif (!empty($coupon_code) && strpos($coupon_code, 'НЕ НУЖЕН') === false) : ?>
                               <button class="btn-reset promocodes__view promocodes__button" data-post-id="<?php echo get_the_ID(); ?>" data-graph-path="promocode-<?php the_ID(); ?>">Посмотреть код</button>
                             <?php else : ?>
                               <a href="<?php echo esc_attr($coupon_link); ?>" rel="nofollow" target="_blank"><button class="btn-reset promocodes__link promocodes__button" data-post-id="<?php echo get_the_ID(); ?>">Перейти в магазин</button></a>
@@ -308,6 +299,7 @@ if (!function_exists('promocodes_sections')) {
                       'post_type' => 'promocode',
                       'posts_per_page' => 4,
                       'post__not_in' => array(get_the_ID()),
+					  'meta_query' => promokodiki_promocode_recommendation_expiry_meta_query( current_time( 'Y-m-d' ) ),
                     ));
 
                     while ($recent_promocodes->have_posts()) : $recent_promocodes->the_post();
@@ -401,10 +393,10 @@ if (!function_exists('promocodes_sections')) {
                             <?php } ?>
                           </div>
 
-                          <?php if (!$expiry_date) : ?>
-                            <div class="promocodes__teams-date">Бессрочно</div>
+                          <?php if ( 'undated' === promokodiki_promocode_expiry_state( (string) $expiry_date, current_time( 'Y-m-d' ) ) ) : ?>
+                            <div class="promocodes__teams-date">Срок не указан</div>
                           <?php else : ?>
-                            <div class="promocodes__teams-date">до <?php echo date('d.m.Y', strtotime($expiry_date)); ?></div>
+                            <div class="promocodes__teams-date">до <?php echo esc_html( promokodiki_promocode_expiry_label( (string) $expiry_date ) ); ?></div>
                           <?php endif; ?>
                         </div>
                         <a href="<?php the_permalink(); ?>" class="promocodes__teams-head"><?php the_title(); ?></a>

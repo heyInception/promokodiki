@@ -96,18 +96,17 @@ final class Promokodiki_Filter_Click_Stats {
 		$start  = wp_date( 'Y-m-d', current_datetime()->getTimestamp() - ( ( $days - 1 ) * DAY_IN_SECONDS ) );
 		$today  = current_time( 'Y-m-d' );
 
-		$expiry_sql = '';
-		$params     = array( $start );
-		if ( ! $include_expired ) {
-			$expiry_sql = "AND NOT EXISTS (
+		$minimum_expiry = $include_expired
+			? wp_date( 'Y-m-d', current_datetime()->modify( '-7 days' )->getTimestamp() )
+			: $today;
+		$expiry_sql = "AND NOT EXISTS (
 				SELECT 1 FROM {$wpdb->postmeta} expiry
 				WHERE expiry.post_id = p.ID
 				AND expiry.meta_key = '_promocode_expiry_date'
 				AND expiry.meta_value <> ''
 				AND expiry.meta_value < %s
 			)";
-			$params[]   = $today;
-		}
+		$params = array( $start, $minimum_expiry );
 		$params[] = $limit;
 		$params[] = $offset;
 
@@ -146,18 +145,17 @@ final class Promokodiki_Filter_Click_Stats {
 		$start = wp_date( 'Y-m-d', current_datetime()->getTimestamp() - ( ( $days - 1 ) * DAY_IN_SECONDS ) );
 		$today = current_time( 'Y-m-d' );
 
-		$expiry_sql = '';
-		$params     = array( $start );
-		if ( ! $include_expired ) {
-			$expiry_sql = "AND NOT EXISTS (
+		$minimum_expiry = $include_expired
+			? wp_date( 'Y-m-d', current_datetime()->modify( '-7 days' )->getTimestamp() )
+			: $today;
+		$expiry_sql = "AND NOT EXISTS (
 				SELECT 1 FROM {$wpdb->postmeta} expiry
 				WHERE expiry.post_id = p.ID
 				AND expiry.meta_key = '_promocode_expiry_date'
 				AND expiry.meta_value <> ''
 				AND expiry.meta_value < %s
 			)";
-			$params[]   = $today;
-		}
+		$params = array( $start, $minimum_expiry );
 
 		$sql = "SELECT COUNT(DISTINCT stats.promocode_id)
 			FROM {$table} stats

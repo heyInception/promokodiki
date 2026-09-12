@@ -177,10 +177,13 @@ final class Promokodiki_Filter_Query_Service {
 				WHERE paf_expiry.post_id = {$wpdb->posts}.ID
 				AND paf_expiry.meta_key = '_promocode_expiry_date')";
 			$today  = esc_sql( current_time( 'Y-m-d' ) );
+			$grace_cutoff = esc_sql( wp_date( 'Y-m-d', current_datetime()->modify( '-7 days' )->getTimestamp() ) );
 			$is_expired = "CASE WHEN {$expiry} IS NOT NULL AND {$expiry} <> '' AND {$expiry} < '{$today}' THEN 1 ELSE 0 END";
 
 			if ( ! $show_expired ) {
 				$clauses['where'] .= " AND ({$expiry} IS NULL OR {$expiry} = '' OR {$expiry} >= '{$today}')";
+			} else {
+				$clauses['where'] .= " AND ({$expiry} IS NULL OR {$expiry} = '' OR {$expiry} >= '{$grace_cutoff}')";
 			}
 			if ( $active_only ) {
 				$clauses['where'] .= " AND NOT EXISTS (

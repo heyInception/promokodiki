@@ -62,6 +62,10 @@ function get_term_link( $term ) {
 	return '/promocode-category/' . $term->slug . '/';
 }
 
+function get_post_type_archive_link( $post_type ) {
+	return 'promocode' === $post_type ? '/promocodes/' : '';
+}
+
 function esc_url( $value ) {
 	return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
 }
@@ -99,6 +103,11 @@ banner_categories_assert_same(
 	'The banner queries exactly the approved category slugs.'
 );
 banner_categories_assert_same( false, $banner_get_terms_args['hide_empty'] ?? null, 'Empty approved categories remain visible.' );
+banner_categories_assert_same(
+	1,
+	substr_count( $banner_html, 'href="/promocodes/" class="banner__button btn-reset ui-button ui-button--pink banner__button_m"' ),
+	'The mobile catalogue CTA uses the promocode archive URL.'
+);
 
 preg_match_all(
 	'/<a href="([^"]+)"\s+class="([^"]+)"\s+style="([^"]+)">\s*([^<]+?)\s*<\/a>/',

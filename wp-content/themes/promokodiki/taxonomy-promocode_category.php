@@ -101,6 +101,7 @@ $category_image = get_term_meta($current_category->term_id, 'category_image', tr
                     $args = array(
                         'posts_per_page' => 6,
                         'paged' => $paged,
+						'meta_query' => promokodiki_promocode_listing_expiry_meta_query( current_time( 'Y-m-d' ) ),
                     );
 
                     if (is_tax('shops_category')) {
@@ -255,7 +256,8 @@ $category_image = get_term_meta($current_category->term_id, 'category_image', tr
                             'post_type' => 'promocode',
                             'posts_per_page' => 4,
                             'orderby' => 'date',
-                            'order' => 'DESC'
+                            'order' => 'DESC',
+							'meta_query' => promokodiki_promocode_recommendation_expiry_meta_query( current_time( 'Y-m-d' ) ),
                         ));
 
                         if ($recent_promocodes->have_posts()) :
@@ -271,10 +273,10 @@ $category_image = get_term_meta($current_category->term_id, 'category_image', tr
                                                 alt="<?php echo esc_html($campaign_name); ?>">
                                             <span><?php echo esc_html($campaign_name); ?></span>
                                         </div>
-                                        <?php if (!$expiry_date) : ?>
-                                            <div class="promocodes__teams-date">Бессрочно</div>
+                                        <?php if ( 'undated' === promokodiki_promocode_expiry_state( (string) $expiry_date, current_time( 'Y-m-d' ) ) ) : ?>
+                                            <div class="promocodes__teams-date">Срок не указан</div>
                                         <?php else : ?>
-                                            <div class="promocodes__teams-date">до <?php echo date('d.m.Y', strtotime($expiry_date)); ?></div>
+                                            <div class="promocodes__teams-date">до <?php echo esc_html( promokodiki_promocode_expiry_label( (string) $expiry_date ) ); ?></div>
                                         <?php endif; ?>
                                     </div>
                                     <a href="<?php the_permalink(); ?>" class="promocodes__teams-head"><?php the_title(); ?></a>

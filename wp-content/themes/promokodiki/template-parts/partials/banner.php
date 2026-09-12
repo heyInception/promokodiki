@@ -68,7 +68,7 @@ if (!function_exists('banner_sections')) {
                 <p>Нет доступных категорий</p>
               <?php endif; ?>
             </div>
-            <a href="" class="banner__button btn-reset ui-button ui-button--pink banner__button_m">В каталог</a>
+            <a href="<?php echo esc_url( get_post_type_archive_link( 'promocode' ) ); ?>" class="banner__button btn-reset ui-button ui-button--pink banner__button_m">В каталог</a>
           </div>
         </div>
       </section>

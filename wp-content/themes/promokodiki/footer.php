@@ -30,7 +30,7 @@
               экспертными мнениями.</p>
           </div>
           <div class="footer__copyright">
-            © 2017-2026 TEST.ru. Все права защищены.
+            © 2017-<?php echo esc_html( wp_date( 'Y' ) ); ?> promokodiki.com. Все права защищены.
           </div>
         </div>
         <div class="footer__column footer__column_nav">
@@ -91,9 +91,9 @@
           </ul>
         </nav>
       </div>
-      <div class="footer__content">Вся информация публикуемая на сайте test.ru не является публичной офертой и носит
+      <div class="footer__content">Вся информация публикуемая на сайте promokodiki.com не является публичной офертой и носит
         справочный характер, на основании статьи 437 Гражданского кодекса РФ определяемой ее положениями.</div>
-      <div class="footer__copyright footer__copyright_m"> © 2017-2025 TEST.ru. Все права защищены.</div>
+      <div class="footer__copyright footer__copyright_m">© 2017-<?php echo esc_html( wp_date( 'Y' ) ); ?> promokodiki.com. Все права защищены.</div>
     </div>
   </div>
 </footer>

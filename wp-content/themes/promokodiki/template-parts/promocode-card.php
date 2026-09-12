@@ -69,16 +69,11 @@ $render_promocode_author = static function () use ($is_telegram, $telegram_icon_
 // Для shops получаем дополнительные поля
 
 // Проверяем истек ли купон/промокод
-$is_expired = 'expired' === $badge;
-if ('' === $badge && !empty($expiry_date)) {
-    $current_time = current_time('timestamp');
-    $expiry_timestamp = strtotime($expiry_date);
-    $expiry_end_of_day = strtotime('tomorrow', $expiry_timestamp) - 1;
-    $is_expired = $current_time > $expiry_end_of_day;
-}
+$expiry_state = promokodiki_promocode_expiry_state( (string) $expiry_date, current_time( 'Y-m-d' ) );
+$is_expired = in_array( $expiry_state, array( 'grace', 'hidden' ), true );
 
 $has_coupon_code = ! empty( $coupon_code ) && false === strpos( $coupon_code, 'НЕ НУЖЕН' );
-$expiry_label    = $expiry_date ? wp_date( 'd.m.Y', strtotime( $expiry_date ) ) : 'Бессрочно';
+$expiry_label    = promokodiki_promocode_expiry_label( (string) $expiry_date );
 $visitor_id      = isset( $_COOKIE['promokodiki_visitor'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['promokodiki_visitor'] ) ) : '';
 $user_reaction   = class_exists( 'Promokodiki_Filter_Promo_Interactions' )
     ? Promokodiki_Filter_Promo_Interactions::reaction_for( get_the_ID(), $visitor_id )
@@ -134,10 +129,10 @@ if (is_tax('shops_category')) {
             <?php else: ?>
                 <div class="promocodes__latest">Истекло</div>
             <?php endif; ?>
-            <?php if (!$expiry_date) : ?>
-                <div class="promocodes__date promocodes__date_dn">Бессрочно</div>
+            <?php if ('undated' === $expiry_state) : ?>
+                <div class="promocodes__date promocodes__date_dn">Срок не указан</div>
             <?php else : ?>
-                <div class="promocodes__date ">до <?php echo date('d.m.Y', strtotime($expiry_date)); ?></div>
+                <div class="promocodes__date ">до <?php echo esc_html( $expiry_label ); ?></div>
             <?php endif; ?>
         </div>
 

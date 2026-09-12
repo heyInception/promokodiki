@@ -9,7 +9,8 @@ $post_type = 'promocode';
 $meta_prefix = '_promocode_';
 
 // Получаем общие метаданные
-$expiry_date = get_post_meta(get_the_ID(), $meta_prefix . 'expiry_date', true);
+$promocode_id = get_the_ID();
+$expiry_date = get_post_meta($promocode_id, $meta_prefix . 'expiry_date', true);
 $used_count = get_post_meta(get_the_ID(), $meta_prefix . 'used_count', true) ?: 0;
 $likes = get_post_meta(get_the_ID(), $meta_prefix . 'likes', true) ?: 0;
 $dislikes = get_post_meta(get_the_ID(), $meta_prefix . 'dislikes', true) ?: 0;
@@ -22,15 +23,11 @@ $is_verified = get_post_meta(get_the_ID(), $meta_prefix . 'is_verified', true);
 // Для shops получаем дополнительные поля
 
 // Проверяем истек ли купон/промокод
-$is_expired = false;
-if (!empty($expiry_date)) {
-  $current_time = current_time('timestamp');
-  $expiry_timestamp = strtotime($expiry_date);
-  $expiry_end_of_day = strtotime('tomorrow', $expiry_timestamp) - 1;
-  $is_expired = $current_time > $expiry_end_of_day;
-}
+$expiry_state = promokodiki_promocode_expiry_state( (string) $expiry_date, current_time( 'Y-m-d' ) );
+$is_expired = in_array( $expiry_state, array( 'grace', 'hidden' ), true );
 $has_coupon_code = ! empty($coupon_code) && false === strpos($coupon_code, 'НЕ НУЖЕН');
-$expiry_label = $expiry_date ? wp_date('d.m.Y', strtotime($expiry_date)) : 'Бессрочно';
+$expiry_label = promokodiki_promocode_expiry_label( (string) $expiry_date );
+$active_alternative_ids = $is_expired ? promokodiki_promocode_active_shop_alternatives( $promocode_id ) : array();
 $visitor_id = isset($_COOKIE['promokodiki_visitor']) ? sanitize_text_field(wp_unslash($_COOKIE['promokodiki_visitor'])) : '';
 $user_reaction = class_exists('Promokodiki_Filter_Promo_Interactions')
   ? Promokodiki_Filter_Promo_Interactions::reaction_for(get_the_ID(), $visitor_id)
@@ -89,10 +86,10 @@ if (is_tax('shops_category')) {
                 <?php else: ?>
                   <div class="promocodes__latest">Истекло</div>
                 <?php endif; ?>
-                <?php if (!$expiry_date) : ?>
-                  <div class="promocodes__date promocodes__date_page">Бессрочно</div>
+                <?php if ('undated' === $expiry_state) : ?>
+                  <div class="promocodes__date promocodes__date_page">Срок не указан</div>
                 <?php else : ?>
-                  <div class="promocodes__date promocodes__date_page">до <?php echo date('d.m.Y', strtotime($expiry_date)); ?></div>
+                  <div class="promocodes__date promocodes__date_page">до <?php echo esc_html( $expiry_label ); ?></div>
                 <?php endif; ?>
               </div>
 
@@ -140,6 +137,18 @@ if (is_tax('shops_category')) {
               </div>
             </div>
           </div>
+
+		  <?php if ( $active_alternative_ids ) : ?>
+			<div class="promocodes__alternatives">
+			  <h2>Действующие промокоды этого магазина</h2>
+			  <div class="promocodes__items">
+				<?php foreach ( $active_alternative_ids as $alternative_id ) : ?>
+				  <?php $GLOBALS['post'] = get_post( $alternative_id ); setup_postdata( $GLOBALS['post'] ); ?>
+				  <?php get_template_part( 'template-parts/promocode-card' ); ?>
+				<?php endforeach; wp_reset_postdata(); ?>
+			  </div>
+			</div>
+		  <?php endif; ?>
 
           <div class="promocodes__description">
             <?php if (get_the_content()) : ?>
@@ -193,6 +202,7 @@ if (is_tax('shops_category')) {
           'author__in' => array(1), // ID авторов команды
           'orderby' => 'rand',
           'post__not_in' => array(get_the_ID()), // Исключаем текущий пост
+		  'meta_query' => promokodiki_promocode_recommendation_expiry_meta_query( current_time( 'Y-m-d' ) ),
         );
 
         // Если есть текущая категория, добавляем фильтр
@@ -221,10 +231,10 @@ if (is_tax('shops_category')) {
                       <span><?php echo get_the_author(); ?></span>
                     </div>
                     <?php $expiry_date = get_post_meta(get_the_ID(), '_promocode_expiry_date', true); ?>
-                    <?php if (!$expiry_date) : ?>
-                      <div class="promocodes__teams-date">Бессрочно</div>
+                    <?php if ( 'undated' === promokodiki_promocode_expiry_state( (string) $expiry_date, current_time( 'Y-m-d' ) ) ) : ?>
+                      <div class="promocodes__teams-date">Срок не указан</div>
                     <?php else : ?>
-                      <div class="promocodes__teams-date">до <?php echo date('d.m.Y', strtotime($expiry_date)); ?></div>
+                      <div class="promocodes__teams-date">до <?php echo esc_html( promokodiki_promocode_expiry_label( (string) $expiry_date ) ); ?></div>
                     <?php endif; ?>
                   </div>
                   <a href="<?php the_permalink(); ?>" class="promocodes__teams-head"><?php the_title(); ?></a>

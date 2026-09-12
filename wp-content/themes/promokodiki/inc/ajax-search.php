@@ -43,7 +43,8 @@ function load_more_search_results() {
         'offset' => $offset,
         'post_status' => 'publish',
         'orderby' => 'relevance',
-        'order' => 'DESC'
+        'order' => 'DESC',
+        'meta_query' => promokodiki_promocode_listing_expiry_meta_query( current_time( 'Y-m-d' ) )
     );
     
     // Добавляем фильтр по категориям, если они есть

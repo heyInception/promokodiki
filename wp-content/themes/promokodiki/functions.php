@@ -220,6 +220,7 @@ require get_template_directory() . '/inc/customizer.php';
 require get_template_directory() . '/inc/admin-menu.php';
 
 require get_template_directory() . '/inc/bread.php';
+require get_template_directory() . '/inc/promocode-expiry.php';
 require get_template_directory() . '/inc/layout.php';
 require get_template_directory() . '/inc/top.php';
 require get_template_directory() . '/inc/ajax-search.php';

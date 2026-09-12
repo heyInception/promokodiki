@@ -67,6 +67,7 @@ try {
 	$old_id = $create_promo( 'PAF oldest', '2026-07-10 10:00:00', 20, wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ), $category_one_id, $brand_one_id );
 	$mid_id = $create_promo( 'PAF middle', '2026-07-15 10:00:00', 0, '', $category_one_id, $brand_two_id );
 	$expired_id = $create_promo( 'PAF expired', '2026-07-18 10:00:00', 100, wp_date( 'Y-m-d', time() - DAY_IN_SECONDS ), $category_one_id, $brand_one_id );
+	$hidden_expired_id = $create_promo( 'PAF hidden expired', '2026-07-19 10:00:00', 101, wp_date( 'Y-m-d', time() - ( 8 * DAY_IN_SECONDS ) ), $category_one_id, $brand_one_id );
 	$other_id = $create_promo( 'PAF unrelated', '2026-07-21 10:00:00', 200, wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ), $category_two_id, $brand_one_id );
 	$now      = current_time( 'timestamp' );
 	$discount_active_ids = array();
@@ -194,7 +195,7 @@ try {
 
 	Promokodiki_Filter_Test_Harness::run(
 		'expired promocodes stay after every active promocode',
-		static function () use ( $state, $settings, $home_context, $category_one_id, $new_id, $mid_id, $old_id, $expired_id ): void {
+		static function () use ( $state, $settings, $home_context, $category_one_id, $new_id, $mid_id, $old_id, $expired_id, $hidden_expired_id ): void {
 			$with_expired = array_merge( $settings, array( 'show_expired' => true ) );
 			$result = Promokodiki_Filter_Query_Service::run(
 				$state( array( 'category_id' => $category_one_id, 'sort' => 'newest' ) ),
@@ -205,6 +206,7 @@ try {
 				array( $new_id, $mid_id, $old_id, $expired_id ),
 				wp_list_pluck( $result['posts'], 'ID' )
 			);
+			Promokodiki_Filter_Test_Harness::assert_true( ! in_array( $hidden_expired_id, wp_list_pluck( $result['posts'], 'ID' ), true ) );
 		}
 	);
 

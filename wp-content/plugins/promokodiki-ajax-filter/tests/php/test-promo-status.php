@@ -26,8 +26,14 @@ Promokodiki_Filter_Test_Harness::run(
 $fixtures = array();
 try {
 	$expired = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Expired status fixture' ) );
-	update_post_meta( $expired, '_promocode_expiry_date', '2000-01-01' );
+	update_post_meta( $expired, '_promocode_expiry_date', wp_date( 'Y-m-d', current_time( 'timestamp' ) - ( 7 * DAY_IN_SECONDS ) ) );
 	$fixtures[] = $expired;
+	$old_expired = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Old expired status fixture' ) );
+	update_post_meta( $old_expired, '_promocode_expiry_date', wp_date( 'Y-m-d', current_time( 'timestamp' ) - ( 8 * DAY_IN_SECONDS ) ) );
+	$fixtures[] = $old_expired;
+	$ends_today = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Ends today status fixture' ) );
+	update_post_meta( $ends_today, '_promocode_expiry_date', current_time( 'Y-m-d' ) );
+	$fixtures[] = $ends_today;
 	$new = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'New status fixture' ) );
 	$fixtures[] = $new;
 	$popular = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_date' => '2020-01-01 00:00:00', 'post_title' => 'Popular status fixture' ) );
@@ -36,6 +42,23 @@ try {
 	$wpdb->insert( $wpdb->prefix . 'promokodiki_click_stats', array( 'promocode_id' => $popular, 'click_date' => current_time( 'Y-m-d' ), 'clicks' => 1 ), array( '%d', '%s', '%d' ) );
 	Promokodiki_Filter_Test_Harness::run( 'expired badge takes priority over new', static function () use ( $expired ): void {
 		Promokodiki_Filter_Test_Harness::assert_same( 'expired', Promokodiki_Filter_Promo_Status::for_post( $expired ) );
+	} );
+	Promokodiki_Filter_Test_Harness::run( 'expiry date stays active through the end of its site-calendar day', static function () use ( $ends_today ): void {
+		Promokodiki_Filter_Test_Harness::assert_true( Promokodiki_Filter_Promo_Status::is_recommendable( $ends_today ) );
+	} );
+	Promokodiki_Filter_Test_Harness::run( 'seven-day expired offer remains in general listings but not recommendations', static function () use ( $expired ): void {
+		Promokodiki_Filter_Test_Harness::assert_true( Promokodiki_Filter_Promo_Status::is_listing_visible( $expired ) );
+		Promokodiki_Filter_Test_Harness::assert_true( ! Promokodiki_Filter_Promo_Status::is_recommendable( $expired ) );
+	} );
+	Promokodiki_Filter_Test_Harness::run( 'eight-day expired offer leaves general listings', static function () use ( $old_expired ): void {
+		Promokodiki_Filter_Test_Harness::assert_true( ! Promokodiki_Filter_Promo_Status::is_listing_visible( $old_expired ) );
+	} );
+	Promokodiki_Filter_Test_Harness::run( 'missing expiry uses an honest label', static function () use ( $new ): void {
+		Promokodiki_Filter_Test_Harness::assert_same( 'Срок не указан', Promokodiki_Filter_Promo_Status::expiry_label( $new ) );
+	} );
+	Promokodiki_Filter_Test_Harness::run( 'stored expiry time cannot move the displayed calendar date', static function () use ( $ends_today ): void {
+		update_post_meta( $ends_today, '_promocode_expiry_date', current_time( 'Y-m-d' ) . ' 23:59:59' );
+		Promokodiki_Filter_Test_Harness::assert_same( wp_date( 'd.m.Y' ), Promokodiki_Filter_Promo_Status::expiry_label( $ends_today ) );
 	} );
 	Promokodiki_Filter_Test_Harness::run( 'recent promocode receives new badge', static function () use ( $new ): void {
 		Promokodiki_Filter_Test_Harness::assert_same( 'new', Promokodiki_Filter_Promo_Status::for_post( $new ) );

@@ -619,6 +619,19 @@
   }
 }
 
+@media (max-width: 480px) {
+  .nav__favorite-button {
+    gap: 6px;
+    min-height: 40px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .nav__favorite-heart {
+    font-size: 16px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nav__submenu-chevron,
   .header__nav .menu-toggle__icon,
