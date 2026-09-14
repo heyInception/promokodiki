@@ -71,7 +71,7 @@ jobs:
       - name: Playwright Chromium
         run: |
           npx playwright install --with-deps chromium
-          npm run test:e2e
+          npm run test:e2e -- --reporter=github
       - name: Stop disposable WordPress
         if: always()
         run: npx wp-env stop
