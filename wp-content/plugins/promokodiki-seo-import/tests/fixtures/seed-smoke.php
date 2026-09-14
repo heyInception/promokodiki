@@ -23,3 +23,6 @@ set_theme_mod( 'nav_menu_locations', $locations );
 update_option( 'permalink_structure', '/%postname%/' );
 flush_rewrite_rules();
 delete_transient( 'promokodiki_active_shop_ids_v1' );
+if ( function_exists( 'promokodiki_shop_active_term_ids' ) ) {
+	promokodiki_shop_active_term_ids( true );
+}
