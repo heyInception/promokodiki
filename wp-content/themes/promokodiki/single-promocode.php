@@ -100,16 +100,8 @@ if (is_tax('shops_category')) {
                 <div class="promocodes__used"><?php echo $used_count; ?> Применено</div>
 
                 <div class="promocodes__likes">
-                  <div class="promocodes__like promocodes__like_yes<?php echo 'like' === $user_reaction ? ' is-active' : ''; ?>"
-                    data-post-id="<?php echo get_the_ID(); ?>" data-action="like">
-                    👍
-                    <span><?php echo $likes; ?></span>
-                  </div>
-                  <div class="promocodes__like promocodes__like_no<?php echo 'dislike' === $user_reaction ? ' is-active' : ''; ?>"
-                    data-post-id="<?php echo get_the_ID(); ?>" data-action="dislike">
-                    👎
-                    <span><?php echo $dislikes; ?></span>
-                  </div>
+				  <button type="button" class="promocodes__like promocodes__like_yes<?php echo 'like' === $user_reaction ? ' is-active' : ''; ?>" data-post-id="<?php echo get_the_ID(); ?>" data-action="like" aria-pressed="<?php echo 'like' === $user_reaction ? 'true' : 'false'; ?>">👍 Полезно — <span><?php echo esc_html( $likes ); ?></span></button>
+				  <button type="button" class="promocodes__like promocodes__like_no<?php echo 'dislike' === $user_reaction ? ' is-active' : ''; ?>" data-post-id="<?php echo get_the_ID(); ?>" data-action="dislike" aria-pressed="<?php echo 'dislike' === $user_reaction ? 'true' : 'false'; ?>">👎 Не сработало — <span><?php echo esc_html( $dislikes ); ?></span></button>
                 </div>
               </div>
 

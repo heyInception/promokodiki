@@ -83,8 +83,10 @@ function promokodiki_shop_profile( WP_Term $term ): array {
 /** Determine whether a term matches the catalogue search. */
 function promokodiki_shop_matches_search( WP_Term $term, string $search ): bool {
 	$search = mb_strtolower( trim( sanitize_text_field( $search ) ), 'UTF-8' );
+	$technical_name = (string) get_term_meta( $term->term_id, '_admitad_shop_campaign_name', true );
+	$haystack       = mb_strtolower( $term->name . ' ' . $technical_name, 'UTF-8' );
 
-	return '' === $search || false !== mb_strpos( mb_strtolower( $term->name, 'UTF-8' ), $search, 0, 'UTF-8' );
+	return '' === $search || false !== mb_strpos( $haystack, $search, 0, 'UTF-8' );
 }
 
 /** Return shop term IDs that currently have at least one eligible offer. */

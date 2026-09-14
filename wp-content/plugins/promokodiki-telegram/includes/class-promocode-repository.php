@@ -228,7 +228,7 @@ final class Promokodiki_Telegram_Promocode_Repository {
 			'published_at'        => sanitize_text_field( (string) ( $item['published_at'] ?? '' ) ),
 			'edited_at'           => sanitize_text_field( (string) ( $item['edited_at'] ?? '' ) ),
 			'views'               => max( 0, (int) ( $item['views'] ?? 0 ) ),
-			'expires_at'          => (int) ( $item['expires_at'] ?? ( time() + 72 * HOUR_IN_SECONDS ) ),
+			'expires_at'          => (int) ( $item['expires_at'] ?? ( time() + 7 * DAY_IN_SECONDS ) ),
 			'discount_label'      => sanitize_text_field( (string) ( $item['discount_label'] ?? '' ) ),
 			'discount_value'      => max( 0, (float) ( $item['discount_value'] ?? 0 ) ),
 			'media'               => is_array( $item['media'] ?? null ) ? $item['media'] : null,

@@ -12,6 +12,15 @@ final class Promokodiki_Admitad_Shop_Content_Service {
 	public static function sanitize( string $html ): string {
 		$html = preg_replace( '#<(script|style|iframe|form|button|select|textarea|picture|svg)\b[^>]*>.*?</\1>#isu', '', $html );
 		$html = preg_replace_callback(
+			'#<p\b[^>]*>\s*<strong\b[^>]*>(.*?)</strong>\s*</p>(.*?)(?=<p\b[^>]*>\s*<strong\b|<h[2-4]\b|$)#isu',
+			static function ( array $match ): string {
+				$title = mb_strtolower( trim( wp_strip_all_tags( $match[1] ) ), 'UTF-8' );
+				$is_service = (bool) preg_match( '/портрет\s+ц[аa]|работы\s+для\s+партн[её]ров|как\s+проходит\s+сверка|информац\w*\s+(?:про|о)\s+модерац|выдача\s+промокод/u', $title );
+				return $is_service ? '' : $match[0];
+			},
+			(string) $html
+		);
+		$html = preg_replace_callback(
 			'#<(h[2-4])\b[^>]*>(.*?)</\1>(.*?)(?=<h[2-4]\b|$)#isu',
 			static function ( array $match ): string {
 				$title = mb_strtolower( wp_strip_all_tags( $match[2] ), 'UTF-8' );

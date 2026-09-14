@@ -3,6 +3,7 @@
 
 	const config = window.PromokodikiInteractions || window.PromokodikiFilterConfig || {};
 	let activeCard = null;
+	let returnFocus = null;
 
 	function modal() {
 		return document.getElementById( 'promocodeModal' );
@@ -18,12 +19,17 @@
 
 	function close() {
 		const element = modal();
-		if ( ! element ) {
+		if ( ! element || ! element.classList.contains( 'show' ) ) {
 			return;
 		}
 		element.classList.remove( 'show' );
 		element.style.display = 'none';
+		element.setAttribute( 'aria-hidden', 'true' );
 		document.body.style.overflow = '';
+		if ( returnFocus && 'function' === typeof returnFocus.focus ) {
+			returnFocus.focus();
+		}
+		returnFocus = null;
 	}
 
 	function copyText( value ) {
@@ -34,7 +40,9 @@
 		const input = document.getElementById( 'modalPromoCode' );
 		if ( input ) {
 			input.select();
-			return Promise.resolve( document.execCommand( 'copy' ) );
+			return document.execCommand( 'copy' )
+				? Promise.resolve()
+				: Promise.reject( new Error( 'Clipboard command failed' ) );
 		}
 
 		return Promise.reject( new Error( 'Clipboard unavailable' ) );
@@ -104,14 +112,18 @@
 			}
 			if ( like ) {
 				like.classList.remove( 'is-active' );
+				like.setAttribute( 'aria-pressed', 'false' );
 				if ( 'like' === data.reaction ) {
 					like.classList.add( 'is-active' );
+					like.setAttribute( 'aria-pressed', 'true' );
 				}
 			}
 			if ( dislike ) {
 				dislike.classList.remove( 'is-active' );
+				dislike.setAttribute( 'aria-pressed', 'false' );
 				if ( 'dislike' === data.reaction ) {
 					dislike.classList.add( 'is-active' );
+					dislike.setAttribute( 'aria-pressed', 'true' );
 				}
 			}
 		} );
@@ -173,14 +185,20 @@
 		const logo = card.querySelector( '.promocodes__imgs img, .top__img img' );
 		const usedCount = used ? used.textContent.replace( /\D/g, '' ) : '0';
 		const logoElement = document.getElementById( 'modalPromoLogo' );
+		const linkElement = document.getElementById( 'modalPromoLink' );
+		const unavailable = document.getElementById( 'modalPromoLinkUnavailable' );
+		const status = document.getElementById( 'modalPromoCopyStatus' );
 
 		document.getElementById( 'modalPromoTitle' ).textContent = title ? title.textContent.trim() : '';
 		document.getElementById( 'modalPromoDesc' ).textContent = card.dataset.description || '';
 		document.getElementById( 'modalPromoCode' ).value = card.dataset.code;
-		document.getElementById( 'modalPromoLink' ).textContent = 'Перейти с промокодом';
-		document.getElementById( 'modalPromoLink' ).href = card.dataset.storeUrl || '#';
+		linkElement.textContent = 'Перейти с промокодом';
+		linkElement.href = card.dataset.storeUrl || '#';
+		linkElement.hidden = ! card.dataset.storeUrl;
+		unavailable.hidden = Boolean( card.dataset.storeUrl );
+		if ( status ) { status.textContent = ''; }
 		document.getElementById( 'modalPromoUsed' ).textContent = usedCount || '0';
-		document.getElementById( 'modalPromoExpiry' ).textContent = card.dataset.expiry || 'Бессрочно';
+		document.getElementById( 'modalPromoExpiry' ).textContent = card.dataset.expiry || 'Срок не указан';
 		if ( logoElement ) {
 			logoElement.src = logo ? logo.src : '';
 			logoElement.alt = logo ? logo.alt : '';
@@ -189,8 +207,10 @@
 		element.dataset.postId = card.dataset.postId || '';
 		element.style.display = 'flex';
 		element.classList.add( 'show' );
+		element.setAttribute( 'aria-hidden', 'false' );
 		document.body.style.overflow = 'hidden';
-		copyText( card.dataset.code ).catch( function () {} );
+		const dialog = element.querySelector( '.modal-promocode__content' );
+		if ( dialog && 'function' === typeof dialog.focus ) { dialog.focus(); }
 	}
 
 	window.openPromoModal = function ( postId ) {
@@ -208,6 +228,16 @@
 		document.addEventListener( 'keydown', function ( event ) {
 			if ( 'Escape' === event.key ) {
 				close();
+				return;
+			}
+			if ( 'Tab' === event.key && element.classList.contains( 'show' ) && 'function' === typeof element.querySelectorAll ) {
+				const focusable = Array.prototype.filter.call( element.querySelectorAll( 'button:not([hidden]):not([disabled]), a[href]:not([hidden]), input:not([disabled]), [tabindex]:not([tabindex="-1"])' ), function ( item ) { return ! item.hidden; } );
+				if ( focusable.length ) {
+					const first = focusable[0];
+					const last = focusable[focusable.length - 1];
+					if ( event.shiftKey && document.activeElement === first ) { event.preventDefault(); last.focus(); }
+					else if ( ! event.shiftKey && document.activeElement === last ) { event.preventDefault(); first.focus(); }
+				}
 			}
 		} );
 		document.addEventListener( 'click', function ( event ) {
@@ -221,6 +251,7 @@
 			const viewButton = event.target.closest( '.promocodes__view' );
 			if ( viewButton ) {
 				event.preventDefault();
+				returnFocus = viewButton;
 				populateModal( cardFor( viewButton ) );
 				return;
 			}
@@ -235,11 +266,16 @@
 		document.getElementById( 'copyPromoBtn' ).addEventListener( 'click', function ( event ) {
 			const button = event.currentTarget || event.target;
 			const input = document.getElementById( 'modalPromoCode' );
+			const status = document.getElementById( 'modalPromoCopyStatus' );
 			copyText( input.value ).then( function () {
 				const original = button.textContent;
 				button.textContent = 'Скопировано';
+				if ( status ) { status.textContent = 'Промокод скопирован'; }
 				setTimeout( function () { button.textContent = original; }, 1600 );
-			} ).catch( function () {} );
+			} ).catch( function () {
+				input.select();
+				if ( status ) { status.textContent = 'Не удалось скопировать. Нажмите Ctrl+C'; }
+			} );
 		} );
 
 		document.getElementById( 'modalPromoLink' ).addEventListener( 'click', function ( event ) {

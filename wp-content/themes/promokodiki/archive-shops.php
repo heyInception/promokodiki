@@ -75,7 +75,8 @@ $order    = array_merge( array( '0-9' ), $latin, $cyrillic );
 							<div id="shop-letter-<?php echo esc_attr( $letter ); ?>" class="alphabetical__name"><?php echo esc_html( '0-9' === $letter ? $letter : mb_strtoupper( $letter, 'UTF-8' ) ); ?></div>
 							<div class="alphabetical__list-wrap">
 								<?php foreach ( $groups[ $letter ] as $shop ) : ?>
-									<a href="<?php echo esc_url( get_term_link( $shop ) ); ?>" class="alphabetical__list-item" data-shop-name="<?php echo esc_attr( mb_strtolower( $shop->name, 'UTF-8' ) ); ?>"><?php echo esc_html( $shop->name ); ?></a>
+									<?php $search_names = trim( $shop->name . ' ' . (string) get_term_meta( $shop->term_id, '_admitad_shop_campaign_name', true ) ); ?>
+									<a href="<?php echo esc_url( get_term_link( $shop ) ); ?>" class="alphabetical__list-item" data-shop-name="<?php echo esc_attr( mb_strtolower( $search_names, 'UTF-8' ) ); ?>"><?php echo esc_html( $shop->name ); ?></a>
 								<?php endforeach; ?>
 							</div>
 						</div>

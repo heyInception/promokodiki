@@ -37,6 +37,12 @@ update_post_meta( $legacy_post_id, '_telegram_source_key', 'tranzhiraru:100' );
 update_post_meta( $legacy_post_id, '_telegram_raw_text', "Кофе Орнелио 1 кг!\nСкидка 20% по промокоду TEST20" );
 update_post_meta( $legacy_post_id, '_telegram_discount_value', 20 );
 update_post_meta( $legacy_post_id, '_promocode_code', 'TEST20' );
+$legacy_published = time() - 4 * DAY_IN_SECONDS;
+wp_update_post( array( 'ID' => $legacy_post_id, 'post_status' => 'draft' ) );
+update_post_meta( $legacy_post_id, '_telegram_published_at', gmdate( DATE_ATOM, $legacy_published ) );
+update_post_meta( $legacy_post_id, '_telegram_expires_at', $legacy_published + 72 * HOUR_IN_SECONDS );
+update_post_meta( $legacy_post_id, '_promocode_is_active', 'no' );
+update_post_meta( $legacy_post_id, '_telegram_inactive_reason', 'expired' );
 update_post_meta( $locked_post_id, '_telegram_source_key', 'tranzhiraru:101' );
 update_post_meta( $locked_post_id, '_telegram_raw_text', "Товар\nСкидка 10% по промокоду LOCK10" );
 update_post_meta( $locked_post_id, '_telegram_discount_value', 10 );
@@ -76,6 +82,15 @@ try {
 		'activation migrates existing Telegram permalinks',
 		static function () use ( $legacy_post_id ): void {
 			Promokodiki_Telegram_Test_Harness::assert_same( 'yandex-market-' . $legacy_post_id, get_post_field( 'post_name', $legacy_post_id ) );
+		}
+	);
+
+	Promokodiki_Telegram_Test_Harness::run(
+		'upgrade extends legacy default expiry and republishes an eligible expired draft',
+		static function () use ( $legacy_post_id, $legacy_published ): void {
+			Promokodiki_Telegram_Test_Harness::assert_same( $legacy_published + 7 * DAY_IN_SECONDS, (int) get_post_meta( $legacy_post_id, '_telegram_expires_at', true ) );
+			Promokodiki_Telegram_Test_Harness::assert_same( 'publish', get_post_status( $legacy_post_id ) );
+			Promokodiki_Telegram_Test_Harness::assert_same( 'yes', get_post_meta( $legacy_post_id, '_promocode_is_active', true ) );
 		}
 	);
 

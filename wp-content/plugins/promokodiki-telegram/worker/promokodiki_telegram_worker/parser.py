@@ -120,7 +120,7 @@ def _expiry(text_value: str, now: datetime) -> datetime:
         return datetime.combine(now.date(), time(23, 59, 59), tzinfo=now.tzinfo)
     if re.search(r"\bзавтра\b", text_value, re.IGNORECASE):
         return datetime.combine((now + timedelta(days=1)).date(), time(23, 59, 59), tzinfo=now.tzinfo)
-    return now + timedelta(hours=72)
+    return now + timedelta(days=7)
 
 
 def _telegram_host(url: str) -> bool:

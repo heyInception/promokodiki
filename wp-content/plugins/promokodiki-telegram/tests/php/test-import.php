@@ -22,7 +22,7 @@ $resolver    = static function ( string $url ): array {
 	);
 };
 $repository  = new Promokodiki_Telegram_Promocode_Repository( $resolver );
-$future      = time() + ( 72 * HOUR_IN_SECONDS );
+$future      = time() + ( 7 * DAY_IN_SECONDS );
 $payload     = array(
 	'channel'             => 'tranzhiraru',
 	'message_id'          => 987654,

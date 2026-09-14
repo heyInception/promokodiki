@@ -98,9 +98,9 @@
   </div>
 </footer>
 </div><!-- #page -->
-<div class="modal-promocode" id="promocodeModal" style="display: none;">
-  <div class="modal-promocode__overlay"></div>
-  <div class="modal-promocode__content">
+<div class="modal-promocode" id="promocodeModal" style="display: none;" aria-hidden="true">
+  <div class="modal-promocode__overlay" aria-hidden="true"></div>
+  <div class="modal-promocode__content" role="dialog" aria-modal="true" aria-labelledby="modalPromoTitle" tabindex="-1">
     <button class="modal-promocode__close" aria-label="Закрыть модальное окно">×</button>
 
     <div class="modal-promocode__logo">
@@ -114,8 +114,10 @@
       <input type="text" class="modal-promocode__code" id="modalPromoCode" readonly>
       <button class="modal-promocode__copy" id="copyPromoBtn">СКОПИРОВАТЬ</button>
     </div>
+	<p class="modal-promocode__copy-status" id="modalPromoCopyStatus" role="status" aria-live="polite"></p>
 
     <a href="#" class="modal-promocode__link" id="modalPromoLink" target="_blank" rel="nofollow noopener">Перейти в магазин</a>
+	<button type="button" class="modal-promocode__link" id="modalPromoLinkUnavailable" disabled hidden>Ссылка на магазин недоступна</button>
 
     <div class="modal-promocode__meta">
       <div class="modal-promocode__used"><span>Применили:</span> <span id="modalPromoUsed">0</span> раз</div>

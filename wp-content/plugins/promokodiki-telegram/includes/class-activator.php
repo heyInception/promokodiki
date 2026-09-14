@@ -71,12 +71,14 @@ final class Promokodiki_Telegram_Activator {
 			$offer_type = (string) get_post_meta( $post_id, '_telegram_offer_type', true );
 			$offer_type = $offer_type ?: ( '' !== $code ? 'promocode' : 'cart_discount' );
 			update_post_meta( $post_id, '_telegram_offer_type', $offer_type );
-			if ( 'yes' !== get_post_meta( $post_id, '_telegram_manual_lock', true ) ) {
+			$manual_lock = 'yes' === get_post_meta( $post_id, '_telegram_manual_lock', true );
+			if ( ! $manual_lock ) {
 				$post_data['post_title'] = self::telegram_title(
 					(string) get_post_meta( $post_id, '_telegram_raw_text', true ),
 					$offer_type,
 					(int) get_post_meta( $post_id, '_telegram_discount_value', true )
 				);
+				self::migrate_default_expiry( $post_id, $post_data );
 			}
 			wp_update_post(
 				$post_data
@@ -91,6 +93,25 @@ final class Promokodiki_Telegram_Activator {
 		Promokodiki_Telegram_Config::save_channels( $channels );
 
 		update_option( 'promokodiki_telegram_db_version', PROMOKODIKI_TELEGRAM_VERSION, false );
+	}
+
+	/** Extend legacy default 72-hour lifetimes while preserving explicit dates. */
+	private static function migrate_default_expiry( int $post_id, array &$post_data ): void {
+		$published_raw = (string) get_post_meta( $post_id, '_telegram_published_at', true );
+		$old_expiry    = (int) get_post_meta( $post_id, '_telegram_expires_at', true );
+		$published     = strtotime( $published_raw );
+		if ( false === $published || $old_expiry <= 0 || abs( $old_expiry - ( $published + 72 * HOUR_IN_SECONDS ) ) > MINUTE_IN_SECONDS ) {
+			return;
+		}
+
+		$new_expiry = $published + 7 * DAY_IN_SECONDS;
+		update_post_meta( $post_id, '_telegram_expires_at', $new_expiry );
+		update_post_meta( $post_id, '_promocode_expiry_date', wp_date( 'Y-m-d', $new_expiry, wp_timezone() ) );
+		if ( $new_expiry > time() && 'expired' === get_post_meta( $post_id, '_telegram_inactive_reason', true ) ) {
+			$post_data['post_status'] = 'publish';
+			update_post_meta( $post_id, '_promocode_is_active', 'yes' );
+			update_post_meta( $post_id, '_telegram_inactive_reason', '' );
+		}
 	}
 
 	private static function telegram_title( string $raw_text, string $offer_type, int $discount ): string {

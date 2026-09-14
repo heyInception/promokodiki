@@ -29,6 +29,24 @@ Promokodiki_Admitad_Test_Harness::run(
 );
 
 Promokodiki_Admitad_Test_Harness::run(
+	'Moulinex cleanup removes partner prose in strong paragraphs and keeps buyer terms',
+	static function (): void {
+		$source = '<p>Бренд производит кухонную технику.</p><p><strong>Портрет ЦА</strong></p><p>Женщины 25–55 лет.</p>'
+			. '<p><strong>Преимущества работы для партнеров</strong></p><p>Холд 30 дней. Cookies 30 дней.</p>'
+			. '<p><strong>Преимущества для клиентов</strong></p><p>Гарантия 2 года. Возврат 7 дней.</p>'
+			. '<p><strong>Условия доставки</strong></p><p>Бесплатно от 5 000 рублей.</p>'
+			. '<p><strong>Как проходит сверка</strong></p><p>Раз в месяц.</p><p><strong>Информация про модерацию</strong></p><p>Три раза в неделю.</p>';
+		$clean = Promokodiki_Admitad_Shop_Content_Service::sanitize( $source );
+		foreach ( array( 'Портрет ЦА', 'Женщины 25', 'партнеров', 'Холд', 'Cookies', 'сверка', 'Раз в месяц', 'модерацию', 'Три раза' ) as $removed ) {
+			Promokodiki_Admitad_Test_Harness::assert_true( ! str_contains( $clean, $removed ), 'Service fragment survived: ' . $removed );
+		}
+		foreach ( array( 'кухонную технику', 'Гарантия 2 года', 'Возврат 7 дней', 'Бесплатно от 5 000' ) as $kept ) {
+			Promokodiki_Admitad_Test_Harness::assert_true( str_contains( $clean, $kept ), 'Buyer fragment disappeared: ' . $kept );
+		}
+	}
+);
+
+Promokodiki_Admitad_Test_Harness::run(
 	'contacts accept one unambiguous phone and email but never infer an address',
 	static function (): void {
 		$contacts = Promokodiki_Admitad_Shop_Content_Service::extract_contacts( '<p>Телефон: +7 (495) 123-45-67. Email: help@example.test. Адрес: Москва.</p>' );

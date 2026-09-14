@@ -63,6 +63,7 @@ Promokodiki_Admitad_Test_Harness::run(
 
 		$campaign = array(
 			'external_id'    => (string) $campaign_id,
+			'name'           => 'Exact Campaign RU',
 			'description'    => 'Короткое описание API',
 			'raw_description' => '<p>Полное <strong>описание API</strong>.</p>',
 			'rating'         => 4.6,
@@ -73,8 +74,9 @@ Promokodiki_Admitad_Test_Harness::run(
 		try {
 			$result = ( new Promokodiki_Admitad_Shop_Profile_Sync() )->sync_campaign( $campaign );
 			Promokodiki_Admitad_Test_Harness::assert_same( array( 'updated' => 1, 'unlinked' => 0, 'term_id' => $linked_id ), $result );
-			Promokodiki_Admitad_Test_Harness::assert_same( '<p>Полное <strong>описание API</strong>.</p>', get_term_meta( $linked_id, '_admitad_shop_description', true ) );
-			Promokodiki_Admitad_Test_Harness::assert_same( 'Полное описание API.', get_term_meta( $linked_id, '_admitad_shop_summary', true ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( '<p>Короткое описание API</p>', get_term_meta( $linked_id, '_admitad_shop_description', true ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'Короткое описание API', get_term_meta( $linked_id, '_admitad_shop_summary', true ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'Exact Campaign RU', get_term_meta( $linked_id, '_admitad_shop_campaign_name', true ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( '4.6', (string) get_term_meta( $linked_id, '_admitad_shop_rating', true ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'https://cdn.example.test/exact.png', get_term_meta( $linked_id, '_admitad_shop_image_url', true ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( 'https://exact.example.test/', get_term_meta( $linked_id, '_admitad_shop_website', true ) );
@@ -92,7 +94,7 @@ Promokodiki_Admitad_Test_Harness::run(
 				'site_url'       => '',
 			);
 			( new Promokodiki_Admitad_Shop_Profile_Sync() )->sync_campaign( $empty );
-			Promokodiki_Admitad_Test_Harness::assert_same( '<p>Полное <strong>описание API</strong>.</p>', get_term_meta( $linked_id, '_admitad_shop_description', true ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( '<p>Короткое описание API</p>', get_term_meta( $linked_id, '_admitad_shop_description', true ) );
 			Promokodiki_Admitad_Test_Harness::assert_same( '4.6', (string) get_term_meta( $linked_id, '_admitad_shop_rating', true ) );
 
 			$unlinked = ( new Promokodiki_Admitad_Shop_Profile_Sync() )->sync_campaign( array_merge( $campaign, array( 'external_id' => '987654331' ) ) );
@@ -100,6 +102,47 @@ Promokodiki_Admitad_Test_Harness::run(
 		} finally {
 			wp_delete_term( $linked_id, 'shops_category' );
 			wp_delete_term( $similar_id, 'shops_category' );
+		}
+	}
+);
+
+Promokodiki_Admitad_Test_Harness::run(
+	'confirmed Moulinex campaigns merge into the editorial term and retain a redirect',
+	static function (): void {
+		$old_version = get_option( 'promokodiki_admitad_shop_merge_version', null );
+		$old_redirects = get_option( 'promokodiki_admitad_shop_redirects', null );
+		$target = wp_insert_term( 'Moulinex', 'shops_category', array( 'slug' => 'moulinex' ) );
+		$source = wp_insert_term( 'MoulinexRU', 'shops_category', array( 'slug' => 'moulinexru' ) );
+		$target_id = is_wp_error( $target ) ? 0 : (int) $target['term_id'];
+		$source_id = is_wp_error( $source ) ? 0 : (int) $source['term_id'];
+		$post_id = wp_insert_post( array( 'post_type' => 'promocode', 'post_status' => 'publish', 'post_title' => 'Moulinex test offer' ) );
+		try {
+			Promokodiki_Admitad_Test_Harness::assert_true( $target_id > 0 && $source_id > 0 && $post_id > 0 );
+			update_term_meta( $target_id, 'admitad_campaign_id', '15488' );
+			update_term_meta( $source_id, 'admitad_campaign_id', '182754' );
+			update_term_meta( $target_id, '_admitad_shop_website', 'https://moulinex.ru/' );
+			update_term_meta( $source_id, '_admitad_shop_website', 'https://www.moulinex.ru/catalog/' );
+			update_term_meta( $source_id, '_admitad_shop_description', '<p>Полезное описание</p>' );
+			wp_set_object_terms( $post_id, array( $source_id ), 'shops_category' );
+			delete_option( 'promokodiki_admitad_shop_merge_version' );
+			delete_option( 'promokodiki_admitad_shop_redirects' );
+
+			Promokodiki_Admitad_Shop_Merge_Migration::maybe_run();
+
+			Promokodiki_Admitad_Test_Harness::assert_same( 'Moulinex', get_term( $target_id, 'shops_category' )->name );
+			Promokodiki_Admitad_Test_Harness::assert_same( '182754', get_term_meta( $target_id, 'admitad_campaign_id', true ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( 'MoulinexRU', get_term_meta( $target_id, '_admitad_shop_campaign_name', true ) );
+			Promokodiki_Admitad_Test_Harness::assert_true( has_term( $target_id, 'shops_category', $post_id ) );
+			Promokodiki_Admitad_Test_Harness::assert_true( null === get_term( $source_id, 'shops_category' ) );
+			Promokodiki_Admitad_Test_Harness::assert_same( array( 'moulinexru' => 'moulinex' ), get_option( 'promokodiki_admitad_shop_redirects' ) );
+		} finally {
+			wp_delete_post( $post_id, true );
+			wp_delete_term( $target_id, 'shops_category' );
+			wp_delete_term( $source_id, 'shops_category' );
+			delete_option( 'promokodiki_admitad_shop_merge_version' );
+			delete_option( 'promokodiki_admitad_shop_redirects' );
+			if ( null !== $old_version ) { update_option( 'promokodiki_admitad_shop_merge_version', $old_version, false ); }
+			if ( null !== $old_redirects ) { update_option( 'promokodiki_admitad_shop_redirects', $old_redirects, false ); }
 		}
 	}
 );

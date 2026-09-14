@@ -58,11 +58,11 @@ class ParserTests(unittest.TestCase):
             NOW,
         )
         stale = parse_message(
-            message("Товар\n5% в корзине\nhttps://market.yandex.ru/a", date=NOW - timedelta(hours=80)),
+            message("Товар\n5% в корзине\nhttps://market.yandex.ru/a", date=NOW - timedelta(days=8)),
             "tranzhiraru",
             NOW,
         )
-        self.assertEqual((published + timedelta(hours=72)).timestamp(), active.item["expires_at"])
+        self.assertEqual((published + timedelta(days=7)).timestamp(), active.item["expires_at"])
         self.assertEqual("expired", stale.reason)
 
     def test_accepts_one_explicit_code_and_external_link(self):
@@ -156,7 +156,7 @@ class ParserTests(unittest.TestCase):
         default = parse_message(message("Промокод SAVE15 https://market.yandex.ru"), "tranzhiraru", NOW).item["expires_at"]
         self.assertLess(today, tomorrow)
         self.assertEqual(datetime(2026, 8, 30, 23, 59, 59, tzinfo=timezone.utc).timestamp(), explicit)
-        self.assertEqual((NOW.timestamp() + 72 * 3600), default)
+        self.assertEqual((NOW.timestamp() + 7 * 24 * 3600), default)
 
 
 if __name__ == "__main__":

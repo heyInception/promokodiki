@@ -776,3 +776,11 @@
     height: 64px;
   }
 }
+.promocodes__like { appearance: none; border: 0; background: transparent; font: inherit; cursor: pointer; }
+.promocodes__like:focus-visible,
+.modal-promocode button:focus-visible,
+.modal-promocode a:focus-visible,
+.modal-promocode input:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 3px; }
+.modal-promocode__content { max-height: calc(100vh - 32px); overflow-y: auto; }
+.modal-promocode__title { overflow-wrap: anywhere; }
+.modal-promocode__copy-status { min-height: 1.5em; }

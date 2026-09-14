@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Promokodiki Admitad Sync
  * Description: Imports Admitad coupons into a single promocode post type and links them to shops.
- * Version: 3.0.0
+ * Version: 3.1.0
  * Author: Promokodiki
  * Text Domain: promokodiki-admitad
  *
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ADMITAD_PLUGIN_VERSION', '3.0.0' );
+define( 'ADMITAD_PLUGIN_VERSION', '3.1.0' );
 define( 'ADMITAD_PLUGIN_FILE', __FILE__ );
 define( 'ADMITAD_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ADMITAD_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -55,6 +55,7 @@ require_once ADMITAD_PLUGIN_DIR . 'includes/class-import-pipeline.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-reference-repository.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-content-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-profile-sync.php';
+require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-merge-migration.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-shop-link-audit.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-deeplink-service.php';
 require_once ADMITAD_PLUGIN_DIR . 'includes/class-deeplink-queue.php';

@@ -93,8 +93,9 @@ final class Promokodiki_Admitad_Shop_Profile_Sync {
 		$term_id     = (int) $term_ids[0];
 		$raw         = trim( (string) ( $campaign['raw_description'] ?? '' ) );
 		$plain       = trim( (string) ( $campaign['description'] ?? '' ) );
-		$description = self::sanitize_description( '' !== $raw ? $raw : wpautop( esc_html( $plain ) ) );
+		$description = self::sanitize_description( '' !== $plain ? wpautop( esc_html( $plain ) ) : $raw );
 		$values      = array(
+			'_admitad_shop_campaign_name' => sanitize_text_field( (string) ( $campaign['name'] ?? '' ) ),
 			'_admitad_shop_description' => $description,
 			'_admitad_shop_summary'     => self::summary( $description ),
 			'_admitad_shop_image_url'   => esc_url_raw( (string) ( $campaign['image_url'] ?? '' ) ),
