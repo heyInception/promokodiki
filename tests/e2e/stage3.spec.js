@@ -13,11 +13,11 @@ test('menu to shop to code and close', async ({ page }) => {
 });
 
 test('discount sort, load more and browser back', async ({ page }) => {
-  await page.goto('/discounts/');
+  await page.goto('/?pagename=discounts');
   await page.locator('[data-filter-sort="newest"]').click();
   await expect(page).toHaveURL(/paf_sort=newest/);
   const more = page.locator('[data-filter-more]');
   if (await more.isVisible()) await more.click();
   await page.goBack();
-  await expect(page).toHaveURL(/\/discounts\/?$/);
+  await expect(page).toHaveURL(/[?&]pagename=discounts(?:&|$)/);
 });

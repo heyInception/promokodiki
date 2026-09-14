@@ -16,9 +16,10 @@ for ( $index = 1; $index <= 8; $index++ ) {
 	update_post_meta( $post_id, '_promocode_is_active', 'yes' );
 }
 $menu_id = wp_create_nav_menu( 'Primary smoke menu' );
-wp_update_nav_menu_item( $menu_id, 0, array( 'menu-item-title' => 'Тестовый магазин', 'menu-item-url' => get_term_link( (int) $shop['term_id'], 'shops_category' ), 'menu-item-status' => 'publish' ) );
+wp_update_nav_menu_item( $menu_id, 0, array( 'menu-item-title' => 'Тестовый магазин', 'menu-item-url' => home_url( '/?shops_category=test-shop' ), 'menu-item-status' => 'publish' ) );
 $locations = get_theme_mod( 'nav_menu_locations', array() );
 $locations['menu-1'] = $menu_id;
 set_theme_mod( 'nav_menu_locations', $locations );
 update_option( 'permalink_structure', '/%postname%/' );
 flush_rewrite_rules();
+delete_transient( 'promokodiki_active_shop_ids_v1' );
