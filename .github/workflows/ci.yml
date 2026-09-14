@@ -62,9 +62,9 @@ jobs:
           SENTINEL="stage3-$(date +%s)-$RANDOM"
           npx wp-env run cli wp option update promokodiki_ci_sentinel "$SENTINEL"
           npx wp-env run cli wp eval-file wp-content/plugins/promokodiki-seo-import/tests/test-dataset.php
+          npx wp-env run cli wp eval-file wp-content/themes/promokodiki/tests/stage3-static.php
           npx wp-env run cli wp eval-file wp-content/plugins/promokodiki-telegram/tests/php/test-rest.php
           npx wp-env run cli wp eval-file wp-content/plugins/admitad-coupons/tests/php/test-admin-operations.php
-          npx wp-env run cli wp eval-file wp-content/plugins/promokodiki-ajax-filter/tests/php/test-theme-integration.php
           test "$(npx wp-env run cli wp option get promokodiki_ci_sentinel | tail -n 1)" = "$SENTINEL"
       - name: Seed deterministic browser fixtures
         run: npx wp-env run cli wp eval-file wp-content/plugins/promokodiki-seo-import/tests/fixtures/seed-smoke.php
