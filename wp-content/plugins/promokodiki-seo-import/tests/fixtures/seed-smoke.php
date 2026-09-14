@@ -20,3 +20,5 @@ wp_update_nav_menu_item( $menu_id, 0, array( 'menu-item-title' => 'Тестов�
 $locations = get_theme_mod( 'nav_menu_locations', array() );
 $locations['menu-1'] = $menu_id;
 set_theme_mod( 'nav_menu_locations', $locations );
+update_option( 'permalink_structure', '/%postname%/' );
+flush_rewrite_rules();
