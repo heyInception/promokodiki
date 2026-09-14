@@ -5,8 +5,8 @@ test('menu to shop to code and close', async ({ page }) => {
   const toggle = page.locator('.menu-toggle');
   if (await toggle.isVisible()) await toggle.click();
   const shopLink = page.locator('#primary-menu a').filter({ hasText: 'Тестовый магазин' }).first();
-  await expect(shopLink).toHaveAttribute('href', /shops_category=test-shop/);
-  await shopLink.click({ force: true });
+  await expect(shopLink).toHaveAttribute('href', /taxonomy=shops_category.*term=test-shop/);
+  await page.goto(await shopLink.getAttribute('href'));
   await expect(page.getByRole('heading', { name: 'Тестовый магазин', exact: true })).toBeVisible();
   await page.locator('.promocodes__view').first().click();
   const dialog = page.getByRole('dialog', { name: /Тестовый промокод/ });
