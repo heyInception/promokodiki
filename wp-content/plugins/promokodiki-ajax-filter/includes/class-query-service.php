@@ -120,7 +120,7 @@ final class Promokodiki_Filter_Query_Service {
 		);
 	}
 
-	private static function validate_selection( array $state, array $context ): true|WP_Error {
+	private static function validate_selection( array $state, array $context ): bool|WP_Error {
 		$category_id = (int) ( $state['category_id'] ?? 0 );
 		$brand_id    = (int) ( $state['brand_id'] ?? 0 );
 		if ( $category_id && ! in_array( $category_id, $context['allowed_category_ids'] ?? array(), true ) ) {

@@ -10,7 +10,7 @@
 
 Команды импорта, контрольный список production и результаты dry-run описаны в [руководстве третьего этапа](docs/stage-3-seo-operations.md). Сам импорт при установке не запускается.
 
-Production-архив `promokodiki-stage-3-production-2026-09-14.zip` содержит 14 рабочих файлов с сохранённой структурой `wp-content`, без тестов и документации. SHA-256: `71CA1EE0D573DE06B081BCD55E6EE25B77A1A229A17F3A8B430E75A853A68DA7`.
+Production-архив `promokodiki-stage-3-production-2026-09-14.zip` содержит 15 рабочих файлов с сохранённой структурой `wp-content`, без тестов и документации. SHA-256: `4E00A7BC9E8DC4709521EA068242A58C18C2D401ADB3F4559FCB3231A8784E05`.
 
 ## Обновление: первый этап аудита сайта
 
@@ -300,3 +300,4 @@ studio wp admitad automation-migrate --execute --backup="C:\backups\before-admit
 WP-Cron является поддерживаемым базовым режимом. Если хостинг предоставляет системный CRON, можно дополнительно выполнять `wp cron event run --due-now` каждые пять минут. Состояние запусков, очереди, блокировок и ошибки OAuth доступны в разделах **Обзор**, **Синхронизация** и **Диагностика**.
 
 Полный эксплуатационный регламент, восстановление и команда запуска тестов: [docs/admitad-automation-operations.md](docs/admitad-automation-operations.md).
+

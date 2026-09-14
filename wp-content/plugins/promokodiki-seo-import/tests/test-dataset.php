@@ -1,9 +1,11 @@
 <?php
 /** Pure dataset contract for the SEO import. */
 
-define( 'ABSPATH', __DIR__ );
+if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', __DIR__ ); }
 
-function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+if ( ! function_exists( 'sanitize_text_field' ) ) {
+	function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+}
 if ( ! function_exists( 'mb_strtolower' ) ) {
 	function mb_strtolower( $value ) { return strtr( strtolower( $value ), array( 'Ф' => 'ф', 'С' => 'с' ) ); }
 }
