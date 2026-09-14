@@ -131,6 +131,8 @@ final class Promokodiki_Telegram_REST_Controller {
 				'imported'  => $imported,
 				'skipped'   => $skip_count,
 				'inspected' => (int) ( $params['inspected_count'] ?? 0 ),
+				'deactivated' => count( $inactive ),
+				'duration_ms' => (int) ( $params['duration_ms'] ?? 0 ),
 				'details'   => array( 'skipped' => $skip_map, 'errors' => $errors ),
 			)
 		);

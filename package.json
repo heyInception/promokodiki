@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "scripts": {
+    "test:js": "node --test wp-content/themes/promokodiki/tests/*.js wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-state.test.js wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-view.test.js wp-content/plugins/promokodiki-ajax-filter/tests/js/filter-integration.test.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@wordpress/env": "^10.28.0"
+  }
+}

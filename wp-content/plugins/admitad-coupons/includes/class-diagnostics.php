@@ -20,6 +20,7 @@ final class Promokodiki_Admitad_Diagnostics {
 	 */
 	public static function snapshot(): array {
 		$lock = new Promokodiki_Admitad_Job_Lock();
+		$runs = ( new Promokodiki_Admitad_Sync_Run_Repository() )->recent( 30 );
 		$data = array(
 			'plugin_version' => ADMITAD_PLUGIN_VERSION,
 			'schema_version' => (string) get_option( 'promokodiki_admitad_db_version', '' ),
@@ -33,7 +34,8 @@ final class Promokodiki_Admitad_Diagnostics {
 				'coupon'    => $lock->status( 'coupon' ),
 				'reference' => $lock->status( 'reference' ),
 			),
-			'recent_runs'    => ( new Promokodiki_Admitad_Sync_Run_Repository() )->recent( 20 ),
+			'health'         => self::health( $runs ),
+			'recent_runs'    => $runs,
 			'queue'          => array(
 				'low_confidence'      => ( new Promokodiki_Admitad_Review_Queue_Repository() )->count_unresolved( 'low_confidence' ),
 				'conflicting_signals' => ( new Promokodiki_Admitad_Review_Queue_Repository() )->count_unresolved( 'conflicting_signals' ),
@@ -42,6 +44,47 @@ final class Promokodiki_Admitad_Diagnostics {
 			'delayed_jobs'   => ( new Promokodiki_Admitad_Notifier() )->check_delayed_jobs(),
 		);
 		return self::redact( $data );
+	}
+
+	/** @param array<int, array<string, mixed>> $runs @return array<string, array<string, mixed>> */
+	private static function health( array $runs ): array {
+		$types = array(
+			'coupon'    => (int) Promokodiki_Admitad_Config::get( 'coupon_interval' ),
+			'reference' => (int) Promokodiki_Admitad_Config::get( 'reference_interval' ),
+		);
+		$result = array();
+		foreach ( $types as $type => $interval ) {
+			$matching = array_values( array_filter( $runs, static fn( array $run ): bool => $type === ( $run['job_type'] ?? '' ) ) );
+			$successes = array_values( array_filter( $matching, static fn( array $run ): bool => 'completed' === ( $run['status'] ?? '' ) ) );
+			$errors    = array_values( array_filter( $matching, static fn( array $run ): bool => 'failed' === ( $run['status'] ?? '' ) ) );
+			$success   = $successes[0] ?? false;
+			$error     = $errors[0] ?? false;
+			$ended_at = is_array( $success ) ? strtotime( (string) ( $success['completed_at'] ?? '' ) . ' UTC' ) : 0;
+			$latest   = $matching[0] ?? array();
+			$state    = array() === $matching ? 'never_run' : ( 'failed' === ( $latest['status'] ?? '' ) || ! is_array( $success ) ? 'error' : ( $ended_at > 0 && time() - $ended_at > 2 * max( 1, $interval ) ? 'stale' : 'healthy' ) );
+			$result[ $type ] = array(
+				'state'          => $state,
+				'last_success'   => is_array( $success ) ? (string) ( $success['completed_at'] ?? '' ) : '',
+				'last_error'     => is_array( $error ) ? (array) ( $error['error_summary'] ?? array() ) : array(),
+				'counts'         => array(
+					'received'    => (int) ( $latest['processed_count'] ?? 0 ),
+					'created'     => (int) ( $latest['created_count'] ?? 0 ),
+					'updated'     => (int) ( $latest['updated_count'] ?? 0 ),
+					'rejected'    => (int) ( $latest['failed_count'] ?? 0 ),
+					'deactivated' => (int) ( $latest['deactivated_count'] ?? 0 ),
+				),
+				'duration_seconds' => self::duration( $latest ),
+				'source'            => 'Admitad',
+			);
+		}
+		return $result;
+	}
+
+	/** @param array<string, mixed> $run */
+	private static function duration( array $run ): int {
+		$started = strtotime( (string) ( $run['started_at'] ?? '' ) . ' UTC' );
+		$ended   = strtotime( (string) ( $run['completed_at'] ?? $run['heartbeat_at'] ?? '' ) . ' UTC' );
+		return $started > 0 && $ended >= $started ? $ended - $started : 0;
 	}
 
 	/**

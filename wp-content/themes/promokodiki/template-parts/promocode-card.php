@@ -111,14 +111,23 @@ if (is_tax('shops_category')) {
     <?php endif; ?>
 
     <?php
-    $image_uri = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+    static $card_image_index = 0;
+    $thumbnail_id = get_post_thumbnail_id( get_the_ID() );
+    $image_uri = $thumbnail_id ? '' : get_the_post_thumbnail_url(get_the_ID(), 'medium');
     if (!$image_uri) {
         $image_uri = get_post_meta(get_the_ID(), 'image_url', true);
     }
-    if ($image_uri) {
+    if ($image_uri || $thumbnail_id) {
     ?>
         <div class="promocodes__imgs ">
-            <?php echo '<img src="' . esc_url($image_uri) . '" alt="' . esc_attr(get_the_title()) . '">'; ?>
+            <?php
+			if ( $thumbnail_id ) {
+				echo wp_get_attachment_image( $thumbnail_id, 'medium', false, array( 'alt' => get_the_title(), 'loading' => 0 === $card_image_index ? 'eager' : 'lazy', 'fetchpriority' => 0 === $card_image_index ? 'high' : 'auto', 'sizes' => '(max-width: 768px) 96px, 160px' ) );
+			} else {
+				echo '<img src="' . esc_url($image_uri) . '" alt="' . esc_attr(get_the_title()) . '" width="300" height="300" loading="' . ( 0 === $card_image_index ? 'eager' : 'lazy' ) . '">';
+			}
+			++$card_image_index;
+			?>
         </div>
     <?php } ?>
 

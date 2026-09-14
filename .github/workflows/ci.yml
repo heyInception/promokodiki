@@ -8,35 +8,70 @@ permissions:
   contents: read
 
 jobs:
-  php-and-security:
+  php-syntax:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: PHP syntax
+        run: find wp-content/themes/promokodiki wp-content/plugins -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Security policy
+        run: |
+          ! grep -RInE --include='*.php' "sslverify['\"[:space:]]*=>[[:space:]]*false" wp-content/themes/promokodiki wp-content/plugins
+          ! grep -RInE --include='*.php' "(client_secret|access_token)[[:space:]]*=[[:space:]]*['\"][A-Za-z0-9_-]{20,}" wp-content/themes/promokodiki wp-content/plugins
+
+  behavior:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.4'
           coverage: none
-      - name: PHP syntax
-        shell: bash
-        run: find wp-content/themes/promokodiki wp-content/plugins/admitad-coupons wp-content/plugins/promokodiki-ajax-filter -name '*.php' -print0 | xargs -0 -n1 php -l
-      - name: Security policy
-        shell: bash
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm install
+      - name: JavaScript unit tests
+        run: npm run test:js
+      - name: Telegram worker tests
+        working-directory: wp-content/plugins/promokodiki-telegram/worker
         run: |
-          ! grep -RInE --include='*.php' "sslverify['\"[:space:]]*=>[[:space:]]*false" wp-content/themes/promokodiki wp-content/plugins/admitad-coupons wp-content/plugins/promokodiki-ajax-filter
-          ! grep -RInE --include='*.php' "(client_secret|access_token)[[:space:]]*=[[:space:]]*['\"][A-Za-z0-9_-]{20,}" wp-content/themes/promokodiki wp-content/plugins/admitad-coupons wp-content/plugins/promokodiki-ajax-filter
-          ! grep -RInE --include='*.php' "\b(sleep|usleep)[[:space:]]*\(" wp-content/plugins/admitad-coupons
-      - name: Admitad integration-test contract
-        shell: bash
+          pip install -r requirements.txt
+          python -m unittest discover -s tests
+      - name: Start disposable WordPress
         run: |
-          test -f wp-content/plugins/admitad-coupons/tests/run-all.ps1
-          for test_file in wp-content/plugins/admitad-coupons/tests/php/test-*.php; do
-            grep -q "harness.php" "$test_file"
-          done
-      - name: Install WordPress Coding Standards
+          npx wp-env start
+          npx wp-env run cli wp theme activate promokodiki
+          npx wp-env run cli wp plugin activate admitad-coupons promokodiki-ajax-filter promokodiki-telegram promokodiki-seo-import
+      - name: PHP behavior tests with database sentinel
         run: |
-          composer global config allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
-          composer global require --dev wp-coding-standards/wpcs:^3.0
-      - name: WordPress Coding Standards
+          SENTINEL="stage3-$(date +%s)-$RANDOM"
+          npx wp-env run cli wp option update promokodiki_ci_sentinel "$SENTINEL"
+          npx wp-env run cli wp eval-file wp-content/plugins/promokodiki-seo-import/tests/test-dataset.php
+          npx wp-env run cli wp eval-file wp-content/plugins/promokodiki-telegram/tests/php/test-rest.php
+          npx wp-env run cli wp eval-file wp-content/plugins/admitad-coupons/tests/php/test-admin-operations.php
+          npx wp-env run cli wp eval-file wp-content/plugins/promokodiki-ajax-filter/tests/php/test-theme-integration.php
+          test "$(npx wp-env run cli wp option get promokodiki_ci_sentinel | tail -n 1)" = "$SENTINEL"
+      - name: Seed deterministic browser fixtures
+        run: npx wp-env run cli wp eval-file wp-content/plugins/promokodiki-seo-import/tests/fixtures/seed-smoke.php
+      - name: Playwright Chromium
         run: |
-          phpcs --standard=wp-content/plugins/admitad-coupons/phpcs.xml.dist wp-content/plugins/admitad-coupons
-          phpcs --standard=wp-content/plugins/promokodiki-ajax-filter/phpcs.xml.dist wp-content/plugins/promokodiki-ajax-filter
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: Stop disposable WordPress
+        if: always()
+        run: npx wp-env stop

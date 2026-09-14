@@ -30,6 +30,7 @@ function promokodiki_render_telegram_top(): void {
 }
 
 function promokodiki_render_telegram_card( int $post_id ): void {
+	static $top_image_index = 0;
 	$code          = (string) get_post_meta( $post_id, '_promocode_code', true );
 	$link          = (string) get_post_meta( $post_id, '_promocode_link', true );
 	$expires_at    = (int) get_post_meta( $post_id, '_telegram_expires_at', true );
@@ -54,7 +55,7 @@ function promokodiki_render_telegram_card( int $post_id ): void {
 		<?php endif; ?>
 
 		<div class="top__img">
-			<?php echo get_the_post_thumbnail( $post_id, 'medium', array( 'loading' => 'lazy', 'alt' => get_the_title( $post_id ) ) ) ?: '<img src="' . esc_url( get_template_directory_uri() . '/img/top-1.png' ) . '" alt="">'; ?>
+			<?php echo get_the_post_thumbnail( $post_id, 'medium', array( 'loading' => 0 === $top_image_index ? 'eager' : 'lazy', 'fetchpriority' => 0 === $top_image_index ? 'high' : 'auto', 'sizes' => '(max-width: 768px) 120px, 180px', 'alt' => get_the_title( $post_id ) ) ) ?: '<img src="' . esc_url( get_template_directory_uri() . '/img/top-1.png' ) . '" alt="" width="300" height="300" loading="' . ( 0 === $top_image_index ? 'eager' : 'lazy' ) . '" fetchpriority="' . ( 0 === $top_image_index ? 'high' : 'auto' ) . '">'; ++$top_image_index; ?>
 		</div>
 
 		<div class="top__wrap">

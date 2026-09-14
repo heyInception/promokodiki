@@ -97,6 +97,18 @@ try {
 		}
 	);
 
+	Promokodiki_Telegram_Test_Harness::run(
+		'health marks stale runs and retains only thirty aggregates',
+		static function (): void {
+			delete_option( 'promokodiki_telegram_log' );
+			for ( $index = 0; $index < 31; $index++ ) {
+				Promokodiki_Telegram_Log::add( array( 'timestamp' => gmdate( 'Y-m-d H:i:s', 1700000000 - $index ), 'channel' => 'tranzhiraru', 'status' => 'success' ) );
+			}
+			Promokodiki_Telegram_Test_Harness::assert_same( 30, count( Promokodiki_Telegram_Log::entries() ) );
+			Promokodiki_Telegram_Test_Harness::assert_same( 'stale', Promokodiki_Telegram_Log::health( 1700000000 + 7 * HOUR_IN_SECONDS )['state'] );
+		}
+	);
+
 	Promokodiki_Telegram_Test_Harness::finish();
 } finally {
 	foreach ( array_unique( $created_ids ) as $post_id ) {

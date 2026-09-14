@@ -160,16 +160,13 @@ function promokodiki_scripts()
 	wp_enqueue_script('promokodiki-custom', get_template_directory_uri() . '/js/customizer.js', array(), _S_VERSION, true);
 	wp_enqueue_script('promokodiki-navigation', get_template_directory_uri() . '/js/navigation.js', array(), _S_VERSION, true);
 	wp_enqueue_script('promokodiki-footer-ui', get_template_directory_uri() . '/js/footer-ui.js', array(), _S_VERSION, true);
-	wp_enqueue_script('promokodiki-promo-modal', get_template_directory_uri() . '/js/promocode-modal.js', array(), _S_VERSION, true);
-	wp_enqueue_script('promokodiki-top-promocodes', get_template_directory_uri() . '/js/top-promocodes.js', array('promokodiki-promo-modal'), _S_VERSION, true);
-	wp_localize_script(
-		'promokodiki-promo-modal',
-		'PromokodikiInteractions',
-		array(
-			'ajaxUrl' => admin_url('admin-ajax.php'),
-			'nonce'   => wp_create_nonce('promokodiki_filter_frontend'),
-		)
-	);
+	if ( promokodiki_page_has_promocode_cards() ) {
+		wp_enqueue_script('promokodiki-promo-modal', get_template_directory_uri() . '/js/promocode-modal.js', array(), _S_VERSION, true);
+		wp_localize_script( 'promokodiki-promo-modal', 'PromokodikiInteractions', array( 'ajaxUrl' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('promokodiki_filter_frontend') ) );
+		if ( is_front_page() ) {
+			wp_enqueue_script('promokodiki-top-promocodes', get_template_directory_uri() . '/js/top-promocodes.js', array('promokodiki-promo-modal'), _S_VERSION, true);
+		}
+	}
 	if ( is_page_template( 'page-faq.php' ) ) {
 		wp_enqueue_script( 'promokodiki-faq-page', get_template_directory_uri() . '/js/faq-page.js', array(), _S_VERSION, true );
 	}
@@ -190,6 +187,13 @@ function promokodiki_scripts()
 	}
 }
 add_action('wp_enqueue_scripts', 'promokodiki_scripts');
+
+/** Whether the current public template can render interactive promocode cards. */
+function promokodiki_page_has_promocode_cards(): bool {
+	return is_front_page() || is_home() || is_search() || is_singular( 'promocode' )
+		|| is_tax( array( 'promocode_category', 'promocode_brand', 'shops_category' ) )
+		|| is_post_type_archive( 'promocode' ) || is_page_template( 'page-discounts.php' );
+}
 
 /**
  * Implement the Custom Header feature.

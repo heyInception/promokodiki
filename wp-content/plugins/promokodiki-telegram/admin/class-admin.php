@@ -79,8 +79,10 @@ final class Promokodiki_Telegram_Admin {
 		}
 		$settings = Promokodiki_Telegram_Config::settings();
 		$channels = Promokodiki_Telegram_Config::channels();
+		$health   = Promokodiki_Telegram_Log::health();
 		?>
 		<div class="wrap"><h1>Telegram промокоды</h1>
+		<p><strong>Состояние:</strong> <?php echo esc_html( (string) $health['state'] ); ?> · <strong>Последний успех:</strong> <?php echo esc_html( (string) ( $health['last_success'] ?: 'ещё не запускался' ) ); ?> · <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=promocode&page=admitad-diagnostics' ) ); ?>">Диагностика Admitad</a></p>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="promokodiki_telegram_save">
 			<?php wp_nonce_field( 'promokodiki_telegram_settings' ); ?>
@@ -92,7 +94,7 @@ final class Promokodiki_Telegram_Admin {
 			<?php submit_button( 'Сохранить' ); ?>
 		</form>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="promokodiki_telegram_test_sync"><?php wp_nonce_field( 'promokodiki_telegram_test_sync' ); ?><?php submit_button( 'Запросить тестовую синхронизацию', 'secondary' ); ?></form>
-		<h2>Журнал</h2><table class="widefat striped"><thead><tr><th>Время UTC</th><th>Канал</th><th>Статус</th><th>Импортировано</th><th>Пропущено</th></tr></thead><tbody><?php foreach ( Promokodiki_Telegram_Log::entries() as $entry ) : ?><tr><td><?php echo esc_html( (string) $entry['timestamp'] ); ?></td><td><?php echo esc_html( (string) $entry['channel'] ); ?></td><td><?php echo esc_html( (string) $entry['status'] ); ?></td><td><?php echo esc_html( (string) $entry['imported'] ); ?></td><td><?php echo esc_html( (string) $entry['skipped'] ); ?></td></tr><?php endforeach; ?></tbody></table></div>
+		<h2>Последние 30 запусков</h2><table class="widefat striped"><thead><tr><th>Время UTC</th><th>Источник</th><th>Статус</th><th>Получено</th><th>Создано/обновлено</th><th>Отклонено</th><th>Деактивировано</th><th>Длительность</th></tr></thead><tbody><?php foreach ( Promokodiki_Telegram_Log::entries() as $entry ) : ?><tr><td><?php echo esc_html( (string) $entry['timestamp'] ); ?></td><td><?php echo esc_html( '@' . (string) $entry['channel'] ); ?></td><td><?php echo esc_html( (string) $entry['status'] ); ?></td><td><?php echo esc_html( (string) $entry['inspected'] ); ?></td><td><?php echo esc_html( (string) $entry['imported'] ); ?></td><td><?php echo esc_html( (string) $entry['skipped'] ); ?></td><td><?php echo esc_html( (string) ( $entry['deactivated'] ?? 0 ) ); ?></td><td><?php echo esc_html( (string) ( $entry['duration_ms'] ?? 0 ) . ' мс' ); ?></td></tr><?php endforeach; ?></tbody></table></div>
 		<?php
 	}
 }
