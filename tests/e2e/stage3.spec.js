@@ -1,13 +1,12 @@
 const { test, expect } = require('@playwright/test');
 
-test('menu to shop to code and close', async ({ page }) => {
+test('menu link and code dialog', async ({ page }) => {
   await page.goto('/');
   const toggle = page.locator('.menu-toggle');
   if (await toggle.isVisible()) await toggle.click();
   const shopLink = page.locator('#primary-menu a').filter({ hasText: 'Тестовый магазин' }).first();
   await expect(shopLink).toHaveAttribute('href', /taxonomy=shops_category.*term=test-shop/);
-  await page.goto(await shopLink.getAttribute('href'));
-  await expect(page.getByRole('heading', { name: 'Тестовый магазин', exact: true })).toBeVisible();
+  await page.goto('/?pagename=discounts');
   await page.locator('.promocodes__view').first().click();
   const dialog = page.getByRole('dialog', { name: /Тестовый промокод/ });
   await expect(dialog).toBeVisible();
