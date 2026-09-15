@@ -28,6 +28,10 @@ if ( function_exists( 'get_option' ) && class_exists( 'Promokodiki_SEO_Command' 
 	$term_id  = is_wp_error( $created ) ? 0 : (int) $created['term_id'];
 	if ( $term_id && class_exists( 'WPSEO_Taxonomy_Meta' ) ) {
 		WPSEO_Taxonomy_Meta::set_value( $term_id, 'promocode_category', 'focuskw', 'preserve-me' );
+	} elseif ( $term_id ) {
+		$fixture = $original;
+		$fixture['promocode_category'][ $term_id ] = array( 'wpseo_focuskw' => 'preserve-me' );
+		update_option( 'wpseo_taxonomy_meta', $fixture, false );
 	}
 	try {
 		$command = new Promokodiki_SEO_Command();
