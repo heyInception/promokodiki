@@ -14,6 +14,8 @@
 
 Перед изменением полей команда создаёт JSON-копию в `wp-content/uploads/promokodiki-seo-backups/` и хранит последние пять копий. Откат: `wp promokodiki seo rollback --file=/absolute/path/seo-fields-YYYYmmdd-HHMMSS.json`. После применения и отката запускается переиндексация Yoast и очистка WP Rocket.
 
+Индивидуальные SEO-поля рубрик сохраняются в штатной опции Yoast `wpseo_taxonomy_meta`. Обычный WordPress `termmeta` Yoast 26.6 для title и description рубрик не использует.
+
 Исправлены четыре очевидные ошибки источника: «скопруйте», «скидки разработку», «Актуальные скидка» и «промокоды на электрики». Длинные title и description сохранены без автоматического сокращения.
 
 ## Индексация

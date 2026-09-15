@@ -31,8 +31,7 @@ final class Promokodiki_SEO_Command {
 				update_post_meta( (int) $item['id'], '_yoast_wpseo_metadesc', $item['description'] );
 			} else {
 				wp_update_term( (int) $item['id'], 'promocode_category', array( 'name' => $item['name'] ) );
-				update_term_meta( (int) $item['id'], 'wpseo_title', $item['title'] );
-				update_term_meta( (int) $item['id'], 'wpseo_desc', $item['description'] );
+				$this->write_term_seo( (int) $item['id'], (string) $item['title'], (string) $item['description'] );
 			}
 		}
 		if ( isset( $data['yoast_titles'] ) ) { update_option( 'wpseo_titles', $data['yoast_titles'], false ); }
@@ -54,7 +53,8 @@ final class Promokodiki_SEO_Command {
 		}
 		$telegram = get_term_by( 'slug', 'promokody-iz-telegram', 'promocode_category' );
 		if ( $telegram instanceof WP_Term ) {
-			$object = array( 'type' => 'term', 'id' => $telegram->term_id, 'name' => $telegram->name, 'title' => get_term_meta( $telegram->term_id, 'wpseo_title', true ), 'description' => get_term_meta( $telegram->term_id, 'wpseo_desc', true ) );
+			$seo = $this->read_term_seo( $telegram->term_id );
+			$object = array( 'type' => 'term', 'id' => $telegram->term_id, 'name' => $telegram->name, 'title' => $seo['title'], 'description' => $seo['description'] );
 			$operations[] = array( 'object' => $object, 'row' => array( 'h1' => $telegram->name, 'title' => 'Промокоды из Telegram | Promokodiki', 'description' => 'Свежие промокоды и скидки из публичных Telegram-каналов, проверенные и собранные на Promokodiki.' ) );
 			$report['telegram_template'] = 'explicit';
 		}
@@ -76,7 +76,8 @@ final class Promokodiki_SEO_Command {
 		}
 		foreach ( get_terms( array( 'taxonomy' => 'promocode_category', 'hide_empty' => false ) ) as $term ) {
 			if ( $normalized === Promokodiki_SEO_Dataset::normalize_name( $term->name ) ) {
-				return array( 'type' => 'term', 'id' => $term->term_id, 'name' => $term->name, 'title' => get_term_meta( $term->term_id, 'wpseo_title', true ), 'description' => get_term_meta( $term->term_id, 'wpseo_desc', true ) );
+				$seo = $this->read_term_seo( $term->term_id );
+				return array( 'type' => 'term', 'id' => $term->term_id, 'name' => $term->name, 'title' => $seo['title'], 'description' => $seo['description'] );
 			}
 		}
 		return null;
@@ -89,9 +90,47 @@ final class Promokodiki_SEO_Command {
 			update_post_meta( $object['id'], '_yoast_wpseo_metadesc', $row['description'] );
 		} else {
 			wp_update_term( $object['id'], 'promocode_category', array( 'name' => $row['h1'] ) );
-			update_term_meta( $object['id'], 'wpseo_title', $row['title'] );
-			update_term_meta( $object['id'], 'wpseo_desc', $row['description'] );
+			$this->write_term_seo( (int) $object['id'], (string) $row['title'], (string) $row['description'] );
 		}
+	}
+
+	/** Read the per-term fields from Yoast's canonical taxonomy option. */
+	private function read_term_seo( int $term_id ): array {
+		if ( class_exists( 'WPSEO_Taxonomy_Meta' ) ) {
+			return array(
+				'title'       => (string) WPSEO_Taxonomy_Meta::get_term_meta( $term_id, 'promocode_category', 'title' ),
+				'description' => (string) WPSEO_Taxonomy_Meta::get_term_meta( $term_id, 'promocode_category', 'desc' ),
+			);
+		}
+		$meta = get_option( 'wpseo_taxonomy_meta', array() );
+		$term = $meta['promocode_category'][ $term_id ] ?? array();
+		return array(
+			'title'       => (string) ( $term['wpseo_title'] ?? '' ),
+			'description' => (string) ( $term['wpseo_desc'] ?? '' ),
+		);
+	}
+
+	/** Preserve other Yoast fields while updating an individual category. */
+	private function write_term_seo( int $term_id, string $title, string $description ): void {
+		if ( class_exists( 'WPSEO_Taxonomy_Meta' ) ) {
+			$term_meta = WPSEO_Taxonomy_Meta::get_term_meta( $term_id, 'promocode_category' );
+			$term_meta = is_array( $term_meta ) ? $term_meta : array();
+			$term_meta['wpseo_title'] = $title;
+			$term_meta['wpseo_desc']  = $description;
+			WPSEO_Taxonomy_Meta::set_values( $term_id, 'promocode_category', $term_meta );
+			return;
+		}
+		$meta = get_option( 'wpseo_taxonomy_meta', array() );
+		if ( ! isset( $meta['promocode_category'] ) || ! is_array( $meta['promocode_category'] ) ) {
+			$meta['promocode_category'] = array();
+		}
+		$term = isset( $meta['promocode_category'][ $term_id ] ) && is_array( $meta['promocode_category'][ $term_id ] )
+			? $meta['promocode_category'][ $term_id ]
+			: array();
+		$term['wpseo_title'] = $title;
+		$term['wpseo_desc']  = $description;
+		$meta['promocode_category'][ $term_id ] = $term;
+		update_option( 'wpseo_taxonomy_meta', $meta, false );
 	}
 
 	private function create_database_backup(): string {
